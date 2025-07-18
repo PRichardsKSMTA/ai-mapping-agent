@@ -61,6 +61,11 @@ st.session_state["current_step"] = compute_current_step()
 progress_container = st.sidebar.empty()
 render_progress(progress_container)
 
+with st.sidebar:
+    st.page_link("app.py", label="Mapping Tool", icon="🗺️")
+    st.page_link("pages/Template_Manager.py", label="Template Manager", icon="🗂️")
+    st.markdown("---")
+
 # File upload
 st.header("1. Upload Client File")
 uploaded = st.file_uploader(
