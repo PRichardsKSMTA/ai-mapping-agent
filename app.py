@@ -38,21 +38,26 @@ with st.sidebar:
         st.experimental_rerun()
 
 # Overview instructions
-st.markdown(
-    """
-    **Welcome!** This tool will help you map your client data to a standard template in two steps:
-    1. **Header Mapping**: Match your file's columns (left) to the template fields (right).
-    2. **Account Name Mapping**: Match each client GL name (left) to a standard COA name (right).
-
-    For each suggestion, you can override the AI's choice:
-    - Check the **Override?** box next to the row you want to change.
-    - Select the correct value from the **Client Column** or **Matched COA Name** dropdown.
-    - Click **Confirm** to save your overrides.
-    """
-)
+with st.expander("Help", expanded=True):
+    st.markdown(
+        """
+        **Welcome!** Use this tool in two steps:
+        - **Header Mapping** – match your columns to the template.
+        - **Account Mapping** – map GL names to the standard COA.
+        - Use **Override?** to change a suggestion and press **Confirm**.
+        """
+    )
 
 # Client ID
-client_id = st.text_input("Client ID", value="default_client", key="client_id")
+client_id = st.text_input(
+    "Client ID",
+    value="default_client",
+    key="client_id",
+    help="Used to store and reload your corrections",
+)
+st.caption(
+    "Changing the Client ID loads any saved header or account corrections for that ID."
+)
 
 # Debug info (for admins)
 # st.write("📂 Current working directory:", os.getcwd())
