@@ -47,10 +47,18 @@ try:
 except Exception:
     pass
 
+# Step progress indicator
+STEPS = ["Upload File", "Map Headers", "Match Account Names"]
+if "current_step" not in st.session_state:
+    st.session_state["current_step"] = 0
+st.progress(st.session_state["current_step"] / len(STEPS))
+
 # File upload
 st.header("1. Upload Client File")
 uploaded = st.file_uploader("Choose an Excel file", type=["xls","xlsx","xlsm"])
-if not uploaded:
+if uploaded:
+    st.session_state["current_step"] = max(st.session_state["current_step"], 1)
+else:
     st.stop()
 
 # Parse file and preview
@@ -119,6 +127,7 @@ if tmpl_name:
                 save_header_corrections(client_id, tmpl_name, corrections)
             st.session_state["header_suggestions"] = updated
             st.session_state["header_confirmed"] = True
+            st.session_state["current_step"] = max(st.session_state["current_step"], 2)
             st.success("✅ Header mappings confirmed")
 
     # Final header mappings view
@@ -186,4 +195,5 @@ if tmpl_name:
                 if corrections:
                     save_account_corrections(client_id, tmpl_name, corrections)
                 st.session_state["account_suggestions"] = updated_acc
+                st.session_state["current_step"] = max(st.session_state["current_step"], 3)
                 st.success("✅ Account mappings confirmed")
