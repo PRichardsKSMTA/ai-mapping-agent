@@ -61,10 +61,10 @@ st.session_state["current_step"] = compute_current_step()
 progress_container = st.sidebar.empty()
 render_progress(progress_container)
 
-with st.sidebar:
-    st.page_link("app.py", label="Mapping Tool", icon="🗺️")
-    st.page_link("pages/Template_Manager.py", label="Template Manager", icon="🗂️")
-    st.markdown("---")
+# The built-in page navigator already lists available pages. We avoid custom
+# `st.page_link` calls to prevent duplication and compatibility issues across
+# Streamlit versions.
+
 
 # File upload
 st.header("1. Upload Client File")
@@ -88,6 +88,9 @@ st.dataframe(pd.DataFrame(records).head())
 
 # Template selection
 st.header("2. Select Template & Map Headers")
+# Ensure the templates directory exists in case this is the first run or a
+# fresh deployment without any templates yet.
+os.makedirs("templates", exist_ok=True)
 templates = [f[:-5] for f in os.listdir("templates") if f.endswith(".json")]
 tmpl_name = st.selectbox("Choose a template", templates)
 

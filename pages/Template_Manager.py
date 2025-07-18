@@ -22,8 +22,8 @@ progress_container = st.sidebar.empty()
 render_progress(progress_container)
 
 with st.sidebar:
-    st.page_link("app.py", label="Mapping Tool", icon="🗺️")
-    st.page_link("pages/Template_Manager.py", label="Template Manager", icon="🗂️")
+    # Use Streamlit's built-in page navigation and avoid custom page links that
+    # can fail on older versions or cause duplicate menus.
     st.markdown("---")
     if st.button("Reset"):
         for k in [
@@ -61,6 +61,9 @@ with st.sidebar:
             st.error(f"Failed to read JSON: {e}")
 
     with st.expander("Existing Templates", expanded=False):
+        # Ensure the templates directory exists to avoid FileNotFoundError on
+        # first run or in a clean deployment.
+        os.makedirs("templates", exist_ok=True)
         tmpl_files = [f for f in os.listdir("templates") if f.endswith(".json")]
         for tf in tmpl_files:
             c1, c2, c3 = st.columns([2, 1, 1])
