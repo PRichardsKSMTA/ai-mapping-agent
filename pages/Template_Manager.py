@@ -25,6 +25,7 @@ with st.sidebar:
             "account_suggestions",
         ]:
             st.session_state.pop(k, None)
+        st.session_state["current_step"] = 0
         st.session_state["uploaded_file"] = None
         st.session_state["client_id"] = ""
         st.experimental_rerun()
