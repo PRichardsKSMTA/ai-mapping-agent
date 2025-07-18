@@ -1,7 +1,7 @@
 import os
 import json
 import streamlit as st
-from utils.ui_utils import render_progress
+from utils.ui_utils import render_progress, compute_current_step
 
 # Helper to validate uploaded template structure
 
@@ -17,9 +17,9 @@ def validate_template_json(data: dict):
     return True, ""
 
 st.title("Template Manager")
-if "current_step" not in st.session_state:
-    st.session_state["current_step"] = 0
-render_progress()
+st.session_state["current_step"] = compute_current_step()
+progress_container = st.sidebar.empty()
+render_progress(progress_container)
 
 with st.sidebar:
     if st.button("Reset"):
@@ -27,9 +27,9 @@ with st.sidebar:
             "header_suggestions",
             "header_confirmed",
             "account_suggestions",
+            "account_confirmed",
         ]:
             st.session_state.pop(k, None)
-        st.session_state["current_step"] = 0
         st.session_state["uploaded_file"] = None
         st.session_state["client_id"] = ""
         st.experimental_rerun()
