@@ -63,6 +63,7 @@ def cosine_similarity(a,b):
     a_arr, b_arr = np.array(a), np.array(b)
     return float(a_arr.dot(b_arr)/(np.linalg.norm(a_arr)*np.linalg.norm(b_arr)))
 
+@st.cache_data(show_spinner=False)
 def compute_template_embeddings(template_accounts: list, model: str = "text-embedding-ada-002"):
     out = []
     for acc in template_accounts:
