@@ -65,7 +65,7 @@ st.progress(st.session_state["current_step"] / len(STEPS))
 st.header("1. Upload Client File")
 uploaded = st.file_uploader("Choose an Excel file", type=["xls","xlsx","xlsm"])
 if uploaded:
-    st.session_state["current_step"] = max(st.session_state["current_step"], 1)
+    st.session_state["current_step"] = 1
 else:
     st.stop()
 
@@ -140,7 +140,7 @@ if tmpl_name:
                 save_header_corrections(client_id, tmpl_name, corrections)
             st.session_state["header_suggestions"] = updated
             st.session_state["header_confirmed"] = True
-            st.session_state["current_step"] = max(st.session_state["current_step"], 2)
+            st.session_state["current_step"] = 2
             st.success("✅ Header mappings confirmed")
 
     # Final header mappings view
@@ -205,6 +205,7 @@ if tmpl_name:
                 if corrections:
                     save_account_corrections(client_id, tmpl_name, corrections)
                 st.session_state["account_suggestions"] = updated_acc
+                st.session_state["current_step"] = 3
                 st.success("✅ Account mappings confirmed")
 
                 # Aggregate confirmed mappings
