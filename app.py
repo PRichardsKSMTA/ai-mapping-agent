@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd
 
@@ -16,102 +15,109 @@ from utils.mapping_utils import (
     save_account_corrections,
 )
 
-# Load environment
-load_dotenv()
-
 # Streamlit config
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
 st.title("AI Mapping Agent 🗺️")
-st.write("Upload client data (left) and map to your destination template (right).")
+
+# Overview instructions
+st.markdown(
+    """
+    **Welcome!** This tool will help you map your client data to a standard template in two steps:
+    1. **Header Mapping**: Match your file's columns (left) to the template fields (right).
+    2. **Account Name Mapping**: Match each client GL name (left) to a standard COA name (right).
+
+    For each suggestion, you can override the AI's choice:
+    - Check the **Override?** box next to the row you want to change.
+    - Select the correct value from the **Client Column** or **Matched COA Name** dropdown.
+    - Click **Confirm** to save your overrides.
+    """
+)
 
 # Client ID
 client_id = st.text_input("Client ID", value="default_client")
 
-# Debug info
-st.write("📂 CWD:", os.getcwd())
+# Debug info (for admins)
+# st.write("📂 Current working directory:", os.getcwd())
 try:
-    st.write("📄 templates/:", os.listdir("templates"))
+    st.write("📄 Available templates:", os.listdir("templates"))
 except Exception:
     pass
 
 # File upload
-uploaded = st.file_uploader("Upload Excel file", type=["xls","xlsx","xlsm"])
+st.header("1. Upload Client File")
+uploaded = st.file_uploader("Choose an Excel file", type=["xls","xlsx","xlsm"])
 if not uploaded:
     st.stop()
 
-# Parse file
+# Parse file and preview
 records, columns = excel_to_json(uploaded)
-st.subheader("Detected Columns")
+st.subheader("Preview: Detected Columns")
 st.write(columns)
-st.subheader("Sample Record")
+st.subheader("Preview: First Record")
 st.json(records[0])
 
 # Template selection
-st.subheader("Step 1: Select Template & Map Headers")
+st.header("2. Select Template & Map Headers")
 templates = [f[:-5] for f in os.listdir("templates") if f.endswith(".json")]
-tmpl_name = st.selectbox("Template", templates)
+tmpl_name = st.selectbox("Choose a template", templates)
 
 if tmpl_name:
     template = load_template(tmpl_name)
 
-    # Header mapping suggestions
+    # Suggest header mappings
     if "header_suggestions" not in st.session_state:
         if st.button("Suggest Header Mappings"):
-            with st.spinner("Generating header mapping suggestions…"):
+            with st.spinner("AI is generating header mappings…"):
                 prior = load_header_corrections(client_id, tmpl_name)
                 st.session_state["header_suggestions"] = suggest_mapping(
                     template, records[:5], prior
                 )
 
-    # Show and edit header mappings
+    # Header mapping editing
     if "header_suggestions" in st.session_state:
+        st.info(
+            "**Instructions:** Check 'Override?' for any row you want to change, then use the 'Client Column' dropdown to select the correct column."
+        )
         hdr = st.session_state["header_suggestions"]
         df_hdr = pd.DataFrame(hdr)
         df_hdr["confidence"] = df_hdr["confidence"].astype(str) + " %"
-        # Reorder: Client → Template → Confidence → Reasoning
-        df_hdr = df_hdr[["client_column", "template_field", "confidence", "reasoning"]]
+        df_hdr["override"] = False
+        df_hdr = df_hdr[["override", "client_column", "template_field", "confidence", "reasoning"]]
 
-        st.subheader("Header Mapping")
         edited = st.data_editor(
             df_hdr,
             column_config={
-                # client_column as dropdown
                 "client_column": st.column_config.SelectboxColumn(
-                    label="Client Column",
-                    options=columns,
-                    help="Select the correct client column"
+                    label="Client Column", options=columns
                 ),
-                # template_field read-only
-                "template_field": st.column_config.TextColumn(
-                    label="Template Field", disabled=True
-                ),
-                # confidence read-only
-                "confidence": st.column_config.TextColumn(
-                    label="Confidence", disabled=True
-                ),
-                # reasoning read-only
-                "reasoning": st.column_config.TextColumn(
-                    label="Reasoning", disabled=True
-                ),
+                "template_field": st.column_config.TextColumn(label="Template Field", disabled=True),
+                "confidence": st.column_config.TextColumn(label="Confidence", disabled=True),
+                "reasoning": st.column_config.TextColumn(label="Reasoning", disabled=True),
             },
             hide_index=True,
             use_container_width=True
         )
         if st.button("Confirm Header Mappings"):
             corrections = []
+            updated = []
             for orig, row in zip(hdr, edited.to_dict("records")):
-                if orig["client_column"] != row["client_column"]:
-                    corrections.append({
-                        "template_field": orig["template_field"],
-                        "correct_client_column": row["client_column"],
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
+                if row.get("override"):
+                    new_col = row["client_column"]
+                    if orig["client_column"] != new_col:
+                        corrections.append({
+                            "template_field": orig["template_field"],
+                            "correct_client_column": new_col,
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                    orig["client_column"] = new_col
+                updated.append(orig)
             if corrections:
                 save_header_corrections(client_id, tmpl_name, corrections)
+            st.session_state["header_suggestions"] = updated
             st.session_state["header_confirmed"] = True
             st.success("✅ Header mappings confirmed")
 
-    # Display final header mappings
+    # Final header mappings view
     if st.session_state.get("header_confirmed"):
         st.subheader("Final Header Mappings")
         final_hdr = pd.DataFrame(st.session_state["header_suggestions"])
@@ -119,11 +125,11 @@ if tmpl_name:
         final_hdr = final_hdr[["client_column", "template_field", "confidence"]]
         st.table(final_hdr)
 
-        # Step 2: Account mapping
-        st.subheader("Step 2: Match Account Names to Standard COA")
+        # Account name mapping step
+        st.header("3. Match Account Names to Standard COA")
         if "account_suggestions" not in st.session_state:
             if st.button("Suggest Account Name Mappings"):
-                with st.spinner("Matching account names…"):
+                with st.spinner("AI is matching account names…"):
                     if "tmpl_acc_emb" not in st.session_state:
                         st.session_state["tmpl_acc_emb"] = compute_template_embeddings(
                             template["accounts"]
@@ -135,45 +141,45 @@ if tmpl_name:
                         prior
                     )
 
-        # Show and edit account mappings
         if "account_suggestions" in st.session_state:
+            st.info(
+                "**Instructions:** Check 'Override?' for any account you want to change, then use the 'Matched COA Name' dropdown."
+            )
             acc = st.session_state["account_suggestions"]
             df_acc = pd.DataFrame(acc)
             df_acc["confidence"] = df_acc["confidence"].astype(str) + " %"
+            df_acc["override"] = False
             std_names = [a["GL_NAME"] for a in template["accounts"]]
-            df_acc = df_acc[["client_GL_NAME", "matched_GL_NAME", "confidence", "reasoning"]]
+            df_acc = df_acc[["override", "client_GL_NAME", "matched_GL_NAME", "confidence", "reasoning"]]
 
-            st.subheader("Account Name Mapping")
             edited2 = st.data_editor(
                 df_acc,
                 column_config={
-                    "client_GL_NAME": st.column_config.TextColumn(
-                        label="Client GL Name", disabled=True
-                    ),
+                    "client_GL_NAME": st.column_config.TextColumn(label="Client GL Name", disabled=True),
                     "matched_GL_NAME": st.column_config.SelectboxColumn(
-                        label="Matched COA Name",
-                        options=std_names,
-                        help="Select the matching COA name"
+                        label="Matched COA Name", options=std_names
                     ),
-                    "confidence": st.column_config.TextColumn(
-                        label="Confidence", disabled=True
-                    ),
-                    "reasoning": st.column_config.TextColumn(
-                        label="Reasoning", disabled=True
-                    ),
+                    "confidence": st.column_config.TextColumn(label="Confidence", disabled=True),
+                    "reasoning": st.column_config.TextColumn(label="Reasoning", disabled=True),
                 },
                 hide_index=True,
                 use_container_width=True
             )
             if st.button("Confirm Account Mappings"):
                 corrections = []
+                updated_acc = []
                 for orig, row in zip(acc, edited2.to_dict("records")):
-                    if orig["matched_GL_NAME"] != row["matched_GL_NAME"]:
-                        corrections.append({
-                            "client_GL_NAME": orig["client_GL_NAME"],
-                            "matched_GL_NAME": row["matched_GL_NAME"],
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
+                    if row.get("override"):
+                        new_match = row["matched_GL_NAME"]
+                        if orig["matched_GL_NAME"] != new_match:
+                            corrections.append({
+                                "client_GL_NAME": orig["client_GL_NAME"],
+                                "matched_GL_NAME": new_match,
+                                "timestamp": datetime.utcnow().isoformat()
+                            })
+                        orig["matched_GL_NAME"] = new_match
+                    updated_acc.append(orig)
                 if corrections:
                     save_account_corrections(client_id, tmpl_name, corrections)
+                st.session_state["account_suggestions"] = updated_acc
                 st.success("✅ Account mappings confirmed")
