@@ -8,8 +8,8 @@ import pandas as pd
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
-from utils.excel_utils import excel_to_json
-from utils.mapping_utils import (
+from app_utils.excel_utils import excel_to_json
+from app_utils.mapping_utils import (
     load_template,
     suggest_mapping,
     compute_template_embeddings,
@@ -19,7 +19,7 @@ from utils.mapping_utils import (
     load_account_corrections,
     save_account_corrections,
 )
-from utils.ui_utils import render_progress, compute_current_step, STEPS
+from app_utils.ui_utils import render_progress, compute_current_step, STEPS
 
 # Streamlit config
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
