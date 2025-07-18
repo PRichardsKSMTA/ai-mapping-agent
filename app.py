@@ -77,11 +77,16 @@ else:
     st.stop()
 
 # Parse file and preview
-records, columns = excel_to_json(uploaded)
+try:
+    records, columns = excel_to_json(uploaded)
+except Exception as e:
+    st.error(f"Failed to parse the uploaded file: {e}")
+    st.stop()
+
 st.subheader("Preview: Detected Columns")
 st.write(columns)
-st.subheader("Preview: First Record")
-st.json(records[0])
+st.subheader("Preview: First Few Rows")
+st.dataframe(pd.DataFrame(records).head())
 
 # Template selection
 st.header("2. Select Template & Map Headers")
