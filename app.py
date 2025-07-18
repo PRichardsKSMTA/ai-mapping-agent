@@ -19,6 +19,7 @@ from utils.mapping_utils import (
     load_account_corrections,
     save_account_corrections,
 )
+from utils.ui_utils import render_progress, STEPS
 
 # Streamlit config
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
@@ -56,10 +57,10 @@ except Exception:
     pass
 
 # Step progress indicator
-STEPS = ["Upload File", "Map Headers", "Match Account Names"]
 if "current_step" not in st.session_state:
     st.session_state["current_step"] = 0
-st.progress(st.session_state["current_step"] / len(STEPS))
+
+render_progress()
 
 # File upload
 st.header("1. Upload Client File")
