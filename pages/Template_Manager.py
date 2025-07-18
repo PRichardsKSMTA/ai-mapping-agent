@@ -1,7 +1,7 @@
 import os
 import json
 import streamlit as st
-from utils.ui_utils import render_progress, compute_current_step
+from app_utils.ui_utils import render_progress, compute_current_step
 
 # Helper to validate uploaded template structure
 
