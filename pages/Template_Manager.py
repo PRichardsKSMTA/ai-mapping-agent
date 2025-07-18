@@ -22,6 +22,9 @@ progress_container = st.sidebar.empty()
 render_progress(progress_container)
 
 with st.sidebar:
+    st.page_link("app.py", label="Mapping Tool", icon="🗺️")
+    st.page_link("pages/Template_Manager.py", label="Template Manager", icon="🗂️")
+    st.markdown("---")
     if st.button("Reset"):
         for k in [
             "header_suggestions",
