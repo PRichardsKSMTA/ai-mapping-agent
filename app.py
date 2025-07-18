@@ -23,6 +23,20 @@ from utils.mapping_utils import (
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
 st.title("AI Mapping Agent 🗺️")
 
+# Sidebar controls
+with st.sidebar:
+    if st.button("Reset"):
+        for k in [
+            "header_suggestions",
+            "header_confirmed",
+            "account_suggestions",
+            "tmpl_acc_emb",
+        ]:
+            st.session_state.pop(k, None)
+        st.session_state["uploaded_file"] = None
+        st.session_state["client_id"] = ""
+        st.experimental_rerun()
+
 # Overview instructions
 st.markdown(
     """
@@ -38,7 +52,7 @@ st.markdown(
 )
 
 # Client ID
-client_id = st.text_input("Client ID", value="default_client")
+client_id = st.text_input("Client ID", value="default_client", key="client_id")
 
 # Debug info (for admins)
 # st.write("📂 Current working directory:", os.getcwd())
