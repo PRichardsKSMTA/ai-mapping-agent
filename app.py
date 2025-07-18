@@ -66,10 +66,7 @@ st.header("1. Upload Client File")
 uploaded = st.file_uploader(
     "Choose an Excel file", type=["xls", "xlsx", "xlsm"], key="uploaded_file"
 )
-if uploaded:
-    # store for later sessions
-    st.session_state["uploaded_file"] = uploaded
-else:
+if not uploaded:
     st.stop()
 
 # Parse file and preview
