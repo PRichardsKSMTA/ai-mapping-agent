@@ -3,6 +3,10 @@ from datetime import datetime
 import streamlit as st
 import pandas as pd
 
+# Expose API key from Streamlit secrets for OpenAI
+if "OPENAI_API_KEY" in st.secrets:
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+
 from utils.excel_utils import excel_to_json
 from utils.mapping_utils import (
     load_template,

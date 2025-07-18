@@ -2,12 +2,11 @@ import os
 import json
 import numpy as np
 from datetime import datetime
-from dotenv import load_dotenv
+import streamlit as st
 from openai import OpenAI
 
-# Load env & init client
-load_dotenv()
-client = OpenAI()
+# Initialize OpenAI client using Streamlit's secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Memory helpers
 
