@@ -6,7 +6,9 @@ STEPS = ["Upload File", "Map Headers", "Match Account Names"]
 def compute_current_step() -> int:
     """Determine which step the user is currently on."""
     if st.session_state.get("account_confirmed"):
-        return 3
+        # Once the final step is confirmed, mark all steps as completed
+        # by returning a value greater than the last step index.
+        return len(STEPS) + 1
     if st.session_state.get("header_confirmed"):
         return 2
     if st.session_state.get("uploaded_file") is not None:
