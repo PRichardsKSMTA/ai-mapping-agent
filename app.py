@@ -31,7 +31,6 @@ with st.sidebar:
             "header_suggestions",
             "header_confirmed",
             "account_suggestions",
-            "tmpl_acc_emb",
         ]:
             st.session_state.pop(k, None)
         st.session_state["uploaded_file"] = None
@@ -163,14 +162,11 @@ if tmpl_name:
         if "account_suggestions" not in st.session_state:
             if st.button("Suggest Account Name Mappings"):
                 with st.spinner("AI is matching account names…"):
-                    if "tmpl_acc_emb" not in st.session_state:
-                        st.session_state["tmpl_acc_emb"] = compute_template_embeddings(
-                            template["accounts"]
-                        )
                     prior = load_account_corrections(client_id, tmpl_name)
+                    tmpl_acc_emb = compute_template_embeddings(template["accounts"])
                     st.session_state["account_suggestions"] = match_account_names(
                         records,
-                        st.session_state["tmpl_acc_emb"],
+                        tmpl_acc_emb,
                         prior
                     )
 

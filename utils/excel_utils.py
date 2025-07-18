@@ -1,4 +1,5 @@
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
+import streamlit as st
 
 def detect_header_row(path: str,
                       sheet_name=0,
@@ -24,6 +25,7 @@ def detect_header_row(path: str,
     return best_idx if best_idx is not None else 0
 
 
+@st.cache_data(show_spinner=False)
 def excel_to_json(path: str,
                   sheet_name=0,
                   max_rows=50,
