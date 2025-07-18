@@ -1,4 +1,5 @@
 import streamlit as st
+from app_utils.mapping_utils import load_progress
 
 # Steps used across the application
 STEPS = ["Upload File", "Map Headers", "Match Account Names"]
@@ -6,15 +7,12 @@ STEPS = ["Upload File", "Map Headers", "Match Account Names"]
 def compute_current_step() -> int:
     """Determine which step the user is currently on."""
     if st.session_state.get("account_confirmed"):
-        # Once the final step is confirmed, mark all steps as completed
-        # by returning a value greater than the last step index.
         return len(STEPS) + 1
     if st.session_state.get("header_confirmed"):
         return 2
     if st.session_state.get("uploaded_file") is not None:
         return 1
     return 0
-
 
 def render_progress(container: st.delta_generator.DeltaGenerator | None = None):
     """Render a persistent sidebar progress indicator."""
@@ -47,3 +45,5 @@ def render_progress(container: st.delta_generator.DeltaGenerator | None = None):
                 cls = "todo"
             st.markdown(f'<div class="step {cls}">{step}</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+        if current > len(STEPS):
+            st.success("🎉 All steps completed!")

@@ -18,13 +18,25 @@ from app_utils.mapping_utils import (
     save_header_corrections,
     load_account_corrections,
     save_account_corrections,
+    load_progress,
+    save_progress,
 )
 from app_utils.ui_utils import render_progress, compute_current_step, STEPS
 
 # Streamlit config
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
-st.title("AI Mapping Agent 🗺️")
 
+# Restore state and progress
+client_id = st.session_state.get("client_id", "default_client")
+stored = load_progress(client_id)
+for k, v in stored.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+st.session_state["current_step"] = compute_current_step()
+progress_container = st.sidebar.empty()
+render_progress(progress_container)
+
+st.title("AI Mapping Agent 🗺️")
 
 # Overview instructions
 with st.expander("Help", expanded=True):
@@ -40,31 +52,13 @@ with st.expander("Help", expanded=True):
 # Client ID
 client_id = st.text_input(
     "Client ID",
-    value="default_client",
+    value=client_id,
     key="client_id",
     help="Used to store and reload your corrections",
 )
-st.caption(
-    "Changing the Client ID loads any saved header or account corrections for that ID."
-)
-
-# Debug info (for admins)
-# st.write("📂 Current working directory:", os.getcwd())
-try:
-    # st.write("📄 Available templates:", os.listdir("templates"))  # Uncomment for debugging
-    pass
-except Exception:
-    pass
-
-# Step progress indicator
-st.session_state["current_step"] = compute_current_step()
-progress_container = st.sidebar.empty()
-render_progress(progress_container)
-
-# The built-in page navigator already lists available pages. We avoid custom
-# `st.page_link` calls to prevent duplication and compatibility issues across
-# Streamlit versions.
-
+if "client_id" not in st.session_state:
+    st.session_state["client_id"] = client_id
+st.caption("Changing the Client ID loads any saved header or account corrections for that ID.")
 
 # File upload
 st.header("1. Upload Client File")
@@ -88,8 +82,6 @@ st.dataframe(pd.DataFrame(records).head())
 
 # Template selection
 st.header("2. Select Template & Map Headers")
-# Ensure the templates directory exists in case this is the first run or a
-# fresh deployment without any templates yet.
 os.makedirs("templates", exist_ok=True)
 templates = [f[:-5] for f in os.listdir("templates") if f.endswith(".json")]
 tmpl_name = st.selectbox("Choose a template", templates)
@@ -97,7 +89,6 @@ tmpl_name = st.selectbox("Choose a template", templates)
 if tmpl_name:
     template = load_template(tmpl_name)
 
-    # Suggest header mappings
     if "header_suggestions" not in st.session_state:
         if st.button("Suggest Header Mappings"):
             with st.spinner("AI is generating header mappings…"):
@@ -106,7 +97,6 @@ if tmpl_name:
                     template, records[:5], prior
                 )
 
-    # Header mapping editing
     if "header_suggestions" in st.session_state:
         st.info(
             "**Instructions:** Check 'Override?' for any row you want to change, then use the 'Client Column' dropdown to select the correct column."
@@ -148,11 +138,11 @@ if tmpl_name:
                 save_header_corrections(client_id, tmpl_name, corrections)
             st.session_state["header_suggestions"] = updated
             st.session_state["header_confirmed"] = True
+            save_progress(client_id, "header_confirmed", True)
             st.session_state["current_step"] = compute_current_step()
             render_progress(progress_container)
             st.success("✅ Header mappings confirmed")
 
-    # Final header mappings view
     if st.session_state.get("header_confirmed"):
         st.subheader("Final Header Mappings")
         final_hdr = pd.DataFrame(st.session_state["header_suggestions"])
@@ -160,7 +150,6 @@ if tmpl_name:
         final_hdr = final_hdr[["client_column", "template_field", "confidence"]]
         st.table(final_hdr)
 
-        # Account name mapping step
         st.header("3. Match Account Names to Standard COA")
         if "account_suggestions" not in st.session_state:
             if st.button("Suggest Account Name Mappings"):
@@ -215,57 +204,7 @@ if tmpl_name:
                     save_account_corrections(client_id, tmpl_name, corrections)
                 st.session_state["account_suggestions"] = updated_acc
                 st.session_state["account_confirmed"] = True
+                save_progress(client_id, "account_confirmed", True)
                 st.session_state["current_step"] = compute_current_step()
                 render_progress(progress_container)
                 st.success("✅ Account mappings confirmed")
-
-                # Aggregate confirmed mappings
-                header_map = [
-                    {
-                        "client_column": h["client_column"],
-                        "template_field": h["template_field"],
-                    }
-                    for h in st.session_state.get("header_suggestions", [])
-                ]
-                account_map = [
-                    {
-                        "client_GL_NAME": a["client_GL_NAME"],
-                        "matched_GL_NAME": a["matched_GL_NAME"],
-                    }
-                    for a in st.session_state.get("account_suggestions", [])
-                ]
-                aggregated = {"headers": header_map, "accounts": account_map}
-
-                fmt = st.selectbox("Download format", ["CSV", "JSON"])
-                if fmt == "CSV":
-                    header_df = pd.DataFrame(header_map)
-                    header_df["mapping_type"] = "header"
-                    header_df.rename(
-                        columns={"client_column": "source", "template_field": "target"},
-                        inplace=True,
-                    )
-                    account_df = pd.DataFrame(account_map)
-                    account_df["mapping_type"] = "account"
-                    account_df.rename(
-                        columns={"client_GL_NAME": "source", "matched_GL_NAME": "target"},
-                        inplace=True,
-                    )
-                    csv_data = (
-                        pd.concat([header_df, account_df], ignore_index=True)[
-                            ["mapping_type", "source", "target"]
-                        ].to_csv(index=False)
-                    )
-                    st.download_button(
-                        "Download Mappings",
-                        data=csv_data,
-                        file_name="mappings.csv",
-                        mime="text/csv",
-                    )
-                else:
-                    json_data = json.dumps(aggregated, indent=2)
-                    st.download_button(
-                        "Download Mappings",
-                        data=json_data,
-                        file_name="mappings.json",
-                        mime="application/json",
-                    )

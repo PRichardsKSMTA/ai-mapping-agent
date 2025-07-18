@@ -1,9 +1,21 @@
 import os
 import json
 import streamlit as st
+from app_utils.mapping_utils import load_progress
 from app_utils.ui_utils import render_progress, compute_current_step
 
-# Helper to validate uploaded template structure
+
+# Restore state and show progress
+client_id = st.session_state.get("client_id", "default_client")
+stored = load_progress(client_id)
+for k, v in stored.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+st.session_state["current_step"] = compute_current_step()
+progress_container = st.sidebar.empty()
+render_progress(progress_container)
+
+st.title("Template Manager")
 
 def validate_template_json(data: dict):
     if not isinstance(data, dict):
@@ -16,14 +28,7 @@ def validate_template_json(data: dict):
         return False, "'fields' and 'accounts' must be lists"
     return True, ""
 
-st.title("Template Manager")
-st.session_state["current_step"] = compute_current_step()
-progress_container = st.sidebar.empty()
-render_progress(progress_container)
-
 with st.sidebar:
-    # Use Streamlit's built-in page navigation and avoid custom page links that
-    # can fail on older versions or cause duplicate menus.
     st.markdown("---")
     if st.button("Reset"):
         for k in [
@@ -61,8 +66,6 @@ with st.sidebar:
             st.error(f"Failed to read JSON: {e}")
 
     with st.expander("Existing Templates", expanded=False):
-        # Ensure the templates directory exists to avoid FileNotFoundError on
-        # first run or in a clean deployment.
         os.makedirs("templates", exist_ok=True)
         tmpl_files = [f for f in os.listdir("templates") if f.endswith(".json")]
         for tf in tmpl_files:
