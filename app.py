@@ -19,7 +19,7 @@ from utils.mapping_utils import (
     load_account_corrections,
     save_account_corrections,
 )
-from utils.ui_utils import render_progress, STEPS
+from utils.ui_utils import render_progress, compute_current_step, STEPS
 
 # Streamlit config
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
@@ -57,16 +57,18 @@ except Exception:
     pass
 
 # Step progress indicator
-if "current_step" not in st.session_state:
-    st.session_state["current_step"] = 0
-
-render_progress()
+st.session_state["current_step"] = compute_current_step()
+progress_container = st.sidebar.empty()
+render_progress(progress_container)
 
 # File upload
 st.header("1. Upload Client File")
-uploaded = st.file_uploader("Choose an Excel file", type=["xls","xlsx","xlsm"])
+uploaded = st.file_uploader(
+    "Choose an Excel file", type=["xls", "xlsx", "xlsm"], key="uploaded_file"
+)
 if uploaded:
-    st.session_state["current_step"] = 1
+    # store for later sessions
+    st.session_state["uploaded_file"] = uploaded
 else:
     st.stop()
 
@@ -141,7 +143,8 @@ if tmpl_name:
                 save_header_corrections(client_id, tmpl_name, corrections)
             st.session_state["header_suggestions"] = updated
             st.session_state["header_confirmed"] = True
-            st.session_state["current_step"] = 2
+            st.session_state["current_step"] = compute_current_step()
+            render_progress(progress_container)
             st.success("✅ Header mappings confirmed")
 
     # Final header mappings view
@@ -206,7 +209,9 @@ if tmpl_name:
                 if corrections:
                     save_account_corrections(client_id, tmpl_name, corrections)
                 st.session_state["account_suggestions"] = updated_acc
-                st.session_state["current_step"] = 3
+                st.session_state["account_confirmed"] = True
+                st.session_state["current_step"] = compute_current_step()
+                render_progress(progress_container)
                 st.success("✅ Account mappings confirmed")
 
                 # Aggregate confirmed mappings
