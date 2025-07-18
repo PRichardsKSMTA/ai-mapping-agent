@@ -24,6 +24,20 @@ from utils.mapping_utils import (
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
 st.title("AI Mapping Agent 🗺️")
 
+# Sidebar controls
+with st.sidebar:
+    if st.button("Reset"):
+        for k in [
+            "header_suggestions",
+            "header_confirmed",
+            "account_suggestions",
+            "tmpl_acc_emb",
+        ]:
+            st.session_state.pop(k, None)
+        st.session_state["uploaded_file"] = None
+        st.session_state["client_id"] = ""
+        st.experimental_rerun()
+
 # Overview instructions
 st.markdown(
     """
@@ -39,7 +53,7 @@ st.markdown(
 )
 
 # Client ID
-client_id = st.text_input("Client ID", value="default_client")
+client_id = st.text_input("Client ID", value="default_client", key="client_id")
 
 # Debug info (for admins)
 # st.write("📂 Current working directory:", os.getcwd())
@@ -48,10 +62,18 @@ try:
 except Exception:
     pass
 
+# Step progress indicator
+STEPS = ["Upload File", "Map Headers", "Match Account Names"]
+if "current_step" not in st.session_state:
+    st.session_state["current_step"] = 0
+st.progress(st.session_state["current_step"] / len(STEPS))
+
 # File upload
 st.header("1. Upload Client File")
 uploaded = st.file_uploader("Choose an Excel file", type=["xls","xlsx","xlsm"])
-if not uploaded:
+if uploaded:
+    st.session_state["current_step"] = max(st.session_state["current_step"], 1)
+else:
     st.stop()
 
 # Parse file and preview
@@ -120,6 +142,7 @@ if tmpl_name:
                 save_header_corrections(client_id, tmpl_name, corrections)
             st.session_state["header_suggestions"] = updated
             st.session_state["header_confirmed"] = True
+            st.session_state["current_step"] = max(st.session_state["current_step"], 2)
             st.success("✅ Header mappings confirmed")
 
     # Final header mappings view
