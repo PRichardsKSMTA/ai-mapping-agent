@@ -3,7 +3,6 @@ import streamlit as st
 # Steps used across the application
 STEPS = ["Upload File", "Map Headers", "Match Account Names"]
 
-
 def compute_current_step() -> int:
     """Determine which step the user is currently on."""
     if st.session_state.get("account_confirmed"):
