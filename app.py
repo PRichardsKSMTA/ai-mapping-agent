@@ -62,7 +62,8 @@ st.caption(
 # Debug info (for admins)
 # st.write("📂 Current working directory:", os.getcwd())
 try:
-    st.write("📄 Available templates:", os.listdir("templates"))
+    # st.write("📄 Available templates:", os.listdir("templates"))  # Uncomment for debugging
+    pass
 except Exception:
     pass
 
