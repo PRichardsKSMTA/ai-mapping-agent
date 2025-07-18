@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import json
 import streamlit as st
 import pandas as pd
 
@@ -209,5 +210,55 @@ if tmpl_name:
                 if corrections:
                     save_account_corrections(client_id, tmpl_name, corrections)
                 st.session_state["account_suggestions"] = updated_acc
-                st.session_state["current_step"] = max(st.session_state["current_step"], 3)
                 st.success("✅ Account mappings confirmed")
+
+                # Aggregate confirmed mappings
+                header_map = [
+                    {
+                        "client_column": h["client_column"],
+                        "template_field": h["template_field"],
+                    }
+                    for h in st.session_state.get("header_suggestions", [])
+                ]
+                account_map = [
+                    {
+                        "client_GL_NAME": a["client_GL_NAME"],
+                        "matched_GL_NAME": a["matched_GL_NAME"],
+                    }
+                    for a in st.session_state.get("account_suggestions", [])
+                ]
+                aggregated = {"headers": header_map, "accounts": account_map}
+
+                fmt = st.selectbox("Download format", ["CSV", "JSON"])
+                if fmt == "CSV":
+                    header_df = pd.DataFrame(header_map)
+                    header_df["mapping_type"] = "header"
+                    header_df.rename(
+                        columns={"client_column": "source", "template_field": "target"},
+                        inplace=True,
+                    )
+                    account_df = pd.DataFrame(account_map)
+                    account_df["mapping_type"] = "account"
+                    account_df.rename(
+                        columns={"client_GL_NAME": "source", "matched_GL_NAME": "target"},
+                        inplace=True,
+                    )
+                    csv_data = (
+                        pd.concat([header_df, account_df], ignore_index=True)[
+                            ["mapping_type", "source", "target"]
+                        ].to_csv(index=False)
+                    )
+                    st.download_button(
+                        "Download Mappings",
+                        data=csv_data,
+                        file_name="mappings.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    json_data = json.dumps(aggregated, indent=2)
+                    st.download_button(
+                        "Download Mappings",
+                        data=json_data,
+                        file_name="mappings.json",
+                        mime="application/json",
+                    )
