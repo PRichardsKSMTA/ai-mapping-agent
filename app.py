@@ -1,8 +1,8 @@
 import os
 from datetime import datetime
 import json
-import streamlit as st
-import pandas as pd
+import streamlit as st # type: ignore
+import pandas as pd # type: ignore
 
 # Expose API key from Streamlit secrets for OpenAI
 if "OPENAI_API_KEY" in st.secrets:

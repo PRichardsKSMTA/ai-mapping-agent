@@ -29,6 +29,9 @@ MANIFEST
 # Secrets
 .streamlit/
 
+# File Structure
+file_structure.md
+
 # Testing
 tests/
 

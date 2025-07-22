@@ -1,6 +1,6 @@
 import os
 import json
-import streamlit as st
+import streamlit as st # type: ignore
 from app_utils.mapping_utils import load_progress
 from app_utils.ui_utils import render_progress, compute_current_step
 
