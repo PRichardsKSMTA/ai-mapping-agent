@@ -198,7 +198,6 @@ See `templates/coa_template.json`.
 | ---------- | ------- | ------------------------------------------------------ |
 | 2025-07-22 | 2.0     | Initial multilayer spec; removes mandatory `accounts`. |
 
-```
 
 ---
 
@@ -210,4 +209,3 @@ See `templates/coa_template.json`.
 
 > **Next unlocked phase:** **B-1** – dynamic wizard (`build_steps(template_layers)` in `app_utils/ui_utils.py`).  
 > When you’re ready, we can implement it or move on to any other task.
-```
