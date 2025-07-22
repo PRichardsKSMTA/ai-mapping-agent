@@ -1,21 +1,101 @@
-import streamlit as st
-from app_utils.mapping_utils import load_progress
+"""
+ui_utils.py  – Progress indicator & step utilities
+--------------------------------------------------
 
-# Steps used across the application
-STEPS = ["Upload File", "Map Headers", "Match Account Names"]
+• DEFAULT_STEPS always starts with “Upload File”.
+• set_steps_from_template() builds the remaining steps
+  dynamically from the *layers* array inside a template.
+• compute_current_step() works for both legacy flags
+  (header_confirmed / account_confirmed) and the new
+  generic layer_confirmed_<n> flags.
+
+Import signature (back-compat):
+    from app_utils.ui_utils import render_progress, compute_current_step, STEPS
+"""
+
+from __future__ import annotations
+
+import streamlit as st
+from typing import List
+
+# ---------------------------------------------------------------------------
+# 1. Dynamic step handling
+# ---------------------------------------------------------------------------
+
+_DEFAULT_STEPS = ["Upload File"]  # first step is always the file upload
+STEPS: List[str] = _DEFAULT_STEPS  # exported for legacy imports
+
+
+def _layer_step_label(layer: dict, idx: int) -> str:
+    """Return a human-friendly label for a template layer."""
+    ltype = layer.get("type", "").lower()
+    mapping = {
+        "header": "Map Headers",
+        "lookup": "Map Look-ups",
+        "computed": "Confirm Computed Fields",
+    }
+    return mapping.get(ltype, f"Step {idx}: {ltype.capitalize()}")
+
+
+def set_steps_from_template(layers: list[dict]) -> None:
+    """
+    Store the dynamic step list in st.session_state and expose it
+    via the global STEPS symbol for any late imports.
+    Call this right after the template is loaded.
+    """
+    global STEPS  # keep the legacy symbol in sync
+    STEPS = _DEFAULT_STEPS + [
+        _layer_step_label(layer, i + 1) for i, layer in enumerate(layers)
+    ]
+    st.session_state["steps"] = STEPS
+
+
+def get_steps() -> List[str]:
+    """Return the current step list (dynamic if already built)."""
+    return st.session_state.get("steps", STEPS)
+
+
+# ---------------------------------------------------------------------------
+# 2. Progress utilities
+# ---------------------------------------------------------------------------
+
 
 def compute_current_step() -> int:
-    """Determine which step the user is currently on."""
-    if st.session_state.get("account_confirmed"):
-        return len(STEPS) + 1
-    if st.session_state.get("header_confirmed"):
-        return 2
-    if st.session_state.get("uploaded_file") is not None:
-        return 1
-    return 0
+    """
+    Determine which step the user is on (1-based index in STEPS).
 
-def render_progress(container: st.delta_generator.DeltaGenerator | None = None):
-    """Render a persistent sidebar progress indicator."""
+    Logic:
+    • 0  – nothing uploaded
+    • 1  – file uploaded
+    • +n – for each confirmed layer (layer_confirmed_<idx>)
+    • Legacy fallback: header_confirmed / account_confirmed
+    """
+    if st.session_state.get("uploaded_file") is None:
+        return 0  # still on Start
+
+    # base index: upload done
+    idx = 1
+
+    # generic layer confirmations
+    confirmed_dynamic = [
+        k for k, v in st.session_state.items() if k.startswith("layer_confirmed_") and v
+    ]
+    idx += len(confirmed_dynamic)
+
+    # legacy flags (will disappear once app.py is refactored)
+    if st.session_state.get("header_confirmed") and "layer_confirmed_0" not in st.session_state:
+        idx += 1
+    if st.session_state.get("account_confirmed") and "layer_confirmed_1" not in st.session_state:
+        idx += 1
+
+    return idx
+
+
+def render_progress(container: st.delta_generator.DeltaGenerator | None = None) -> None:
+    """
+    Render a persistent sidebar progress indicator.
+    """
+    steps = get_steps()
     current = st.session_state.get("current_step", 0)
     styles = """
     <style>
@@ -36,14 +116,14 @@ def render_progress(container: st.delta_generator.DeltaGenerator | None = None):
         st.markdown(styles, unsafe_allow_html=True)
         st.subheader("Progress")
         st.markdown('<div class="progress-list">', unsafe_allow_html=True)
-        for i, step in enumerate(STEPS, start=1):
+        for i, step in enumerate(steps, start=1):
             if current > i:
                 cls = "completed"
             elif current == i:
                 cls = "current"
             else:
                 cls = "todo"
-            st.markdown(f'<div class="step {cls}">{step}</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="step {cls}">{step}</div>', unsafe_allow_html=True
+            )
         st.markdown('</div>', unsafe_allow_html=True)
-        if current > len(STEPS):
-            st.success("🎉 All steps completed!")

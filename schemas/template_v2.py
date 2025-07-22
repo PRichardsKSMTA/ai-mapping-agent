@@ -16,7 +16,13 @@ layer types can be added without changing the model.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
+    ConfigDict,
+    ValidationError
+)
 from typing import List, Literal, Optional, Dict, Any
 
 
@@ -66,12 +72,13 @@ class Template(BaseModel):
     template_name: str
     layers: List[Layer]
 
-    # Allow additional top-level keys like "fields" or "accounts"
-    class Config:
-        extra = "allow"
+    # Allow unknown top-level keys (back-compat)
+    model_config = ConfigDict(extra="allow")
 
-    @validator("layers")
-    def at_least_one_layer(cls, value):
-        if len(value) == 0:
+    # Pydantic-v2 syle validator
+    @field_validator("layers")
+    @classmethod
+    def _non_empty_layers(cls, v: List[Layer]):
+        if not v:
             raise ValueError("Template must contain at least one layer")
-        return value
+        return v

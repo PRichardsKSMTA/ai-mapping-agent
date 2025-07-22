@@ -1,70 +1,71 @@
 {
-    "template_name": "Standard COA",
-    "fields": [
-      { "key": "GL_ID",        "type": "string" },
-      { "key": "DETAIL_LEVEL", "type": "number" },
-      { "key": "GL_NAME",      "type": "string" },
-      { "key": "NET_CHANGE",   "type": "number" }
-    ],
-  
-    "layers": [
-      {
-        "type": "header",
-        "fields": [
-          { "key": "GL_ID",        "required": true },
-          { "key": "DETAIL_LEVEL", "required": true },
-          { "key": "GL_NAME",      "required": true },
-          { "key": "NET_CHANGE",   "required": false }
-        ]
-      },
-  
-      {
-        "type": "value_map",
-        "description": "Map each client GL name to the standard COA name.",
-        "source_field": "GL_NAME",
-        "target_field": "GL_NAME",
-        "dictionary": "accounts"
-      },
-  
-      {
-        "type": "computed",
-        "description": "Derive NET_CHANGE if the client file does not provide it directly.",
-        "target_field": "NET_CHANGE",
-        "formula": {
-          "strategy": "first_available",
-          "candidates": [
-            {
-              "type": "direct",
-              "source_candidates": [
-                "NET_CHANGE",
-                "Net Change",
-                "Change",
-                "Monthly Change"
+  "template_name": "Standard COA",
+
+  "fields": [
+    { "key": "GL_ID",        "type": "string" },
+    { "key": "DETAIL_LEVEL", "type": "number" },
+    { "key": "GL_NAME",      "type": "string" },
+    { "key": "NET_CHANGE",   "type": "number" }
+  ],
+
+  "layers": [
+    {
+      "type": "header",
+      "fields": [
+        { "key": "GL_ID",        "required": true },
+        { "key": "DETAIL_LEVEL", "required": true },
+        { "key": "GL_NAME",      "required": true },
+        { "key": "NET_CHANGE",   "required": false }
+      ]
+    },
+
+    {
+      "type": "lookup",
+      "description": "Map each client GL name to the standard COA name.",
+      "source_field": "GL_NAME",
+      "target_field": "GL_NAME",
+      "dictionary_sheet": "accounts"
+    },
+
+    {
+      "type": "computed",
+      "description": "Derive NET_CHANGE if the client file does not provide it directly.",
+      "target_field": "NET_CHANGE",
+      "formula": {
+        "strategy": "first_available",
+        "candidates": [
+          {
+            "type": "direct",
+            "source_candidates": [
+              "NET_CHANGE",
+              "Net Change",
+              "Change",
+              "Monthly Change"
+            ]
+          },
+          {
+            "type": "derived",
+            "expression": "$END_BALANCE - $BEGIN_BALANCE",
+            "dependencies": {
+              "BEGIN_BALANCE": [
+                "Beginning Balance",
+                "Begin Balance",
+                "Beg Bal",
+                "Opening Balance"
+              ],
+              "END_BALANCE": [
+                "Ending Balance",
+                "End Balance",
+                "Closing Balance"
               ]
-            },
-            {
-              "type": "derived",
-              "expression": "$END_BALANCE - $BEGIN_BALANCE",
-              "dependencies": {
-                "BEGIN_BALANCE": [
-                  "Beginning Balance",
-                  "Begin Balance",
-                  "Beg Bal",
-                  "Opening Balance"
-                ],
-                "END_BALANCE": [
-                  "Ending Balance",
-                  "End Balance",
-                  "Closing Balance"
-                ]
-              }
             }
-          ]
-        }
+          }
+        ]
       }
-    ],
-  
-    "accounts": [
+    }
+  ],
+
+  "accounts": [
       { "GL_ID": 2990, "DETAIL_LEVEL": 1, "GL_NAME": "OPERATING RATIO - TOTAL ASSET OPERATIONS" },
       { "GL_ID": 2,    "DETAIL_LEVEL": 1, "GL_NAME": "FREIGHT REVENUE LINEHAUL - COMPANY FLEET" },
       { "GL_ID": 3,    "DETAIL_LEVEL": 1, "GL_NAME": "FREIGHT REVENUE LINEHAUL - OWNER OPERATOR" },
@@ -145,6 +146,6 @@
       { "GL_ID": 258,  "DETAIL_LEVEL": 2, "GL_NAME": "MAINTENANCE EXPENSE - TRAILER - TIRES - TOTAL ASSET OPERATIONS" },
       { "GL_ID": 272,  "DETAIL_LEVEL": 2, "GL_NAME": "MAINTENANCE EXPENSE - TRACTOR - OUTSIDE VENDOR - COMPANY FLEET" },
       { "GL_ID": 284,  "DETAIL_LEVEL": 2, "GL_NAME": "MAINTENANCE EXPENSE - TRACTOR - TIRES - OUTSIDE VENDOR - COMPANY FLEET" }
-    ]
-  }
+  ]
+}
   

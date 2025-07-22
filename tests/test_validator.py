@@ -1,6 +1,6 @@
-from schemas.template_v2 import Template, ValidationError
 import json
 from pathlib import Path
+from schemas.template_v2 import Template, ValidationError
 
 
 def load_sample(name: str) -> dict:
@@ -9,7 +9,7 @@ def load_sample(name: str) -> dict:
 
 
 def test_coa_template_valid():
-    Template.parse_obj(load_sample("coa-template"))
+    Template.model_validate(load_sample("standard-fm-coa"))
 
 
 def test_pit_header_only_valid():
@@ -22,13 +22,13 @@ def test_pit_header_only_valid():
             }
         ],
     }
-    Template.parse_obj(pit)
+    Template.model_validate(pit)
 
 
 def test_missing_layers_fails():
     bad = {"template_name": "oops", "layers": []}
     try:
-        Template.parse_obj(bad)
+        Template.model_validate(bad)
     except ValidationError:
         return
     assert False, "Validation should fail when no layers"

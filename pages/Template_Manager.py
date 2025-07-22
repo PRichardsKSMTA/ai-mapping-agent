@@ -3,9 +3,10 @@ from datetime import datetime
 import json
 import streamlit as st
 
-# NEW – import the schema
-from schemas.template_v2 import Template, ValidationError  # type: ignore
+from pydantic import ValidationError
 
+# NEW – import the schema
+from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, compute_current_step
 
 st.title("Template Manager")
@@ -19,7 +20,7 @@ def validate_template_json(raw: dict) -> tuple[bool, str]:
     Returns (ok, error_message).
     """
     try:
-        Template.parse_obj(raw)
+        Template.model_validate(raw)
         return True, ""
     except ValidationError as err:  # noqa: F821
         return False, err.errors()[0]["msg"]

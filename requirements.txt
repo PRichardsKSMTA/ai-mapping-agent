@@ -4,3 +4,5 @@ numpy
 openai
 openpyxl
 pydantic
+tiktoken
+pytest
