@@ -32,11 +32,12 @@ MANIFEST
 # File Structure
 file_structure.md
 
-# Testing
-tests/
-
 # Client Data
 memories/
+
+# Local File Tests
+test_excel_to_json.py
+test_files/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

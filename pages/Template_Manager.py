@@ -1,32 +1,28 @@
 import os
+from datetime import datetime
 import json
-import streamlit as st # type: ignore
-from app_utils.mapping_utils import load_progress
+import streamlit as st
+
+# NEW – import the schema
+from schemas.template_v2 import Template, ValidationError  # type: ignore
+
 from app_utils.ui_utils import render_progress, compute_current_step
 
-
-# Restore state and show progress
-client_id = st.session_state.get("client_id", "default_client")
-stored = load_progress(client_id)
-for k, v in stored.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+st.title("Template Manager")
 st.session_state["current_step"] = compute_current_step()
 progress_container = st.sidebar.empty()
 render_progress(progress_container)
 
-st.title("Template Manager")
-
-def validate_template_json(data: dict):
-    if not isinstance(data, dict):
-        return False, "Template must be a JSON object"
-    required = ["template_name", "fields", "accounts"]
-    for k in required:
-        if k not in data:
-            return False, f"Missing key '{k}'"
-    if not isinstance(data.get("fields"), list) or not isinstance(data.get("accounts"), list):
-        return False, "'fields' and 'accounts' must be lists"
-    return True, ""
+def validate_template_json(raw: dict) -> tuple[bool, str]:
+    """
+    Validate a template against the Template V2 schema.
+    Returns (ok, error_message).
+    """
+    try:
+        Template.parse_obj(raw)
+        return True, ""
+    except ValidationError as err:  # noqa: F821
+        return False, err.errors()[0]["msg"]
 
 with st.sidebar:
     st.markdown("---")
@@ -46,18 +42,19 @@ with st.sidebar:
     st.subheader("Template Manager")
 
     uploaded_template = st.file_uploader(
-        "Upload Template JSON", type=["json"], key="template_upload")
+        "Upload Template JSON", type=["json"], key="template_upload"
+    )
     if uploaded_template is not None:
         try:
-            data = json.load(uploaded_template)
-            ok, msg = validate_template_json(data)
+            raw = json.load(uploaded_template)
+            ok, msg = validate_template_json(raw)
             if ok:
                 safe_name = "".join(
-                    c if c.isalnum() or c in "-_" else "_" for c in data["template_name"]
+                    c if c.isalnum() or c in "-_" else "_" for c in raw["template_name"]
                 )
                 os.makedirs("templates", exist_ok=True)
                 with open(os.path.join("templates", f"{safe_name}.json"), "w") as f:
-                    json.dump(data, f, indent=2)
+                    json.dump(raw, f, indent=2)
                 st.success(f"Saved template '{safe_name}'")
                 st.experimental_rerun()
             else:
@@ -78,7 +75,7 @@ with st.sidebar:
                     data=f.read(),
                     file_name=tf,
                     mime="application/json",
-                    key=f"dl_{tf}"
+                    key=f"dl_{tf}",
                 )
             if c3.button("Delete", key=f"del_{tf}"):
                 os.remove(os.path.join("templates", tf))
