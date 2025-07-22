@@ -75,3 +75,33 @@ def excel_to_json(path: str,
     # 5) Clean and return
     df = df.dropna(how="all")
     return df.to_dict(orient="records"), list(df.columns)
+
+# ---------------------------------------------------------------------------
+# Generic reader used by header & lookup pages
+# ---------------------------------------------------------------------------
+
+def read_tabular_file(uploaded_file) -> tuple[pd.DataFrame, list[str]]:
+    """
+    Accepts an in-memory Streamlit UploadedFile (CSV or Excel) and returns:
+
+        (dataframe, [column names])
+
+    • Detects header row (via detect_header_row) for Excel inputs.
+    • Assumes first row is header for CSV inputs.
+    """
+    if uploaded_file.name.lower().endswith((".xls", ".xlsx", ".xlsm")):
+        # Save to temp file because detect_header_row expects a path
+        import tempfile, os
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+            tmp.write(uploaded_file.getbuffer())
+            tmp_path = tmp.name
+
+        header_row = detect_header_row(tmp_path)
+        df = pd.read_excel(tmp_path, header=header_row)
+        os.unlink(tmp_path)
+    else:  # CSV
+        df = pd.read_csv(uploaded_file)
+
+    df.columns = df.columns.map(str)
+    return df, list(df.columns)

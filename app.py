@@ -1,210 +1,151 @@
-import os
-from datetime import datetime
+"""
+AI Mapping Agent – Streamlit entrypoint
+--------------------------------------
+
+Key features
+• Loads a JSON template (v2 schema) and builds wizard steps dynamically
+  from its `layers` array.
+• Validates the template with Pydantic (strict: no v1 accepted).
+• Lets the user upload a client Excel/CSV file.
+• Walks through each layer (header → lookup → computed → …),
+  setting `st.session_state["layer_confirmed_<idx>"] = True`
+  when a layer is completed.
+• Shows a sidebar progress tracker driven by app_utils.ui_utils.
+
+Stub pages (`pages.lookup_step`, `pages.computed_step`) are minimal;
+you will flesh them out in Phase C.
+"""
+
+from __future__ import annotations
+
 import json
-import streamlit as st # type: ignore
-import pandas as pd # type: ignore
+from pathlib import Path
 
-# Expose API key from Streamlit secrets for OpenAI
-if "OPENAI_API_KEY" in st.secrets:
-    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+import streamlit as st
+from pydantic import ValidationError
 
-from app_utils.excel_utils import excel_to_json
-from app_utils.mapping_utils import (
-    load_template,
-    suggest_mapping,
-    compute_template_embeddings,
-    match_account_names,
-    load_header_corrections,
-    save_header_corrections,
-    load_account_corrections,
-    save_account_corrections,
-    load_progress,
-    save_progress,
+from schemas.template_v2 import Template
+from app_utils.ui_utils import (
+    render_progress,
+    set_steps_from_template,
 )
-from app_utils.ui_utils import render_progress, compute_current_step, STEPS
 
-# Streamlit config
+# ---------------------------------------------------------------------------
+# 0.  Page config & helpers
+# ---------------------------------------------------------------------------
+
 st.set_page_config(page_title="AI Mapping Agent", layout="wide")
+st.title("AI Mapping Agent")
 
-# Restore state and progress
-client_id = st.session_state.get("client_id", "default_client")
-stored = load_progress(client_id)
-for k, v in stored.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
-st.session_state["current_step"] = compute_current_step()
-progress_container = st.sidebar.empty()
-render_progress(progress_container)
+TEMPLATES_DIR = Path("templates")
+TEMPLATES_DIR.mkdir(exist_ok=True)
 
-st.title("AI Mapping Agent 🗺️")
 
-# Overview instructions
-with st.expander("Help", expanded=True):
-    st.markdown(
-        """
-        **Welcome!** Use this tool in two steps:
-        - **Header Mapping** – match your columns to the template.
-        - **Account Mapping** – map GL names to the standard COA.
-        - Use **Override?** to change a suggestion and press **Confirm**.
-        """
+def reset_layer_confirmations() -> None:
+    """Clear any stored layer_confirmed_* flags."""
+    for key in list(st.session_state.keys()):
+        if key.startswith("layer_confirmed_"):
+            del st.session_state[key]
+
+
+# ---------------------------------------------------------------------------
+# 1.  Sidebar – choose template
+# ---------------------------------------------------------------------------
+
+with st.sidebar:
+    st.subheader("Select Template")
+    template_files = sorted(p.name for p in TEMPLATES_DIR.glob("*.json"))
+    selected_file = st.selectbox(
+        "Template JSON",
+        options=template_files,
+        index=template_files.index(st.session_state.get("selected_template_file"))
+        if st.session_state.get("selected_template_file") in template_files
+        else 0
+        if template_files
+        else None,
     )
 
-# Client ID
-client_id = st.text_input(
-    "Client ID",
-    value=client_id,
-    key="client_id",
-    help="Used to store and reload your corrections",
-)
-if "client_id" not in st.session_state:
-    st.session_state["client_id"] = client_id
-st.caption("Changing the Client ID loads any saved header or account corrections for that ID.")
+    template_obj: Template | None = None
+    if selected_file:
+        st.session_state["selected_template_file"] = selected_file
+        raw_template = json.loads((TEMPLATES_DIR / selected_file).read_text())
+        try:
+            template_obj = Template.model_validate(raw_template)
+        except ValidationError as err:
+            st.error(f"Template invalid:\n{err}")
+            st.stop()
+            
+        st.session_state["template"] = raw_template
 
-# File upload
-st.header("1. Upload Client File")
-uploaded = st.file_uploader(
-    "Choose an Excel file", type=["xls", "xlsx", "xlsm"], key="uploaded_file"
-)
-if not uploaded:
-    st.stop()
-
-# Parse file and preview
-try:
-    records, columns = excel_to_json(uploaded)
-except Exception as e:
-    st.error(f"Failed to parse the uploaded file: {e}")
-    st.stop()
-
-st.subheader("Preview: Detected Columns")
-st.write(columns)
-st.subheader("Preview: First Few Rows")
-st.dataframe(pd.DataFrame(records).head())
-
-# Template selection
-st.header("2. Select Template & Map Headers")
-os.makedirs("templates", exist_ok=True)
-templates = [f[:-5] for f in os.listdir("templates") if f.endswith(".json")]
-tmpl_name = st.selectbox("Choose a template", templates)
-
-if tmpl_name:
-    template = load_template(tmpl_name)
-
-    if "header_suggestions" not in st.session_state:
-        if st.button("Suggest Header Mappings"):
-            with st.spinner("AI is generating header mappings…"):
-                prior = load_header_corrections(client_id, tmpl_name)
-                st.session_state["header_suggestions"] = suggest_mapping(
-                    template, records[:5], prior
-                )
-
-    if "header_suggestions" in st.session_state:
-        st.info(
-            "**Instructions:** Check 'Override?' for any row you want to change, then use the 'Client Column' dropdown to select the correct column."
-        )
-        hdr = st.session_state["header_suggestions"]
-        df_hdr = pd.DataFrame(hdr)
-        df_hdr["confidence"] = df_hdr["confidence"].astype(str) + " %"
-        df_hdr["override"] = False
-        df_hdr = df_hdr[["override", "client_column", "template_field", "confidence", "reasoning"]]
-
-        edited = st.data_editor(
-            df_hdr,
-            column_config={
-                "client_column": st.column_config.SelectboxColumn(
-                    label="Client Column", options=columns
-                ),
-                "template_field": st.column_config.TextColumn(label="Template Field", disabled=True),
-                "confidence": st.column_config.TextColumn(label="Confidence", disabled=True),
-                "reasoning": st.column_config.TextColumn(label="Reasoning", disabled=True),
-            },
-            hide_index=True,
-            use_container_width=True
-        )
-        if st.button("Confirm Header Mappings"):
-            corrections = []
-            updated = []
-            for orig, row in zip(hdr, edited.to_dict("records")):
-                if row.get("override"):
-                    new_col = row["client_column"]
-                    if orig["client_column"] != new_col:
-                        corrections.append({
-                            "template_field": orig["template_field"],
-                            "correct_client_column": new_col,
-                            "timestamp": datetime.utcnow().isoformat()
-                        })
-                    orig["client_column"] = new_col
-                updated.append(orig)
-            if corrections:
-                save_header_corrections(client_id, tmpl_name, corrections)
-            st.session_state["header_suggestions"] = updated
-            st.session_state["header_confirmed"] = True
-            save_progress(client_id, "header_confirmed", True)
-            st.session_state["current_step"] = compute_current_step()
-            render_progress(progress_container)
-            st.success("✅ Header mappings confirmed")
-
-    if st.session_state.get("header_confirmed"):
-        st.subheader("Final Header Mappings")
-        final_hdr = pd.DataFrame(st.session_state["header_suggestions"])
-        final_hdr["confidence"] = final_hdr["confidence"].astype(str) + " %"
-        final_hdr = final_hdr[["client_column", "template_field", "confidence"]]
-        st.table(final_hdr)
-
-        st.header("3. Match Account Names to Standard COA")
-        if "account_suggestions" not in st.session_state:
-            if st.button("Suggest Account Name Mappings"):
-                with st.spinner("AI is matching account names…"):
-                    prior = load_account_corrections(client_id, tmpl_name)
-                    tmpl_acc_emb = compute_template_embeddings(template["accounts"])
-                    st.session_state["account_suggestions"] = match_account_names(
-                        records,
-                        tmpl_acc_emb,
-                        prior
-                    )
-
-        if "account_suggestions" in st.session_state:
-            st.info(
-                "**Instructions:** Check 'Override?' for any account you want to change, then use the 'Matched COA Name' dropdown."
+        # If user switched templates, rebuild steps & clear confirmations
+        if st.session_state.get("template_name") != template_obj.template_name:
+            reset_layer_confirmations()
+            set_steps_from_template(
+                [layer.model_dump() for layer in template_obj.layers]
             )
-            acc = st.session_state["account_suggestions"]
-            df_acc = pd.DataFrame(acc)
-            df_acc["confidence"] = df_acc["confidence"].astype(str) + " %"
-            df_acc["override"] = False
-            std_names = [a["GL_NAME"] for a in template["accounts"]]
-            df_acc = df_acc[["override", "client_GL_NAME", "matched_GL_NAME", "confidence", "reasoning"]]
+            st.session_state["template_name"] = template_obj.template_name
 
-            edited2 = st.data_editor(
-                df_acc,
-                column_config={
-                    "client_GL_NAME": st.column_config.TextColumn(label="Client GL Name", disabled=True),
-                    "matched_GL_NAME": st.column_config.SelectboxColumn(
-                        label="Matched COA Name", options=std_names
-                    ),
-                    "confidence": st.column_config.TextColumn(label="Confidence", disabled=True),
-                    "reasoning": st.column_config.TextColumn(label="Reasoning", disabled=True),
-                },
-                hide_index=True,
-                use_container_width=True
-            )
-            if st.button("Confirm Account Mappings"):
-                corrections = []
-                updated_acc = []
-                for orig, row in zip(acc, edited2.to_dict("records")):
-                    if row.get("override"):
-                        new_match = row["matched_GL_NAME"]
-                        if orig["matched_GL_NAME"] != new_match:
-                            corrections.append({
-                                "client_GL_NAME": orig["client_GL_NAME"],
-                                "matched_GL_NAME": new_match,
-                                "timestamp": datetime.utcnow().isoformat()
-                            })
-                        orig["matched_GL_NAME"] = new_match
-                    updated_acc.append(orig)
-                if corrections:
-                    save_account_corrections(client_id, tmpl_name, corrections)
-                st.session_state["account_suggestions"] = updated_acc
-                st.session_state["account_confirmed"] = True
-                save_progress(client_id, "account_confirmed", True)
-                st.session_state["current_step"] = compute_current_step()
-                render_progress(progress_container)
-                st.success("✅ Account mappings confirmed")
+        st.success(f"Loaded: {template_obj.template_name}")
+
+# ---------------------------------------------------------------------------
+# 2.  Sidebar – progress indicator
+# ---------------------------------------------------------------------------
+
+progress_box = st.sidebar.empty()
+render_progress(progress_box)
+
+# ---------------------------------------------------------------------------
+# 3.  Upload client data file
+# ---------------------------------------------------------------------------
+
+uploaded_file = st.file_uploader(
+    "Upload client data file (Excel or CSV)",
+    type=["csv", "xls", "xlsx"],
+    key="upload_data_file",
+)
+if uploaded_file:
+    st.session_state["uploaded_file"] = uploaded_file
+
+# ---------------------------------------------------------------------------
+# 4.  Main wizard
+# ---------------------------------------------------------------------------
+
+if st.session_state.get("uploaded_file") and template_obj:
+    # Iterate through layers in order
+    for idx, layer in enumerate(template_obj.layers):
+        layer_flag = f"layer_confirmed_{idx}"
+        if not st.session_state.get(layer_flag):
+
+            if layer.type == "header":
+                from pages.steps import header as header_step
+
+                header_step.render(layer, idx)
+
+            elif layer.type == "lookup":
+                from pages.steps import lookup as lookup_step
+
+                lookup_step.render(layer, idx)
+
+            elif layer.type == "computed":
+                from pages.steps import computed as computed_step
+
+                computed_step.render(layer, idx)
+
+            else:
+                st.error(f"Unsupported layer type: {layer.type}")
+                st.stop()
+
+            # Each layer page is expected to either set layer_confirmed_<idx>
+            # and call st.rerun(), or stop execution.
+            st.stop()
+
+    # If we reach here, all layers are confirmed
+    st.success(
+        "✅ All layers confirmed! You can now download the mapping or run the export."
+    )
+
+else:
+    if not template_obj:
+        st.info("Please select a template to begin.")
+    elif not st.session_state.get("uploaded_file"):
+        st.info("Please upload a client data file to continue.")

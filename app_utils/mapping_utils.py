@@ -5,6 +5,8 @@ from datetime import datetime
 import streamlit as st
 from openai import OpenAI
 
+from app_utils.mapping.lookup_layer import suggest_lookup_mapping
+
 # Initialize OpenAI client using Streamlit's secrets
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -141,3 +143,19 @@ def match_account_names(
                 "reasoning": f"No match ≥ {int(threshold * 100)}%"
             })
     return matches
+
+def match_lookup_values(source_series, dictionary_list):
+    """Legacy wrapper used by pages.steps.lookup."""
+    return suggest_lookup_mapping(list(source_series), list(dictionary_list))
+
+def suggest_header_mapping(template_fields: list[str], source_columns: list[str]):
+    """
+    Minimal passthrough that builds a {template_field: ''} dict.
+    Real AI logic will be ported later.
+    """
+    # exact match or blank
+    out = {}
+    lower_src = {c.lower(): c for c in source_columns}
+    for tf in template_fields:
+        out[tf] = lower_src.get(tf.lower(), "")
+    return out

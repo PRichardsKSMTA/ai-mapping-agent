@@ -37,7 +37,7 @@ with st.sidebar:
             st.session_state.pop(k, None)
         st.session_state["uploaded_file"] = None
         st.session_state["client_id"] = ""
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown("---")
     st.subheader("Template Manager")
@@ -57,7 +57,7 @@ with st.sidebar:
                 with open(os.path.join("templates", f"{safe_name}.json"), "w") as f:
                     json.dump(raw, f, indent=2)
                 st.success(f"Saved template '{safe_name}'")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error(f"Invalid template: {msg}")
         except Exception as e:
@@ -80,4 +80,4 @@ with st.sidebar:
                 )
             if c3.button("Delete", key=f"del_{tf}"):
                 os.remove(os.path.join("templates", tf))
-                st.experimental_rerun()
+                st.rerun()
