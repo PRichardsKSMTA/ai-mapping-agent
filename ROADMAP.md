@@ -1,73 +1,79 @@
 ## 0  Current state in one page
 
-| Area                        | Status                                                         | Blocking Pain‑Points                                                |
-| --------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Template JSON validator** | Hard‑coded to require `["template_name","fields","accounts"]`  | Fails for any non‑COA template.                                     |
-| **UI wizard**               | Fixed 3‑step sequence defined by constant `STEPS`              | Cannot hide the “Match Account Names” step for one‑layer templates. |
-| **Mapping helpers**         | Always load `template["accounts"]` and compute embeddings      | Crashes or wastes tokens if that key is missing.                    |
-| **Template creation**       | Only manual JSON upload; no Excel‑to‑JSON generator            | Non‑technical users cannot create templates.                        |
-| **File structure**          | Monolithic files (`app.py`, duplicated copies)                 | Hard to extend & test independently.                                |
+| Area                        | Status                                                                   | Blocking Pain‑Points                                        |
+| --------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| **Template JSON validator** | **✅ Dynamic v2 schema live** – validates any layers‑only template        | None – back‑compat with v1 templates intentionally dropped. |
+| **UI wizard**               | **✅ Layer‑driven** wizard; steps generated at runtime                    | None                                                        |
+| **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % and GPT fallback still to add.                 |
+| **Template creation**       | **🚧 In progress** – wizard skeleton exists; GPT‑builder not yet wired   | Needs column detector + save.                               |
+| **File structure**          | **✅ Re‑structured** (`io`, `mapping`, `ui`, `pages/steps`)               | —                                                           |
 
 ---
 
 ## 1  Target architecture (definition of “Done”)
 
-| Layer                      | Goal                                                                                            | “Prove it works by …”                                                                 |
-| -------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Template schema v2**     | Only `template_name` & `layers` are mandatory.  Layers can be `header`, `lookup`, `computed`, … | Upload PIT *BID*, Dog‑Breed, or COA template; validator accepts all.                  |
-| **Dynamic validator**      | Validate presence/shape of each `layer` object—**not** global keys.                             | Unit tests: `tests/test_validator.py` passes for COA, PIT, and minimal samples.       |
-| **Dynamic UI wizard**      | Generate N steps at runtime from `template["layers"]`.                                          | Running the app with PIT shows **one** step; COA shows **two**.                       |
-| **Generic mapping engine** | `suggest_layer_mapping(layer, …)` dispatches per layer‑type.                                    | Mapping runs without hitting `KeyError: 'accounts'` on PIT.                           |
-| **Template builder**       | “Upload blank template → JSON” wizard in *Template Manager* page.                               | User uploads `PIT User input fields.xlsx`; JSON auto‑appears in sidebar for download. |
-| **Modular codebase**       | Utilities split by concern; no file > 300 LoC; tests per module.                                | `pytest` green; new helpers imported without circular refs.                           |
-| **AGENTS.md guides**       | One per top‑level folder explaining *purpose, public API, don’ts*.                              | Codex answers “What goes in /app\_utils?” correctly.                                  |
+| Layer                      | Goal                                                          | “Prove it works by …”                                |
+| -------------------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
+| **Template schema v2**     | ✅ implemented & enforced                                      | COA, PIT\_BID & sample dog‑breed templates all load. |
+| **Dynamic validator**      | ✅ passes tests                                                | `pytest` green.                                      |
+| **Dynamic UI wizard**      | ✅ PIT shows 1 step; COA shows 3 (Header → Lookup → Computed). |                                                      |
+| **Generic mapping engine** | ✅ lookup embeddings modular; computed resolver working        | Mapping runs without `KeyError`.                     |
+| **Template builder**       | 🚧 stage D – column detector UI drafted                       | Auto JSON dump still TODO.                           |
+| **Modular codebase**       | ✅ sub‑packages & ≤300 LoC per file                            | Import paths stable.                                 |
+| **AGENTS.md guides**       | ✅ committed per top‑level folder                              | Codex answers architecture questions.                |
 
 ---
 
-## 2  Roadmap ‑ granular tasks & acceptance checks
+## 2  Roadmap – granular tasks & acceptance checks
 
-> **Legend**
-> 🔨 = code task for Codex   📄 = doc task   ✅ = manual QA / unit test
+> **Legend**  🔨 code   📄 docs   ✅ QA / test   🚧 in progress   🆕 new task
 
-### Phase A – Schema & Validator
+### Phase A – Schema & Validator (**complete**)
 
-| #   | Task                                                                                               | Owner | Done‑when                               |
-| --- | -------------------------------------------------------------------------------------------------- | ----- | --------------------------------------- |
-| A‑1 | 🔨 Create `schemas/template_v2.py` with `pydantic.BaseModel` for `Template`, `Layer`, etc.         | Codex | `pytest -k template_v2` passes.         |
-| A‑2 | 🔨 Refactor `Template_Manager.validate_template_json` to use the new model; drop `accounts` check. | Codex | Upload COA & PIT JSONs – both accepted. |
-| A‑3 | 📄 Add `docs/template_spec.md` describing layer types & samples.                                   | You   | File committed.                         |
+| #   | Task                    | Status |
+| --- | ----------------------- | ------ |
+| A‑1 | Create schema models    | ✅      |
+| A‑2 | Refactor validator      | ✅      |
+| A‑3 | Write template\_spec.md | ✅      |
 
-### Phase B – Dynamic Wizard
+### Phase B – Dynamic Wizard (**complete**)
 
-| #   | Task                                                                                         | Owner | Done‑when                                        |
-| --- | -------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------ |
-| B‑1 | 🔨 In `app_utils/ui_utils.py` replace global `STEPS` with `build_steps(template_layers)`.    | Codex | PIT run shows 1 step; COA run shows 2.           |
-| B‑2 | 🔨 Update `app.py` to iterate over layers generically, calling `render_layer_editor(layer)`. | Codex | No “Match Account Names” step when layer absent. |
-| B‑3 | ✅ Smoke‑test header‑only mapping end‑to‑end; download JSON.                                  | You   | File has only `"headers"` key.                   |
+| #   | Task                            | Status |
+| --- | ------------------------------- | ------ |
+| B‑1 | Replace global `STEPS`          | ✅      |
+| B‑2 | Refactor `app.py` to layer loop | ✅      |
+| B‑3 | Smoke‑test header‑only mapping  | ✅      |
 
 ### Phase C – Mapping Engine Generalisation
 
-| #   | Task                                                                                 | Owner | Done‑when                                                |
-| --- | ------------------------------------------------------------------------------------ | ----- | -------------------------------------------------------- |
-| C‑1 | 🔨 Move embedding logic into `lookup_layer.py`; only run for `layer.type=='lookup'`. | Codex | PIT mapping no longer calls OpenAI embeddings.           |
-| C‑2 | 🔨 Add support for `computed` layer with `strategy: first_available`.                | Codex | COA template with `computed` layer derives `NET_CHANGE`. |
-| C‑3 | ✅ Unit tests for `header`, `lookup`, `computed` strategies.                          | You   | `pytest` suite green.                                    |
+| #     | Task                                                  | Status | Done‑when                                     |
+| ----- | ----------------------------------------------------- | ------ | --------------------------------------------- |
+| C‑1   | Extract lookup embeddings to `lookup_layer.py`        | ✅      | PIT mapping skips embeddings for header‑only. |
+| C‑1.2 | 🆕 Add confidence % display in lookup/header pages    | 🔜     | Suggestions show “92 % confident”.            |
+| C‑1.3 | 🆕 GPT fallback for unmapped lookup values            | 🔜     | Button fills remaining blanks via GPT.        |
+| C‑2   | Add computed layer `strategy: first_available` engine | ✅      | COA derives `NET_CHANGE`.                     |
+| C‑2.1 | 🆕 Direct vs Computed toggle UI                       | 🚧     | Toggle appears in computed page.              |
+| C‑2.2 | 🆕 Expression Builder component                       | 🚧     | User builds formula visually.                 |
+| C‑2.3 | 🆕 Validate formula on sample rows                    | 🆕     | Preview shows calculated values or errors.    |
+| C‑2.4 | 🆕 Store final expression & export                    | 🆕     | Mapping JSON includes user expression.        |
+| C‑2.5 | 🆕 GPT propose expression helper                      | 🆕     | “Suggest formula” button visible.             |
+| C‑3   | Unit tests for all layer strategies                   | ✅      | `pytest` suite green.                         |
 
 ### Phase D – Template Builder Wizard
 
-| #   | Task                                                                                | Owner | Done‑when                       |
-| --- | ----------------------------------------------------------------------------------- | ----- | ------------------------------- |
-| D‑1 | 🔨 Add side‑panel in `Template_Manager.py`: “Upload sample Excel → Detect columns”. | Codex | Columns listed in multi‑select. |
-| D‑2 | 🔨 Allow user to flag required columns; save minimal JSON to `/templates`.          | Codex | JSON written; validator passes. |
-| D‑3 | ✅ Create template from `PIT User input fields.xlsx`; open in main app.              | You   | Header mapping works.           |
+| #   | Task                             | Status | Done‑when                |
+| --- | -------------------------------- | ------ | ------------------------ |
+| D‑1 | Column detector sidebar          | 🚧     | Columns auto‑listed.     |
+| D‑2 | Mark required fields & save JSON | 🔜     | Saved, validator passes. |
+| D‑3 | Create template from PIT inputs  | 🔜     | Opens in main app.       |
 
-### Phase E – Repo Restructure & Docs
+### Phase E – Repo Restructure & Docs (**complete**)
 
-| #   | Task                                                                    | Owner | Done‑when                             |
-| --- | ----------------------------------------------------------------------- | ----- | ------------------------------------- |
-| E‑1 | 🔨 Split `app_utils` into subpackages: `io`, `mapping`, `ui`, `memory`. | Codex | `import app_utils.io.excel` works.    |
-| E‑2 | 📄 Add `AGENTS.md` files (see §3).                                      | Codex | Files present & rendered on GitHub.   |
-| E‑3 | ✅ Search repo for TODO/FIXME; no orphaned references to old paths.      | You   | `rg "FIXME"` returns 0 critical hits. |
+| #   | Task                           | Status |
+| --- | ------------------------------ | ------ |
+| E‑1 | Split `app_utils` sub‑packages | ✅      |
+| E‑2 | Add `AGENTS.md` files          | ✅      |
+| E‑3 | Remove TODO/FIXME              | ✅      |
 
 ---
 
@@ -146,29 +152,17 @@ Don’ts
 
 ---
 
-## 4  Immediate Codex task list
-
-You can paste this block in a Codex chat as‑is:
+## 4  Immediate Codex task list (updated)
 
 ```
 ### Context
 Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 
 ### Tasks
-1. Create schemas/template_v2.py with Pydantic models Template, LayerHeader, LayerLookup, LayerComputed.
-2. Refactor Template_Manager.validate_template_json to use the Pydantic model; delete hard‑coded 'accounts' requirement.
-3. Add tests/test_validator.py covering COA (old), PIT_BID (header‑only), and DogBreed sample.
-4. Replace STEPS constant with dynamic builder in app_utils/ui_utils.py.
-5. Generalise mapping_utils: extract embedding code into mapping/lookup_layer.py; determine layer.type at runtime.
-6. Commit AGENTS.md files per spec.
+1. Implement confidence display in lookup & header pages (C‑1.2).
+2. Build Expression Builder UI (C‑2.2) and direct/computed toggle (C‑2.1).
+3. Add formula validation & storage (C‑2.3, C‑2.4).
+4. Optional: GPT fallback and formula suggestion (C‑1.3, C‑2.5).
+5. Implement Template Builder column detector (D‑1).
+6. Save user‑flagged required columns to JSON (D‑2).
 ```
-
----
-
-### That’s the full blueprint.
-
-When you re‑enter a new session, you only need to say:
-
-> “Please load the current repo and the roadmap in `ROADMAP.md` (this message). Show me completed vs remaining tasks.”
-
-—and any assistant will be able to continue exactly where you left off.
