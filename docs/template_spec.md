@@ -102,34 +102,29 @@ The validator dispatches to a specific Pydantic model based on that type.
 
 Supported **`strategy`** values:
 
-| Strategy          | Purpose                                                                             |
-| ----------------- | ----------------------------------------------------------------------------------- |
-| `first_available` | *(default)* Iterate candidates; stop on first that resolves.                        |
-| `user_defined`    | Placeholder; user supplies an expression at run-time via the Expression Builder UI. |
+| Strategy       | Purpose                                                         |
+|----------------|-----------------------------------------------------------------|
+| `first_available` | *(default)* Pick from template’s candidate rules automatically. |
+| `user_defined`    | Launches a **Formula Dialog** for free-form expression building. |
 
 ```jsonc
 {
   "type": "computed",
-  "target_field": "NET_CHANGE",
-  "formula": {
-    "strategy": "first_available",     // or "user_defined"
-    "candidates": [
-      {
-        "type": "direct",
-        "source_candidates": ["NET_CHANGE", "Change", "Monthly Change"]
-      },
-      {
-        "type": "derived",
-        "expression": "$END_BALANCE - $BEGIN_BALANCE",
-        "dependencies": {
-          "BEGIN_BALANCE": ["Beginning Balance", "Beg Bal"],
-          "END_BALANCE":   ["Ending Balance",   "End Bal"]
-        }
-      }
-    ]
-  }
+  "target_field": "Q2_PROFIT",
+  "formula": { "strategy": "user_defined" }
 }
 ```
+### At run-time, the Formula Dialog provides:
+
+1. Pills for each column + operators (+ − × ÷ ( )).
+
+2. Free-form text editor so users can mix typing and clicks.
+
+3. Live preview on the first 5 rows.
+
+4. **Save** back to the mapping JSON under the computed layer.
+
+---
 
 If `strategy` =`"user_defined"` the `candidates` array **may be omitted**.
 At run-time the user builds an expression; the engine stores its resolution:

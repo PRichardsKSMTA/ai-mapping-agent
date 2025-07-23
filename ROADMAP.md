@@ -46,18 +46,19 @@
 
 ### Phase C – Mapping Engine Generalisation
 
-| #     | Task                                                  | Status | Done‑when                                     |
-| ----- | ----------------------------------------------------- | ------ | --------------------------------------------- |
-| C‑1   | Extract lookup embeddings to `lookup_layer.py`        | ✅      | PIT mapping skips embeddings for header‑only. |
-| C‑1.2 | 🆕 Add confidence % display in lookup/header pages    | 🔜     | Suggestions show “92 % confident”.            |
-| C‑1.3 | 🆕 GPT fallback for unmapped lookup values            | 🔜     | Button fills remaining blanks via GPT.        |
-| C‑2   | Add computed layer `strategy: first_available` engine | ✅      | COA derives `NET_CHANGE`.                     |
-| C‑2.1 | 🆕 Direct vs Computed toggle UI                       | 🚧     | Toggle appears in computed page.              |
-| C‑2.2 | 🆕 Expression Builder component                       | 🚧     | User builds formula visually.                 |
-| C‑2.3 | 🆕 Validate formula on sample rows                    | 🆕     | Preview shows calculated values or errors.    |
-| C‑2.4 | 🆕 Store final expression & export                    | 🆕     | Mapping JSON includes user expression.        |
-| C‑2.5 | 🆕 GPT propose expression helper                      | 🆕     | “Suggest formula” button visible.             |
-| C‑3   | Unit tests for all layer strategies                   | ✅      | `pytest` suite green.                         |
+| #     | Task                                                                                    | Owner | Done‑when                                           |
+| ----- | --------------------------------------------------------------------------------------- | ------ | -------------------------------------------------- |
+| C‑1   | 🔨 Extract lookup embeddings to `lookup_layer.py`                                      | Codex  | PIT mapping skips embeddings for header‑only.       |
+| C‑1.2 | 🔨 Add confidence % display in lookup/header pages                                     | Codex  | Suggestions show “92 % confident”.                  |
+| C‑1.3 | 🔨 GPT fallback for unmapped lookup values                                             | Codex  | Button fills remaining blanks via GPT.              |
+| C‑2   | 🔨 Add support for `computed` layer with `strategy: first_available` & `user_defined`. | Me     | COA derives `NET_CHANGE`.                           |
+| C‑2.1 | ✅ Direct vs Computed toggle UI                                                        | Me     | Toggle appears in computed page.                    |
+| C‑2.2 | ✅ Inline Formula Dialog (free-form + pills + live preview).                           | Me     | User builds formula visually.                       |
+| C-2.2a| ✅ Remove standalone computed page; auto-skip in `app.py`.                             | Me     | Wizard no longer shows a second Computed step.      |
+| C‑2.3 | 🆕 Validate formula on sample rows                                                     | Me     | Preview shows calculated values or errors.          |
+| C‑2.4 | 🆕 Store final expression & export                                                     | Me     | Mapping JSON includes user expression.              |
+| C‑2.5 | 🆕 GPT propose expression helper                                                       | Me     | “Suggest formula” button visible.                   |
+| C‑3   | ✅ Unit tests for all layer strategies                                                 | Me     | `pytest` suite green.                               |
 
 ### Phase D – Template Builder Wizard
 
@@ -165,4 +166,97 @@ Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 4. Optional: GPT fallback and formula suggestion (C‑1.3, C‑2.5).
 5. Implement Template Builder column detector (D‑1).
 6. Save user‑flagged required columns to JSON (D‑2).
+```
+
+
+## 5  Current File Structure
+
+```
+└── 📁ai-mapping-agent
+    └── 📁app_utils
+        └── 📁__pycache__
+            ├── __init__.cpython-310.pyc
+            ├── __init__.cpython-311.pyc
+            ├── excel_utils.cpython-310.pyc
+            ├── excel_utils.cpython-311.pyc
+            ├── mapping_utils.cpython-310.pyc
+            ├── mapping_utils.cpython-311.pyc
+            ├── ui_utils.cpython-310.pyc
+            ├── ui_utils.cpython-311.pyc
+        └── 📁ai
+            └── 📁__pycache__
+                ├── embedding.cpython-311.pyc
+            ├── embedding.py
+        └── 📁mapping
+            └── 📁__pycache__
+                ├── computed_layer.cpython-311.pyc
+                ├── lookup_layer.cpython-311.pyc
+            ├── computed_layer.py
+            ├── lookup_layer.py
+        └── 📁ui
+            └── 📁__pycache__
+                ├── expression_builder.cpython-311.pyc
+            ├── expression_builder.py
+        ├── __init__.py
+        ├── AGENTS.md
+        ├── excel_utils.py
+        ├── mapping_utils.py
+        ├── ui_utils.py
+    └── 📁docs
+        ├── template_spec.md
+    └── 📁memories
+    └── 📁pages
+        └── 📁__pycache__
+            ├── __init__.cpython-311.pyc
+        └── 📁steps
+            └── 📁__pycache__
+                ├── __init__.cpython-311.pyc
+                ├── computed.cpython-311.pyc
+                ├── header.cpython-311.pyc
+                ├── lookup.cpython-311.pyc
+            ├── __init__.py
+            ├── computed.py
+            ├── header.py
+            ├── lookup.py
+        ├── __init__.py
+        ├── AGENTS.md
+        ├── template_manager.py
+    └── 📁schemas
+        └── 📁__pycache__
+            ├── __init__.cpython-311.pyc
+            ├── template_v2.cpython-311.pyc
+        ├── __init__.py
+        ├── template_v2.py
+    └── 📁templates
+        ├── AGENTS.md
+        ├── standard-fm-coa.json
+    └── 📁test_files
+        ├── 2025 KBT & KBL Consolidated Trial Balance File.xlsx
+        ├── Bids-2025-04-18 08.31AM-AMX Logistics-FY26 TL-IM Network Bid.xlsx
+        ├── newest version Knauf_KNAUF Insulation US - Ground RFP 2025 - Volume Update_ROAD_2025-04-01.xlsx
+        ├── PMBR Trial Balances YTD 2024.xlsx
+        ├── Trial balance report 20250516.xlsx
+    └── 📁tests
+        └── 📁__pycache__
+            ├── __init__.cpython-311.pyc
+            ├── test_validator.cpython-311-pytest-8.4.1.pyc
+        ├── __init__.py
+        ├── AGENTS.md
+        ├── test_excel_to_json.py
+        ├── test_validator.py
+    └── 📁utils
+        └── 📁__pycache__
+            ├── excel_utils.cpython-310.pyc
+            ├── mapping_utils.cpython-310.pyc
+        ├── __init__.py
+        ├── count_tokens.py
+    ├── .env
+    ├── .gitignore
+    ├── AGENTS.md
+    ├── app.py
+    ├── file_structure.md
+    ├── LICENSE
+    ├── README.md
+    ├── requirements.txt
+    └── ROADMAP.md
 ```
