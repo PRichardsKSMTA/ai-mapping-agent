@@ -1,6 +1,6 @@
 # AI Mapping Agent – Project Roadmap (MVP)
 
-*Last updated: 2025-07-25*
+*Last updated: 2025-07-26*
 
 ---
 
@@ -16,7 +16,7 @@
 | --------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | **Template JSON validator** | **✅ Dynamic v2 schema live** – validates any layers-only template        | None                                                                                      |
 | **UI wizard**               | **✅ Layer-driven** wizard; steps generated at runtime                    | None                                                                                      |
-| **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display and GPT fallback still to add; formula dialog stability in question. |
+| **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display and GPT fallback still to add; formula dialog stable with save/clear & operand pills. |
 | **Template creation**       | **🚧 In progress** – wizard skeleton exists; GPT-builder not yet wired   | Column detector UI drafted; save JSON logic missing.                                      |
 | **Post-Process runner**     | **🗓 Planned** – `postprocess_runner.py` to handle python + PIT BID XLSM | Spec drafted; code not started.                                                           |
 | **File structure**          | **✅ Re-structured** (`io`, `mapping`, `ui`, `pages/steps`)               | —                                                                                         |
@@ -70,7 +70,7 @@
 | C-2   | 🔨 Support computed layer strategies: `first_available` & `user_defined` | Me    | COA sample derives `NET_CHANGE`.                             |
 | C-2.1 | ✅ Direct vs Computed toggle UI                                           | Me    | Toggle appears in computed page.                             |
 | C-2.2 | ✅ Inline Formula Dialog (free-form + pills + live preview)               | Me    | User can build & preview formulas.                           |
-| C-2.3 | 🔨 Validate formula on sample rows                                       | Me    | Preview shows values or error only when expression complete. |
+| C-2.3 | ✅ Validate formula on sample rows                                       | Me    | Preview shows values or error only when expression complete. |
 | C-2.4 | 🔨 Store final expression & include in output JSON                       | Me    | Mapping JSON includes user expression per field.             |
 | C-2.5 | 🔨 “Suggest formula” helper (GPT-propose)                                | Me    | “Suggest formula” button visible & returns candidate.        |
 | C-3   | ✅ Unit tests for all layer strategies                                    | Me    | `pytest` suite green.                                        |
@@ -194,7 +194,7 @@ Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 ### Tasks
 1. Implement confidence % display in header & lookup pages (C-1.2).
 2. Wire GPT fallback button in lookup (C-1.3).
-3. Finalize Formula Dialog validation & storage (C-2.3, C-2.4).
+3. Store saved formula expressions in output JSON (C-2.4).
 4. “Suggest formula” GPT helper (C-2.5).
 5. Build Template Builder column detector UI (D-1).
 6. Save enriched template JSON + metadata (D-2, D-3).
