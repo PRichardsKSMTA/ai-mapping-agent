@@ -30,3 +30,15 @@ def test_expressions_in_output():
 
     computed_layer = out["layers"][2]
     assert computed_layer["formula"]["expression"] == "df['A'] - df['B']"
+
+
+def test_extra_fields_preserved():
+    template = load_sample("standard-fm-coa")
+    state = {
+        "header_mapping_0": {"NEW_COL": {"src": "A"}},
+        "header_extra_fields_0": ["NEW_COL"],
+    }
+    out = build_output_template(template, state)
+    header_layer = out["layers"][0]
+    added = next(f for f in header_layer["fields"] if f["key"] == "NEW_COL")
+    assert added["source"] == "A"

@@ -11,6 +11,13 @@ from .computed_layer import persist_expression_from_state
 def _apply_header_expressions(layer: Dict[str, Any], idx: int, state: MutableMapping[str, Any]) -> Dict[str, Any]:
     new_layer = deepcopy(layer)
     mapping = state.get(f"header_mapping_{idx}", {})
+
+    # include any extra fields added by the user
+    extras = state.get(f"header_extra_fields_{idx}", [])
+    for name in extras:
+        if not any(f.get("key") == name for f in new_layer.get("fields", [])):
+            new_layer.setdefault("fields", []).append({"key": name, "required": False})
+
     for field in new_layer.get("fields", []):
         info = mapping.get(field["key"], {})
         if "src" in info:
