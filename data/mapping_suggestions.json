@@ -47,5 +47,23 @@
     "formula": "df['2025-05-01']  +  df['2025-04-01']",
     "columns": [],
     "display": "2025-05-01  +  2025-04-01"
+  },
+  {
+    "template": "Standard COA",
+    "field": "NET_CHANGE",
+    "type": "formula",
+    "formula": "df['2025-05-01']",
+    "columns": [
+      "2025-05-01"
+    ],
+    "display": "2025-05-01"
+  },
+  {
+    "template": "Standard COA",
+    "field": "NET_CHANGE",
+    "type": "formula",
+    "formula": "df['2025-05-01']",
+    "columns": [],
+    "display": "2025-05-01"
   }
 ]
