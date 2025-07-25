@@ -74,6 +74,7 @@
 | C-2.4 | 🔨 Store final expression & include in output JSON                       | Me    | Mapping JSON includes user expression per field.             |
 | C-2.5 | 🔨 “Suggest formula” helper (GPT-propose)                                | Me    | “Suggest formula” button visible & returns candidate.        |
 | C-3   | ✅ Unit tests for all layer strategies                                    | Me    | `pytest` suite green.                                        |
+| C-4   | 🔨 Fix progress tracker display                              | Codex | Progress bar shows current step and updates per page.        |
 
 ### Phase D – Template Builder Wizard (🚧 Active)
 
@@ -98,6 +99,7 @@
 | F-1 | 🔨 Inline “+ Add field” button on Header page                                        | Me    | Users can append/rename/delete destination columns live.                                       |
 | F-2 | 🔨 Persist new user-defined fields into in-memory template; flag `unsaved_changes`   | Me    | Reload shows the added columns in header UI.                                                   |
 | F-3 | 🔨 Template Manager: “Save as new template…” UI + write metadata to DB               | Codex | Persists template JSON + metadata row in `dbo.MAPPING_AGENT_PROCESSES`.                        |
+| F-3.1 | 🔨 Build dedicated Template Manager page; move features off sidebar | Codex | Template Manager page provides upload/download/delete UI without sidebar items. |
 | F-4 | 📄 Extend schema v2.3: optional top-level `"postprocess"` object                     | Codex | Validator green; spec updated in `template_spec.md`.                                           |
 | F-5 | 🔨 `postprocess_runner.py`: dispatch run types (`python_script`, `pit_bid_excel`)    | Codex | Unit tests cover each run type.                                                                |
 | F-6 | 🔨 Wizard “Run Export” step: generate `process_guid`, run post-process, capture logs | Codex | Output JSON includes `process_guid`; DB rows in `RFP_OBJECT_DATA` & `MAPPING_AGENT_PROCESSES`. |
@@ -194,11 +196,14 @@ Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 ### Tasks
 1. Implement confidence % display in header & lookup pages (C-1.2).
 2. Wire GPT fallback button in lookup (C-1.3).
+
 3. Store saved formula expressions in output JSON (C-2.4).
 4. “Suggest formula” GPT helper (C-2.5).
 5. Build Template Builder column detector UI (D-1).
 6. Save enriched template JSON + metadata (D-2, D-3).
 7. Draft `postprocess_runner.py` and validate spec (F-4, F-5).
+8. Fix progress tracker visibility during wizard (C-4).
+9. Build Template Manager page; move sidebar features (F-3.1).
 ```
 
 ---

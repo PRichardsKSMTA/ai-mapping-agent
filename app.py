@@ -26,6 +26,7 @@ from auth import require_login, logout_button
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
 
+
 # ---------------------------------------------------------------------------
 # 0. Page config & helpers
 # ---------------------------------------------------------------------------
@@ -37,13 +38,11 @@ def main():
     TEMPLATES_DIR = Path("templates")
     TEMPLATES_DIR.mkdir(exist_ok=True)
 
-
     def reset_layer_confirmations() -> None:
         """Remove all layer_confirmed_* flags from session state."""
         for k in list(st.session_state.keys()):
             if k.startswith("layer_confirmed_"):
                 del st.session_state[k]
-
 
     # ---------------------------------------------------------------------------
     # 1. Sidebar – choose template
@@ -56,11 +55,11 @@ def main():
         selected_file = st.selectbox(
             "Template JSON",
             options=template_files,
-            index=template_files.index(st.session_state.get("selected_template_file"))
-            if st.session_state.get("selected_template_file") in template_files
-            else 0
-            if template_files
-            else None,
+            index=(
+                template_files.index(st.session_state.get("selected_template_file"))
+                if st.session_state.get("selected_template_file") in template_files
+                else 0 if template_files else None
+            ),
         )
 
         template_obj: Template | None = None
@@ -93,6 +92,26 @@ def main():
 
     progress_box = st.sidebar.empty()
     render_progress(progress_box)
+
+    def do_reset() -> None:
+        """Clear uploaded file and mapping progress."""
+        for k in list(st.session_state.keys()):
+            if k.startswith("layer_confirmed_"):
+                st.session_state.pop(k)
+        for k in [
+            "uploaded_file",
+            "upload_data_file",
+            "template",
+            "template_name",
+            "selected_template_file",
+            "current_template",
+            "auto_computed_confirm",
+        ]:
+            st.session_state.pop(k, None)
+        st.session_state["current_step"] = 0
+        st.rerun()
+
+    st.button("Reset", on_click=do_reset)
 
     # ---------------------------------------------------------------------------
     # 3. Upload client data file
@@ -149,13 +168,16 @@ def main():
                 st.stop()
 
         # All layers confirmed
-        st.success("✅ All layers confirmed! You can now download the mapping or run the export.")
+        st.success(
+            "✅ All layers confirmed! You can now download the mapping or run the export."
+        )
 
     else:
         if not template_obj:
             st.info("Please select a template to begin.")
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
+
 
 main()
 logout_button()
