@@ -1,0 +1,51 @@
+[
+  {
+    "template": "Standard COA",
+    "field": "GL_ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "GL_ID"
+    ],
+    "display": "GL_ID"
+  },
+  {
+    "template": "Standard COA",
+    "field": "DETAIL_LEVEL",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "DETAIL_LEVEL"
+    ],
+    "display": "DETAIL_LEVEL"
+  },
+  {
+    "template": "Standard COA",
+    "field": "GL_NAME",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "GL_NAME"
+    ],
+    "display": "GL_NAME"
+  },
+  {
+    "template": "Standard COA",
+    "field": "NET_CHANGE",
+    "type": "formula",
+    "formula": "df['2025-05-01']  +  df['2025-04-01']",
+    "columns": [
+      "2025-05-01",
+      "2025-04-01"
+    ],
+    "display": "2025-05-01  +  2025-04-01"
+  },
+  {
+    "template": "Standard COA",
+    "field": "NET_CHANGE",
+    "type": "formula",
+    "formula": "df['2025-05-01']  +  df['2025-04-01']",
+    "columns": [],
+    "display": "2025-05-01  +  2025-04-01"
+  }
+]

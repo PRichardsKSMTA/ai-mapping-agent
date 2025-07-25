@@ -83,6 +83,7 @@ def main():
                     [layer.model_dump() for layer in template_obj.layers]
                 )
                 st.session_state["template_name"] = template_obj.template_name
+                st.session_state["current_template"] = template_obj.template_name
 
             st.success(f"Loaded: {template_obj.template_name}")
 

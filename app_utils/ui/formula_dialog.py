@@ -14,6 +14,8 @@ from typing import List
 import pandas as pd
 import streamlit as st
 
+from app_utils.suggestion_store import add_suggestion
+
 # ─────────────────────────── configuration ────────────────────────────
 OPS_DISPLAY_MAP = {r"\+": "+", r"\-": "-", r"\*": "*", "/": "/", "(": "(", ")": ")"}
 OPS: List[str] = list(OPS_DISPLAY_MAP.keys())
@@ -124,6 +126,16 @@ def open_formula_dialog(df: pd.DataFrame, dialog_key: str) -> None:
             st.session_state[result_key] = expr
             st.session_state[f"{result_key}_display"] = re.sub(r"df\['([^']+)'\]", r"\1", expr)
 
+            add_suggestion(
+                {
+                    "template": st.session_state["current_template"],
+                    "field": dialog_key,
+                    "type": "formula",
+                    "formula": expr,
+                    "columns": re.findall(r"df\['([^']+)'\]", expr),
+                    "display": st.session_state[f"{result_key}_display"],
+                }
+            )
             st.session_state.pop(expr_key, None)
             st.rerun()  # closes modal
 
