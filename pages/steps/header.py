@@ -17,6 +17,21 @@ from app_utils.mapping_utils import suggest_header_mapping
 from app_utils.suggestion_store import add_suggestion, get_suggestions
 from app_utils.ui.formula_dialog import open_formula_dialog, RETURN_KEY_TEMPLATE
 
+
+def remove_field(field_key: str, idx: int) -> None:
+    """Delete a user-added field from session state."""
+    map_key = f"header_mapping_{idx}"
+    extra_key = f"header_extra_fields_{idx}"
+
+    mapping = st.session_state.get(map_key, {})
+    mapping.pop(field_key, None)
+    st.session_state[map_key] = mapping
+
+    extras = st.session_state.get(extra_key, [])
+    if field_key in extras:
+        extras.remove(field_key)
+        st.session_state[extra_key] = extras
+
 # ─── CSS tweaks ───────────────────────────────────────────────────────
 st.markdown(
     """
@@ -79,7 +94,8 @@ def render(layer, idx: int) -> None:
     all_fields = list(layer.fields) + [FieldSpec(key=f) for f in extra_fields]
     for field in all_fields:  # type: ignore
         key, required = field.key, field.required
-        row = st.columns([3, 1, 4, 3, 1])  # Source | ⚙ | Expr | Template | Status
+        # Source | ⚙ | Expr | Template | Status | 🗑️
+        row = st.columns([3, 1, 4, 3, 1, 1])
 
         # ── Source dropdown ──────────────────────────────────────────────
         src_val = mapping.get(key, {}).get("src", "")
@@ -147,10 +163,18 @@ def render(layer, idx: int) -> None:
         )
         row[4].markdown(status)
 
+        # ── Delete button for user-added fields ────────────────────────
+        if key in extra_fields:
+            if row[5].button("🗑️", key=f"del_{key}", help="Remove field"):
+                remove_field(key, idx)
+                st.rerun()
+        else:
+            row[5].markdown("")
+
     st.session_state[map_key] = mapping  # persist any edits
 
     # Add field row (appears below mapping table)
-    add_row = st.columns([3, 1, 4, 3, 1])
+    add_row = st.columns([3, 1, 4, 3, 1, 1])
     if st.session_state.get(f"adding_field_{idx}"):
         with add_row[3].form(f"add_field_form_{idx}", clear_on_submit=True):
             new_name = st.text_input("New column name", key=f"new_field_{idx}")
