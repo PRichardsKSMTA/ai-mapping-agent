@@ -1,0 +1,12 @@
+{
+  "template_name": "simple-template",
+  "layers": [
+    {
+      "type": "header",
+      "fields": [
+        {"key": "Name", "required": true},
+        {"key": "Value", "required": true}
+      ]
+    }
+  ]
+}
