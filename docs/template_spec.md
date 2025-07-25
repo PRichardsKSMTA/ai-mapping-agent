@@ -147,6 +147,18 @@ At run-time the user builds an expression; the engine stores its resolution:
 | `expression`   | `string`                                          | Conditional | —                   | Pythonic arithmetic using `$PLACEHOLDERS`.    |
 | `dependencies` | `object`                                          | Conditional | —                   | Maps placeholders to header variants.         |
 
+### 3.4  `postprocess` (optional, top-level)
+
+
+```jsonc
+"postprocess": {
+  "type": "sql_insert",
+  "connection": "Driver={ODBC Driver 18 for SQL Server};Server=tcp:demo.database.windows.net;Encrypt=yes;",
+  "table": "dbo.MAPPED_OUTPUT",
+  "column_map": { "GL_ID": "GL_ID", "NET_CHANGE": "NET_CHANGE" }
+}
+
+
 ---
 
 ## 4 Extending with new layer types

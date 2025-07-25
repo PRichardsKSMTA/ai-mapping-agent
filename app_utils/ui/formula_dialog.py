@@ -1,83 +1,130 @@
-"""
-formula_dialog.py
------------------
-Modal dialog for building expressions:
-
-• Clickable “pills” for each column and for operators ( + − × ÷ ( ) ).
-• Free-form text area – user can type or click pills.
-• Live-preview of first 5 computed rows.
-• Saves expression into session state under RETURN_KEY_TEMPLATE.format(key).
-"""
-
 from __future__ import annotations
-import streamlit as st
+"""
+Formula Dialog – stable buttons and no NameError
+------------------------------------------------
+Buttons live inside the dialog; clicks are detected because their keys
+are stable.  “Clear” refreshes in-place, “Save” persists & closes.
+"""
+
+import math
+import re
+import uuid
+from typing import List
+
 import pandas as pd
+import streamlit as st
 
-OPS = ["+", "-", "*", "/", "(", ")"]
+# ─────────────────────────── configuration ────────────────────────────
+OPS_DISPLAY_MAP = {r"\+": "+", r"\-": "-", r"\*": "*", "/": "/", "(": "(", ")": ")"}
+OPS: List[str] = list(OPS_DISPLAY_MAP.keys())
+
 RETURN_KEY_TEMPLATE = "formula_expr_{key}"
+ROW_CAPACITY = 5  # pill grid width units
 
 
+# ─────────────────────────── helpers ──────────────────────────────────
+def _token_units(tok: str) -> int:
+    actual = OPS_DISPLAY_MAP.get(tok, tok)
+    if actual in {"+", "-", "*", "/"}:
+        return 1
+    return min(3, max(1, math.ceil(len(actual) / 12)))
+
+
+# ─────────────────────────── main entrypoint ──────────────────────────
 def open_formula_dialog(df: pd.DataFrame, dialog_key: str) -> None:
-    """
-    Opens modal dialog.  On Save, writes the expression string to
-    st.session_state[RETURN_KEY_TEMPLATE.format(key=dialog_key)].
-    """
-
+    """Open the modal formula builder (gear-icon handler)."""
     result_key = RETURN_KEY_TEMPLATE.format(key=dialog_key)
     expr_key = f"{dialog_key}_expr_text"
 
-    @st.dialog(f"Build Formula for '{dialog_key}'", width="large")
-    def _dialog():
-        # Initialize stored text if missing
-        if expr_key not in st.session_state:
-            st.session_state[expr_key] = ""
+    # Prefill on first open each run
+    if result_key in st.session_state and expr_key not in st.session_state:
+        st.session_state[expr_key] = st.session_state[result_key]
 
-        st.markdown("##### Click pills or type directly:")
+    # ═════════════════════════ inner helpers ══════════════════════════
+    def _append_token(token: str) -> None:
+        actual = OPS_DISPLAY_MAP.get(token, token)
+        frag = f" df['{token}'] " if token not in OPS else f" {actual} "
+        st.session_state[expr_key] += frag
 
-        # --- Pills row: one pill per column, then operator pills ---
-        pills = list(df.columns) + OPS
-        pill_cols = st.columns(len(pills))
-        for i, tok in enumerate(pills):
-            if pill_cols[i].button(tok, key=f"pill_{dialog_key}_{tok}"):
-                # Append either column reference or raw operator
-                if tok in df.columns:
-                    st.session_state[expr_key] += f"df['{tok}']"
-                else:
-                    st.session_state[expr_key] += tok
+    def _render_row(tokens: List[str]) -> None:
+        if not tokens:
+            return
+        cols = st.columns([_token_units(t) for t in tokens])
+        for i, tok in enumerate(tokens):
+            cols[i].button(
+                tok,
+                key=f"{dialog_key}_{tok}_{i}",
+                on_click=_append_token,
+                args=(tok,),
+            )
 
-        # --- Free-form text area -------------------------------------------
-        st.text_area(
-            "Formula",
-            value=st.session_state[expr_key],
-            key=expr_key,
-            height=100,
+    def _valid(e: str) -> bool:
+        return (
+            e
+            and e.rstrip()[-1] not in {"+", "-", "*", "/", "("}
+            and not e.endswith("df[")
         )
+        
+    def reset_expr():
+        st.session_state[expr_key] = ""
 
-        # --- Live preview --------------------------------------------------
+    def _preview(e: str) -> bool:
+        if not _valid(e):
+            st.info("Build your expression or click tokens above.")
+            return bool(e)
+        try:
+            res = eval(e, {"df": df})                   # noqa: S307 – user code
+            if not isinstance(res, pd.Series):
+                res = pd.Series([res] * len(df))
+            st.dataframe(
+                pd.DataFrame({"Result": res}).head(),
+                use_container_width=True,
+            )
+            return True
+        except Exception as exc:                        # noqa: BLE001
+            st.error(f"❌ {exc}")
+            return False
+
+    # ════════════════════════ dialog definition ═══════════════════════
+    @st.dialog(f"Build Formula for '{dialog_key}'", width="large")
+    def _dialog() -> None:
+        st.session_state.setdefault(expr_key, "")
+
+        # CSS to keep pills tidy
+        st.markdown(
+            "<style>.stButton>button{white-space:nowrap;margin:0 0.25rem 0.25rem 0}</style>",
+            unsafe_allow_html=True,
+        )
+        st.markdown("#### Click a token or type directly:")
+
+        # ── token pills grid ──
+        row, units = [], 0
+        for token in list(df.columns) + OPS:
+            u = _token_units(token)
+            if units + u > ROW_CAPACITY:
+                _render_row(row)
+                row, units = [], 0
+            row.append(token)
+            units += u
+        _render_row(row)
+
+        # ── editor ──
+        st.text_area("Formula", key=expr_key, height=150)
+
+        # ── preview & buttons ──
         expr = st.session_state[expr_key].strip()
-        if expr:
-            try:
-                # Evaluate in sandboxed locals
-                preview = pd.DataFrame({"Result": eval(expr, {"df": df})}).head()
-                st.dataframe(preview, use_container_width=True)
-                valid = True
-            except Exception as e:
-                st.error(f"❌ {e}")
-                valid = False
-        else:
-            st.info("Start typing or click a pill above to build your formula.")
-            valid = False
+        save_ready = _preview(expr)
 
-        # --- Action buttons ------------------------------------------------
-        c1, c2, c3 = st.columns([1,1,1])
-        if c1.button("⟲ Clear"):
-            st.session_state[expr_key] = ""
-            st.rerun()
-        # Spacer column hides the middle
-        if c3.button("💾 Save", disabled=not valid):
+        col_clear, col_save = st.columns(2)
+
+        col_clear.button("⟲ Clear", key=f"{dialog_key}_clear", on_click=reset_expr)
+            # st.rerun()
+
+        if col_save.button("💾 Save", key=f"{dialog_key}_save", disabled=not save_ready):
             st.session_state[result_key] = expr
-            # Close dialog by rerunning outer script without recalling _dialog
-            st.rerun()
+            st.session_state[f"{result_key}_display"] = re.sub(r"df\['([^']+)'\]", r"\1", expr)
 
-    # Immediately invoke the dialog function to show modal
-    _dialog()
+            st.session_state.pop(expr_key, None)
+            st.rerun()  # closes modal
+
+    _dialog()  # ← actually displays the modal
