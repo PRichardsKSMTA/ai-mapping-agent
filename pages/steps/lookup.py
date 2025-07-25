@@ -7,6 +7,7 @@ import streamlit as st
 import pandas as pd
 
 from app_utils.mapping_utils import match_lookup_values
+from app_utils.mapping.lookup_layer import gpt_lookup_completion
 from app_utils.excel_utils import read_tabular_file
 from schemas.template_v2 import Template
 
@@ -69,6 +70,17 @@ def render(layer, idx: int):
     unmapped = [k for k, v in mapping.items() if v == ""]
     if unmapped:
         st.warning(f"{len(unmapped)} values still unmapped.")
+        if st.button("Auto-map Unmapped", key=f"automap_{idx}"):
+            try:
+                with st.spinner("Querying GPT..."):
+                    suggestions = gpt_lookup_completion(unmapped, dict_values)
+                for src, match in suggestions.items():
+                    if match:
+                        mapping[src] = match
+                st.session_state[key_map] = mapping
+                st.rerun()
+            except Exception as e:
+                st.error(str(e))
     else:
         st.success("All values mapped!")
 

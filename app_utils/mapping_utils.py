@@ -8,8 +8,12 @@ from openai import OpenAI
 from app_utils.mapping.lookup_layer import suggest_lookup_mapping
 from difflib import get_close_matches, SequenceMatcher
 
-# Initialize OpenAI client using Streamlit's secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Initialize OpenAI client lazily using env or secrets
+try:
+    _OPENAI_KEY = os.environ.get("OPENAI_API_KEY") or st.secrets["OPENAI_API_KEY"]
+except Exception:
+    _OPENAI_KEY = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=_OPENAI_KEY) if _OPENAI_KEY else None
 
 # Memory helpers
 
@@ -69,6 +73,8 @@ def load_template(name: str):
         return json.load(f)
 
 def suggest_mapping(template: dict, sample_data: list, prior_mappings: list = []):
+    if client is None:
+        raise RuntimeError("OPENAI_API_KEY not set")
     system = (
         "You are a data-mapping assistant.\n"
         "Given a target template and sample data (JSON),\n"
@@ -88,6 +94,8 @@ def cosine_similarity(a, b):
 
 @st.cache_data(show_spinner=False)
 def compute_template_embeddings(template_accounts: list, model: str = "text-embedding-ada-002"):
+    if client is None:
+        raise RuntimeError("OPENAI_API_KEY not set")
     out = []
     for acc in template_accounts:
         resp = client.embeddings.create(model=model, input=acc["GL_NAME"])
@@ -105,6 +113,8 @@ def match_account_names(
     threshold: float = 0.7,
     model: str = "text-embedding-ada-002"
 ):
+    if client is None:
+        raise RuntimeError("OPENAI_API_KEY not set")
     prior_map = {c["client_GL_NAME"]: c for c in (prior_account_corrections or [])}
     matches = []
     for rec in sample_records:
