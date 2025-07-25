@@ -1,0 +1,32 @@
+import json
+from pathlib import Path
+
+from schemas.template_v2 import Template
+from app_utils.mapping.exporter import build_output_template
+
+
+def load_sample(name: str) -> Template:
+    txt = Path("templates") / f"{name}.json"
+    return Template.model_validate(json.loads(txt.read_text()))
+
+
+def test_expressions_in_output():
+    template = load_sample("standard-fm-coa")
+    state = {
+        "header_mapping_0": {
+            "NET_CHANGE": {"expr": "df['A'] + df['B']"}
+        },
+        "computed_result_2": {
+            "resolved": True,
+            "method": "derived",
+            "source_cols": ["A", "B"],
+            "expression": "df['A'] - df['B']"
+        }
+    }
+    out = build_output_template(template, state)
+    header_layer = out["layers"][0]
+    net_change = next(f for f in header_layer["fields"] if f["key"] == "NET_CHANGE")
+    assert net_change["expression"] == "df['A'] + df['B']"
+
+    computed_layer = out["layers"][2]
+    assert computed_layer["formula"]["expression"] == "df['A'] - df['B']"

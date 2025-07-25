@@ -18,8 +18,10 @@ Current capabilities
 """
 
 from __future__ import annotations
+from copy import deepcopy
+from typing import Dict, Any, List, MutableMapping
+
 import pandas as pd
-from typing import Dict, Any, List
 
 
 def _direct_available(df: pd.DataFrame, candidates: List[str]) -> str | None:
@@ -80,3 +82,16 @@ def resolve_computed_layer(layer: Dict[str, Any], df: pd.DataFrame) -> Dict[str,
         "source_cols": [],
         "expression": None,
     }
+
+
+def persist_expression_from_state(
+    layer: Dict[str, Any], idx: int, state: MutableMapping[str, Any]
+) -> Dict[str, Any]:
+    """Return a copy of ``layer`` with user expression injected."""
+    new_layer = deepcopy(layer)
+    key = f"computed_result_{idx}"
+    result = state.get(key)
+    if result and result.get("resolved") and result.get("expression"):
+        new_layer.setdefault("formula", {})["expression"] = result["expression"]
+    return new_layer
+
