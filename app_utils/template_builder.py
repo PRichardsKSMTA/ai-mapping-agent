@@ -3,6 +3,9 @@ from __future__ import annotations
 """Helpers for building minimal template JSON files."""
 
 from typing import Dict, List
+import json
+import os
+from schemas.template_v2 import Template
 
 
 def build_header_template(
@@ -21,3 +24,21 @@ def build_header_template(
             }
         ],
     }
+
+
+def load_template_json(uploaded) -> Dict:
+    """Load and validate a template JSON uploaded file."""
+    data = json.load(uploaded)
+    Template.model_validate(data)
+    return data
+
+
+def save_template_file(tpl: Dict, directory: str = "templates") -> str:
+    """Save validated template to templates/<name>.json and return name."""
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in tpl["template_name"])
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(directory, f"{safe}.json")
+    with open(path, "w") as f:
+        json.dump(tpl, f, indent=2)
+    return safe
+
