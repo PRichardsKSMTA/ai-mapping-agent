@@ -42,3 +42,15 @@ def test_extra_fields_preserved():
     header_layer = out["layers"][0]
     added = next(f for f in header_layer["fields"] if f["key"] == "NEW_COL")
     assert added["source"] == "A"
+
+
+def test_extra_field_expression():
+    template = load_sample("standard-fm-coa")
+    state = {
+        "header_mapping_0": {"ADDED": {"expr": "df['A']*2"}},
+        "header_extra_fields_0": ["ADDED"],
+    }
+    out = build_output_template(template, state)
+    header_layer = out["layers"][0]
+    added = next(f for f in header_layer["fields"] if f["key"] == "ADDED")
+    assert added["expression"] == "df['A']*2"
