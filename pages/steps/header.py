@@ -188,6 +188,7 @@ def render(layer, idx: int) -> None:
     else:
         if add_row[3].button("+ Add field", key=f"add_field_btn_{idx}"):
             st.session_state[f"adding_field_{idx}"] = True
+            st.rerun()
 
     # 5⃣  Confirm button
     ready = all(
