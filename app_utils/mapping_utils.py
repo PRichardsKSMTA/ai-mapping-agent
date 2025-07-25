@@ -6,6 +6,7 @@ import streamlit as st
 from openai import OpenAI
 
 from app_utils.mapping.lookup_layer import suggest_lookup_mapping
+from difflib import get_close_matches, SequenceMatcher
 
 # Initialize OpenAI client using Streamlit's secrets
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -149,13 +150,21 @@ def match_lookup_values(source_series, dictionary_list):
     return suggest_lookup_mapping(list(source_series), list(dictionary_list))
 
 def suggest_header_mapping(template_fields: list[str], source_columns: list[str]):
-    """
-    Minimal passthrough that builds a {template_field: ''} dict.
-    Real AI logic will be ported later.
-    """
-    # exact match or blank
-    out = {}
-    lower_src = {c.lower(): c for c in source_columns}
+    """Return fuzzy header suggestions with confidence scores."""
+
+    out: dict[str, dict[str, float]] = {}
+    lower_map = {c.lower(): c for c in source_columns}
+    lower_list = list(lower_map.keys())
+
     for tf in template_fields:
-        out[tf] = lower_src.get(tf.lower(), "")
+        matches = get_close_matches(tf.lower(), lower_list, n=1, cutoff=0)
+        if matches:
+            best_lower = matches[0]
+            best_src = lower_map[best_lower]
+            ratio = SequenceMatcher(None, tf.lower(), best_lower).ratio()
+            if ratio >= 0.5:
+                out[tf] = {"src": best_src, "confidence": ratio}
+                continue
+        out[tf] = {}
+
     return out
