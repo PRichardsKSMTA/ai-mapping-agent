@@ -10,6 +10,8 @@ Header-mapping step
 import streamlit as st
 import pandas as pd
 
+from schemas.template_v2 import FieldSpec
+
 from app_utils.excel_utils import read_tabular_file
 from app_utils.mapping_utils import suggest_header_mapping
 from app_utils.suggestion_store import add_suggestion, get_suggestions
@@ -44,6 +46,10 @@ def render(layer, idx: int) -> None:
         # auto = {field_key: {"src": header, "confidence": 0.91}|{}}
         st.session_state[map_key] = auto
     mapping = st.session_state[map_key]
+
+    # List of user-added fields
+    extra_key = f"header_extra_fields_{idx}"
+    extra_fields: list[str] = st.session_state.setdefault(extra_key, [])
     
     for k, v in list(mapping.items()):
         if isinstance(v, str):
@@ -66,10 +72,26 @@ def render(layer, idx: int) -> None:
                     "expr_display": s["display"],
                 }
 
+    # Add new field prompt
+    if st.button("+ Add field", key=f"add_field_btn_{idx}"):
+        st.session_state[f"adding_field_{idx}"] = True
+
+    if st.session_state.get(f"adding_field_{idx}"):
+        with st.form(f"add_field_form_{idx}", clear_on_submit=True):
+            new_name = st.text_input("New column name", key=f"new_field_{idx}")
+            submitted = st.form_submit_button("Add")
+        if submitted and new_name:
+            extra_fields.append(new_name)
+            mapping[new_name] = {}
+            st.session_state[extra_key] = extra_fields
+            st.session_state[f"adding_field_{idx}"] = False
+            st.rerun()
+
     st.caption("• ✅ mapped  • 🛈 suggested  • ❌ required & missing")
 
-    # 4⃣  Render one row per template field
-    for field in layer.fields:  # type: ignore
+    # 4⃣  Render one row per template field (including extras)
+    all_fields = list(layer.fields) + [FieldSpec(key=f) for f in extra_fields]
+    for field in all_fields:  # type: ignore
         key, required = field.key, field.required
         row = st.columns([3, 1, 4, 3, 1])  # Source | ⚙ | Expr | Template | Status
 
@@ -143,8 +165,9 @@ def render(layer, idx: int) -> None:
 
     # 5⃣  Confirm button
     ready = all(
-        (("src" in m and m["src"]) or ("expr" in m)) if f.required else True
-        for f, m in zip(layer.fields, mapping.values())  # type: ignore
+        (("src" in mapping.get(f.key, {}) and mapping[f.key]["src"]) or ("expr" in mapping.get(f.key, {})))
+        if f.required else True
+        for f in layer.fields  # type: ignore
     )
     if st.button("Confirm Header Mapping", disabled=not ready, key=f"confirm_{idx}"):
         st.session_state[f"layer_confirmed_{idx}"] = True
