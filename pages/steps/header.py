@@ -72,20 +72,6 @@ def render(layer, idx: int) -> None:
                     "expr_display": s["display"],
                 }
 
-    # Add new field prompt
-    if st.button("+ Add field", key=f"add_field_btn_{idx}"):
-        st.session_state[f"adding_field_{idx}"] = True
-
-    if st.session_state.get(f"adding_field_{idx}"):
-        with st.form(f"add_field_form_{idx}", clear_on_submit=True):
-            new_name = st.text_input("New column name", key=f"new_field_{idx}")
-            submitted = st.form_submit_button("Add")
-        if submitted and new_name:
-            extra_fields.append(new_name)
-            mapping[new_name] = {}
-            st.session_state[extra_key] = extra_fields
-            st.session_state[f"adding_field_{idx}"] = False
-            st.rerun()
 
     st.caption("• ✅ mapped  • 🛈 suggested  • ❌ required & missing")
 
@@ -162,6 +148,22 @@ def render(layer, idx: int) -> None:
         row[4].markdown(status)
 
     st.session_state[map_key] = mapping  # persist any edits
+
+    # Add field row (appears below mapping table)
+    add_row = st.columns([3, 1, 4, 3, 1])
+    if st.session_state.get(f"adding_field_{idx}"):
+        with add_row[3].form(f"add_field_form_{idx}", clear_on_submit=True):
+            new_name = st.text_input("New column name", key=f"new_field_{idx}")
+            submitted = st.form_submit_button("Add")
+        if submitted and new_name:
+            extra_fields.append(new_name)
+            mapping[new_name] = {}
+            st.session_state[extra_key] = extra_fields
+            st.session_state[f"adding_field_{idx}"] = False
+            st.rerun()
+    else:
+        if add_row[3].button("+ Add field", key=f"add_field_btn_{idx}"):
+            st.session_state[f"adding_field_{idx}"] = True
 
     # 5⃣  Confirm button
     ready = all(
