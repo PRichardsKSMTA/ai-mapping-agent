@@ -48,3 +48,33 @@ def suggest_lookup_mapping(
         mapping[val] = emb_match or ""
 
     return mapping
+
+
+def gpt_lookup_completion(unmapped: List[str], dictionary: List[str]) -> Dict[str, str]:
+    """Return GPT suggestions for each unmapped value."""
+    if not unmapped:
+        return {}
+
+    import os
+    import json
+    from openai import OpenAI
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not set")
+
+    client = OpenAI(api_key=api_key)
+    system = (
+        "You map client values to a fixed dictionary. "
+        "Return a JSON object {client_value: dictionary_value_or_empty_string}."
+    )
+    payload = {"values": unmapped, "dictionary": dictionary}
+    resp = client.chat.completions.create(
+        model="gpt-3.5-turbo-0125",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": json.dumps(payload)},
+        ],
+        temperature=0.2,
+    )
+    return json.loads(resp.choices[0].message.content)
