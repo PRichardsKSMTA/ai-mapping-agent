@@ -6,7 +6,10 @@ from app_utils.template_builder import (
     save_template_file,
     apply_field_choices,
     slugify,
+    gpt_field_suggestions,
 )
+import pandas as pd
+import json
 
 
 def test_scan_csv_columns():
@@ -165,3 +168,29 @@ def test_apply_field_choices():
     selected, required = apply_field_choices(cols, choices)
     assert selected == ["A", "C"]
     assert required == {"A": True, "C": False}
+
+
+def test_gpt_field_suggestions(monkeypatch):
+    class FakeResp:
+        def __init__(self, content):
+            self.choices = [
+                type("c", (), {"message": type("m", (), {"content": content})()})()
+            ]
+
+    class FakeCompletions:
+        def create(self, model, messages, temperature):
+            data = {"A": "required", "B": "optional"}
+            return FakeResp(json.dumps(data))
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.chat = type("chat", (), {"completions": FakeCompletions()})()
+
+    import openai
+
+    monkeypatch.setenv("OPENAI_API_KEY", "x")
+    monkeypatch.setattr(openai, "OpenAI", lambda api_key=None: FakeClient())
+
+    df = pd.DataFrame({"A": [1], "B": [2]})
+    res = gpt_field_suggestions(df)
+    assert res == {"A": "required", "B": "optional"}
