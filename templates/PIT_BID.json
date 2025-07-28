@@ -1,0 +1,58 @@
+{
+  "template_name": "PIT BID",
+  "layers": [
+    {
+      "type": "header",
+      "fields": [
+        {
+          "key": "\nLane ID",
+          "required": true
+        },
+        {
+          "key": "\nOrigin City",
+          "required": false
+        },
+        {
+          "key": "Orig\nState",
+          "required": false
+        },
+        {
+          "key": "Orig Zip\n(5 or 3)",
+          "required": true
+        },
+        {
+          "key": "\nDestination City",
+          "required": false
+        },
+        {
+          "key": "Dest\nState",
+          "required": false
+        },
+        {
+          "key": "Dest Zip\n(5 or 3)",
+          "required": true
+        },
+        {
+          "key": "Bid Volume",
+          "required": false
+        },
+        {
+          "key": "\nLH Rate",
+          "required": false
+        },
+        {
+          "key": "\nBid Miles",
+          "required": false
+        },
+        {
+          "key": "\nMiles",
+          "required": false
+        },
+        {
+          "key": "\nTolls",
+          "required": false
+        }
+      ]
+    }
+  ]
+}
