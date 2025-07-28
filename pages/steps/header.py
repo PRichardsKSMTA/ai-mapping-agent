@@ -15,6 +15,7 @@ from schemas.template_v2 import FieldSpec
 from app_utils.excel_utils import read_tabular_file
 from app_utils.mapping_utils import suggest_header_mapping
 from app_utils.suggestion_store import add_suggestion, get_suggestions
+from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.ui.formula_dialog import open_formula_dialog, RETURN_KEY_TEMPLATE
 
 
@@ -91,6 +92,15 @@ def render(layer, idx: int) -> None:
                     "expr": s["formula"],
                     "expr_display": s["display"],
                 }
+                
+    ai_flag = f"header_ai_done_{idx}"
+    if not st.session_state.get(ai_flag):
+        before = mapping.copy()
+        mapping = apply_gpt_header_fallback(mapping, source_cols)
+        st.session_state[map_key] = mapping
+        st.session_state[ai_flag] = True
+        if mapping != before:
+            st.rerun()
 
 
     st.caption("• ✅ mapped  • 🛈 suggested  • ❌ required & missing")

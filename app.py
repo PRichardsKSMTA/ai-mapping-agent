@@ -211,6 +211,5 @@ def main():
 
     st.button("Reset", on_click=do_reset)
 
-
 main()
 logout_button()

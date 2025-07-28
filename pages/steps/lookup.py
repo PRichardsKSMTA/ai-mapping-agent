@@ -59,6 +59,24 @@ def render(layer, idx: int):
         st.session_state[key_map] = match_lookup_values(unique_vals, dict_values)
 
     mapping = st.session_state[key_map]
+    ai_flag = f"lookup_ai_done_{idx}"
+    if not st.session_state.get(ai_flag):
+        unmapped_init = [k for k, v in mapping.items() if v == ""]
+        if unmapped_init:
+            try:
+                with st.spinner("Querying GPT..."):
+                    suggestions = gpt_lookup_completion(unmapped_init, dict_values)
+                for src, match in suggestions.items():
+                    if match:
+                        mapping[src] = match
+                st.session_state[key_map] = mapping
+            except Exception as e:  # noqa: BLE001
+                st.error(str(e))
+            finally:
+                st.session_state[ai_flag] = True
+                st.rerun()
+        else:
+            st.session_state[ai_flag] = True
 
     edited = st.data_editor(
         pd.DataFrame(
@@ -76,17 +94,6 @@ def render(layer, idx: int):
     unmapped = [k for k, v in mapping.items() if v == ""]
     if unmapped:
         st.warning(f"{len(unmapped)} values still unmapped.")
-        if st.button("Auto-map Unmapped", key=f"automap_{idx}"):
-            try:
-                with st.spinner("Querying GPT..."):
-                    suggestions = gpt_lookup_completion(unmapped, dict_values)
-                for src, match in suggestions.items():
-                    if match:
-                        mapping[src] = match
-                st.session_state[key_map] = mapping
-                st.rerun()
-            except Exception as e:
-                st.error(str(e))
     else:
         st.success("All values mapped!")
 

@@ -205,5 +205,55 @@
       "Distance (mi)"
     ],
     "display": "Distance (mi)"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nLane ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Rate ID"
+    ],
+    "display": "Rate ID"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest\nState",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination State/Province"
+    ],
+    "display": "Destination State/Province"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nLH Rate",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Rate ID"
+    ],
+    "display": "Rate ID"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nTolls",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Total Fuel"
+    ],
+    "display": "Total Fuel"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nLH Rate",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Linehaul Rate per Mile (excl. Fuel)"
+    ],
+    "display": "Linehaul Rate per Mile (excl. Fuel)"
   }
 ]

@@ -8,6 +8,7 @@ import pandas as pd
 from schemas.template_v2 import Template
 from app_utils.excel_utils import excel_to_json
 from app_utils.mapping_utils import suggest_header_mapping
+from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.mapping.computed_layer import resolve_computed_layer
 from app_utils.mapping.exporter import build_output_template
 from app_utils.postprocess_runner import run_postprocess_if_configured
@@ -32,7 +33,9 @@ def auto_map(template: Template, df: pd.DataFrame) -> Dict[str, Any]:
     for idx, layer in enumerate(template.layers):
         if layer.type == "header":
             fields = [f.key for f in layer.fields]  # type: ignore[attr-defined]
-            state[f"header_mapping_{idx}"] = suggest_header_mapping(fields, columns)
+            mapping = suggest_header_mapping(fields, columns)
+            mapping = apply_gpt_header_fallback(mapping, columns)
+            state[f"header_mapping_{idx}"] = mapping
         elif layer.type == "computed":
             result = resolve_computed_layer(layer.model_dump(), df)
             state[f"computed_result_{idx}"] = result
