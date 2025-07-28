@@ -3,6 +3,9 @@ import pytest
 from app_utils.mapping_utils import suggest_header_mapping
 from pages.steps.header import remove_field
 import streamlit as st
+import json
+from schemas.template_v2 import FieldSpec
+from app_utils import suggestion_store
 
 
 def test_header_mapping_confidence():
@@ -33,5 +36,51 @@ def test_remove_field_updates_state():
 
     assert "Extra" not in st.session_state[map_key]
     assert "Extra" not in st.session_state[extra_key]
+
+
+def test_saved_suggestion_overrides_fuzzy(monkeypatch, tmp_path):
+    """Stored column suggestion should override fuzzy match."""
+
+    # Prepare suggestion file
+    sug_file = tmp_path / "mapping_suggestions.json"
+    data = [
+        {
+            "template": "simple-template",
+            "field": "Name",
+            "type": "direct",
+            "formula": None,
+            "columns": ["NameSaved"],
+            "display": "NameSaved",
+        }
+    ]
+    sug_file.write_text(json.dumps(data))
+    monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug_file)
+
+    # Fake file reader
+    def fake_read(uploaded, sheet_name=None):
+        import pandas as pd
+        df = pd.DataFrame(columns=["NameWrong", "NameSaved", "Value"])
+        return df, ["NameWrong", "NameSaved", "Value"]
+
+    _, source_cols = fake_read(None)
+    fields = [FieldSpec(key="Name", required=True), FieldSpec(key="Value", required=True)]
+    mapping = suggest_header_mapping([f.key for f in fields], source_cols)
+
+    for f in fields:
+        key = f.key
+        for s in suggestion_store.get_suggestions("simple-template", key):
+            if s["type"] == "direct":
+                for col in source_cols:
+                    if col.lower() == s["columns"][0].lower():
+                        mapping[key] = {"src": col, "confidence": 1.0}
+                        break
+                if mapping.get(key):
+                    break
+            else:
+                mapping[key] = {"expr": s["formula"], "expr_display": s["display"]}
+                break
+
+    assert mapping["Name"]["src"] == "NameSaved"
+    assert mapping["Name"]["confidence"] == 1.0
 
 
