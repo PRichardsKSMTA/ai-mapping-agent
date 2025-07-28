@@ -1,6 +1,6 @@
 # AI Mapping Agent – Project Roadmap (MVP)
 
-*Last updated: 2025-07-26*
+*Last updated: 2025-07-28*
 
 ---
 
@@ -17,7 +17,7 @@
 | **Template JSON validator** | **✅ Dynamic v2 schema live** – validates any layers-only template        | None                                                                                      |
 | **UI wizard**               | **✅ Layer-driven** wizard; steps generated at runtime                    | None                                                                                      |
 | **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display and GPT fallback still to add; formula dialog stable with save/clear & operand pills. |
-| **Template creation**       | **🚧 In progress** – wizard skeleton exists; GPT-builder not yet wired   | Column detector UI drafted; save JSON logic missing.                                      |
+| **Template creation**       | **🚧 In progress** – Template Manager page built; GPT builder not yet wired | Column detector and save to JSON working. |
 | **Post-Process runner**     | **🗓 Planned** – `postprocess_runner.py` to handle python + PIT BID XLSM | Spec drafted; code not started.                                                           |
 | **File structure**          | **✅ Re-structured** (`io`, `mapping`, `ui`, `pages/steps`)               | —                                                                                         |
 
@@ -31,7 +31,7 @@
 | **Dynamic validator**      | ✅ passes tests                                                                   | `pytest` suite green.                                |
 | **Dynamic UI wizard**      | ✅ PIT shows 1 step; COA shows 3 (Header → Lookup → Computed).                    |                                                      |
 | **Generic mapping engine** | ✅ lookup embeddings modular; computed resolver working                           | Mapping runs without `KeyError`.                     |
-| **Template builder**       | 🚧 stage D – column detector UI drafted                                          | Auto JSON dump still TODO.                           |
+| **Template builder**       | 🚧 stage D – basic header builder implemented | GPT-assisted builder still TODO. |
 | **Modular codebase**       | ✅ sub-packages & ≤300 LoC per file                                               | Import paths stable.                                 |
 | **AGENTS.md guides**       | ✅ committed per top-level folder                                                 | Codex answers architecture questions.                |
 | **User-defined fields**    | 🗓 stage F – inline “+ Add field” & persist, flag `unsaved_changes`, save-as-new | Reload shows new columns; validator still green.     |
@@ -80,9 +80,12 @@
 
 | #   | Task                                | Status | Done-when                                 |
 | --- | ----------------------------------- | ------ | ----------------------------------------- |
-| D-1 | 🔨 Column detector sidebar          | Me     | Source columns auto-listed in sidebar.    |
-| D-2 | 🔨 Mark required fields & save JSON | Me     | “Save as new template…” emits valid JSON. |
+| D-1 | ✅ Column detector sidebar          | Me     | Source columns auto-listed in sidebar.    |
+| D-2 | ✅ Mark required fields & save JSON | Me     | “Save as new template…” emits valid JSON. |
 | D-3 | 🔨 Create PIT BID template JSON     | Me     | File in `templates/` directory.           |
+| D-4 | 🔨 Dedicated Template Builder page  | Codex  | Step-by-step wizard creates header layer. |
+| D-5 | 🔨 GPT-assisted field suggestions   | Codex  | Builder proposes required fields.         |
+| D-6 | 🔨 Support lookup & computed layers | Codex  | Builder adds lookup dictionaries and formulas. |
 
 ### Phase E – Docs, packaging & CI (**complete**)
 
@@ -199,11 +202,11 @@ Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 
 3. Store saved formula expressions in output JSON (C-2.4).
 4. “Suggest formula” GPT helper (C-2.5).
-5. Build Template Builder column detector UI (D-1).
-6. Save enriched template JSON + metadata (D-2, D-3).
-7. Draft `postprocess_runner.py` and validate spec (F-4, F-5).
-8. Fix progress tracker visibility during wizard (C-4).
-9. Build Template Manager page; move sidebar features (F-3.1).
+5. Create baseline PIT BID template using Template Builder (D-3).
+6. Build dedicated Template Builder page with GPT suggestions (D-4, D-5).
+7. Extend builder to support lookup & computed layers (D-6).
+8. Draft `postprocess_runner.py` and validate spec (F-4, F-5).
+9. Fix progress tracker visibility during wizard (C-4).
 ```
 
 ---
