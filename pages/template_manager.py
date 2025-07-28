@@ -15,6 +15,7 @@ from app_utils.template_builder import (
     save_template_file,
     slugify,
     apply_field_choices,
+    gpt_field_suggestions,
 )
 from app_utils.ui_utils import render_progress, compute_current_step
 
@@ -75,6 +76,20 @@ def show() -> None:
     required = st.session_state.get("tm_required", {})
     if columns:
         st.subheader("Select fields")
+        if st.button("Suggest required fields"):
+            try:
+                sheet = st.session_state.get("tm_sheet", 0)
+                df, _ = read_tabular_file(uploaded, sheet_name=sheet)
+                suggestions = gpt_field_suggestions(df)
+                selections.update(suggestions)
+                required = {
+                    c: suggestions.get(c) == "required" for c in columns if suggestions.get(c) != "omit"
+                }
+                st.session_state["tm_field_select"] = selections
+                st.session_state["tm_required"] = required
+                st.rerun()
+            except Exception as err:  # noqa: BLE001
+                st.error(str(err))
         for col in columns:
             default = selections.get(
                 col,

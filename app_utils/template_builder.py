@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import json
 import os
 import re
+import pandas as pd
 from schemas.template_v2 import Template
 
 
@@ -64,4 +65,30 @@ def apply_field_choices(
     selected = [c for c in columns if choices.get(c) != "omit"]
     required = {c: choices.get(c) == "required" for c in selected}
     return selected, required
+
+
+def gpt_field_suggestions(df: pd.DataFrame) -> Dict[str, str]:
+    """Return a mapping {column: 'required'|'optional'|'omit'}."""
+    import json
+    from openai import OpenAI
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not set")
+
+    client = OpenAI(api_key=api_key)
+    system = (
+        "Given dataframe columns, decide which should be required in a mapping template. "
+        "Return JSON {column: 'required'|'optional'|'omit'} for each column."
+    )
+    payload = {"columns": list(df.columns)}
+    resp = client.chat.completions.create(
+        model="gpt-3.5-turbo-0125",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": json.dumps(payload)},
+        ],
+        temperature=0.2,
+    )
+    return json.loads(resp.choices[0].message.content)
 
