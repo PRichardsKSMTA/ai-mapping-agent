@@ -31,9 +31,10 @@ def render(layer, idx: int):
     sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
         "upload_sheet", 0
     )
-    df, _ = read_tabular_file(
-        st.session_state["uploaded_file"], sheet_name=sheet_name
-    )
+    with st.spinner("Loading file..."):
+        df, _ = read_tabular_file(
+            st.session_state["uploaded_file"], sheet_name=sheet_name
+        )
     src_col = layer.source_field
     if src_col not in df.columns:
         st.error(f"Column **{src_col}** not found in uploaded file.")

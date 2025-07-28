@@ -15,7 +15,10 @@ def render(layer, idx: int):
     sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
         "upload_sheet", 0
     )
-    df, _ = read_tabular_file(st.session_state["uploaded_file"], sheet_name=sheet_name)
+    with st.spinner("Loading file..."):
+        df, _ = read_tabular_file(
+            st.session_state["uploaded_file"], sheet_name=sheet_name
+        )
 
     # 1. Decide Direct vs Computed
     mode_key = f"computed_mode_{idx}"

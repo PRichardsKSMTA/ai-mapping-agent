@@ -13,11 +13,21 @@ class DummyStreamlit:
     def __init__(self):
         self.session_state = {}
 
+    class Spinner:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc) -> None:
+            pass
+
     def header(self, *a, **k):
         pass
 
     def error(self, msg):
         raise RuntimeError(msg)
+
+    def spinner(self, *a, **k):
+        return self.Spinner()
 
 
 def patch_streamlit(monkeypatch):
