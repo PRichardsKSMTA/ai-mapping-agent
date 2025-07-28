@@ -1,7 +1,11 @@
 from schemas.template_v2 import Template
 from app_utils.excel_utils import read_tabular_file
 from app_utils.template_builder import build_header_template
-from app_utils.template_builder import load_template_json, save_template_file
+from app_utils.template_builder import (
+    load_template_json,
+    save_template_file,
+    apply_field_choices,
+)
 
 
 def test_scan_csv_columns():
@@ -133,3 +137,11 @@ def test_render_sidebar_columns(monkeypatch):
     mod.render_sidebar_columns(["A", "B"])
 
     assert dummy_st.sidebar.seen == ["A", "B"]
+
+
+def test_apply_field_choices():
+    cols = ["A", "B", "C"]
+    choices = {"A": "required", "B": "omit", "C": "optional"}
+    selected, required = apply_field_choices(cols, choices)
+    assert selected == ["A", "C"]
+    assert required == {"A": True, "C": False}
