@@ -34,6 +34,7 @@ class DummyStreamlit:
         self.sidebar = DummySidebar()
         self._uploaded = uploaded
         self.text_input_calls = 0
+        self.text_area_labels: list[str] = []
 
     def title(self, *a, **k) -> None:
         pass
@@ -58,6 +59,10 @@ class DummyStreamlit:
 
     def button(self, *a, **k):
         return False
+
+    def text_area(self, label, key=None, **k):
+        self.text_area_labels.append(label)
+        return self.session_state.get(key, "")
 
     def columns(self, spec):
         return [types.SimpleNamespace(button=self.button, write=self.write) for _ in spec]
@@ -85,8 +90,19 @@ class DummyStreamlit:
         return wrap
 
 
-def run_manager(monkeypatch, uploaded=None):
+def run_manager(
+    monkeypatch,
+    uploaded=None,
+    button_patch=None,
+    builder=None,
+    session_state=None,
+    cols=None,
+):
     dummy_st = DummyStreamlit(uploaded)
+    if button_patch:
+        dummy_st.button = button_patch
+    if session_state:
+        dummy_st.session_state.update(session_state)
     monkeypatch.setitem(sys.modules, "streamlit", dummy_st)
     monkeypatch.setitem(
         sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None)
@@ -97,8 +113,12 @@ def run_manager(monkeypatch, uploaded=None):
     )
     monkeypatch.setattr(
         "app_utils.excel_utils.read_tabular_file",
-        lambda _uploaded, sheet_name=None: ([], []),
+        lambda _uploaded, sheet_name=None: ([], cols or []),
     )
+    if builder:
+        monkeypatch.setattr(
+            "app_utils.template_builder.build_header_template", builder
+        )
     sys.modules.pop("pages.template_manager", None)
     importlib.import_module("pages.template_manager")
     return dummy_st
@@ -113,4 +133,30 @@ def test_name_field_after_upload(monkeypatch):
     dummy_file = types.SimpleNamespace(name="demo.csv")
     dummy = run_manager(monkeypatch, uploaded=dummy_file)
     assert dummy.text_input_calls == 1
+
+
+def test_postprocess_field_shown(monkeypatch):
+    dummy_file = types.SimpleNamespace(name="demo.csv")
+    dummy = run_manager(monkeypatch, uploaded=dummy_file)
+    assert "Postprocess JSON (optional)" in dummy.text_area_labels
+
+
+def test_postprocess_passed_to_builder(monkeypatch):
+    dummy_file = types.SimpleNamespace(name="demo.csv")
+
+    captured = {}
+
+    def fake_builder(name, cols, req, post=None):
+        captured["post"] = post
+        return {"template_name": name, "layers": [{"type": "header", "fields": []}]}
+
+    dummy = run_manager(
+        monkeypatch,
+        uploaded=dummy_file,
+        button_patch=lambda label, *a, **k: label == "Save Template",
+        builder=fake_builder,
+        session_state={"tm_name": "demo", "tm_postprocess": "{\"type\": \"sql_insert\"}"},
+    )
+
+    assert captured["post"] == {"type": "sql_insert"}
 

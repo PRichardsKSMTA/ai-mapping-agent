@@ -18,7 +18,16 @@ def test_scan_csv_columns():
 def test_build_header_template_valid():
     cols = ["A", "B"]
     required = {"A": True, "B": False}
-    tpl = build_header_template("demo", cols, required)
+    tpl = build_header_template("demo", cols, required, None)
+    Template.model_validate(tpl)
+
+
+def test_build_header_template_with_postprocess():
+    cols = ["A"]
+    required = {"A": True}
+    post = {"type": "sql_insert"}
+    tpl = build_header_template("demo", cols, required, post)
+    assert tpl["postprocess"] == post
     Template.model_validate(tpl)
 
 
@@ -93,6 +102,9 @@ def test_render_sidebar_columns(monkeypatch):
 
         def button(self, *a, **k):
             return False
+
+        def text_area(self, label, key=None, **k):
+            return ""
 
         def columns(self, spec):
             return [

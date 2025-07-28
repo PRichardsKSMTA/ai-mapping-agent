@@ -92,11 +92,15 @@ def show() -> None:
             c: selections.get(c) == "required" for c in columns if selections.get(c) != "omit"
         }
 
+    st.text_area("Postprocess JSON (optional)", key="tm_postprocess", height=200)
+
     name = st.session_state.get("tm_name", "")
 
     if st.button("Save Template", disabled=not (name and columns)):
         selected_cols, req_map = apply_field_choices(columns, selections)
-        tpl = build_header_template(name, selected_cols, req_map)
+        post_txt = st.session_state.get("tm_postprocess", "").strip()
+        post_obj = json.loads(post_txt) if post_txt else None
+        tpl = build_header_template(name, selected_cols, req_map, post_obj)
         try:
             Template.model_validate(tpl)
         except ValidationError as err:  # noqa: F841
@@ -141,14 +145,28 @@ def show() -> None:
 def edit_template(filename: str, data: dict) -> None:
     key = f"edit_{filename}"
     st.session_state.setdefault(key, json.dumps(data, indent=2))
+    post_key = f"{key}_post"
+    st.session_state.setdefault(
+        post_key,
+        json.dumps(data.get("postprocess", ""), indent=2)
+        if data.get("postprocess") is not None
+        else "",
+    )
 
     @st.dialog(f"Edit Template '{filename}'", width="large")
     def _dlg() -> None:
         st.text_area("Template JSON", key, height=400)
+        st.text_area("Postprocess JSON (optional)", post_key, height=200)
         c1, c2 = st.columns(2)
         if c1.button("Save", key=f"{key}_save"):
             try:
                 obj = json.loads(st.session_state[key])
+                post_txt = st.session_state[post_key].strip()
+                post_obj = json.loads(post_txt) if post_txt else None
+                if post_obj is None:
+                    obj.pop("postprocess", None)
+                else:
+                    obj["postprocess"] = post_obj
                 Template.model_validate(obj)
                 safe = "".join(
                     c if c.isalnum() or c in "-_" else "_" for c in obj["template_name"]
