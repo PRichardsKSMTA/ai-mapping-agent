@@ -1,6 +1,8 @@
 import json
 import os
 from datetime import datetime
+from typing import List
+
 import streamlit as st
 from pydantic import ValidationError
 
@@ -13,6 +15,16 @@ from app_utils.template_builder import (
     save_template_file,
 )
 from app_utils.ui_utils import render_progress, compute_current_step
+
+
+def render_sidebar_columns(columns: List[str]) -> None:
+    """Display detected columns in the sidebar."""
+    st.sidebar.subheader("Detected Columns")
+    if not columns:
+        st.sidebar.info("No columns detected yet.")
+        return
+    for col in columns:
+        st.sidebar.write(col)
 
 
 @require_employee
@@ -48,11 +60,14 @@ def show() -> None:
             _, cols = read_tabular_file(uploaded)
             st.session_state["tm_columns"] = cols
     columns = st.session_state.get("tm_columns", [])
+    render_sidebar_columns(columns)
     required = st.session_state.get("tm_required", {})
     if columns:
         st.subheader("Mark required fields")
         for col in columns:
-            required[col] = st.checkbox(col, key=f"tm_req_{col}", value=required.get(col, False))
+            required[col] = st.checkbox(
+                col, key=f"tm_req_{col}", value=required.get(col, False)
+            )
         st.session_state["tm_required"] = required
 
     if st.button("Save Template", disabled=not (name and columns)):
@@ -83,7 +98,9 @@ def show() -> None:
         path = os.path.join("templates", tf)
         with open(path) as f:
             data = json.load(f)
-        modified = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M")
+        modified = datetime.fromtimestamp(os.path.getmtime(path)).strftime(
+            "%Y-%m-%d %H:%M"
+        )
         layers = len(data.get("layers", []))
         row = st.columns([3, 1, 2, 1])
         if row[0].button(data.get("template_name", tf[:-5]), key=f"tm_open_{tf}"):
@@ -106,7 +123,9 @@ def edit_template(filename: str, data: dict) -> None:
             try:
                 obj = json.loads(st.session_state[key])
                 Template.model_validate(obj)
-                safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in obj["template_name"])
+                safe = "".join(
+                    c if c.isalnum() or c in "-_" else "_" for c in obj["template_name"]
+                )
                 with open(os.path.join("templates", f"{safe}.json"), "w") as f:
                     json.dump(obj, f, indent=2)
                 if safe + ".json" != filename:
@@ -119,6 +138,7 @@ def edit_template(filename: str, data: dict) -> None:
         if c2.button("Cancel", key=f"{key}_cancel"):
             st.session_state.pop(key, None)
             st.rerun()
+
     _dlg()
 
 
@@ -132,6 +152,7 @@ def confirm_delete(filename: str) -> None:
             st.rerun()
         if c2.button("Cancel", key=f"del_{filename}_no"):
             st.rerun()
+
     _dlg()
 
 
