@@ -94,25 +94,25 @@ def main():
     progress_box = st.sidebar.empty()
     render_progress(progress_box)
 
-    def do_reset() -> None:
-        """Clear uploaded file and mapping progress."""
-        for k in list(st.session_state.keys()):
-            if k.startswith("layer_confirmed_"):
-                st.session_state.pop(k)
-        for k in [
-            "uploaded_file",
-            "upload_data_file",
-            "template",
-            "template_name",
-            "selected_template_file",
-            "current_template",
-            "auto_computed_confirm",
-        ]:
-            st.session_state.pop(k, None)
-        st.session_state["current_step"] = 0
-        st.rerun()
+    # def do_reset() -> None:
+    #     """Clear uploaded file and mapping progress."""
+    #     for k in list(st.session_state.keys()):
+    #         if k.startswith("layer_confirmed_"):
+    #             st.session_state.pop(k)
+    #     for k in [
+    #         "uploaded_file",
+    #         "upload_data_file",
+    #         "template",
+    #         "template_name",
+    #         "selected_template_file",
+    #         "current_template",
+    #         "auto_computed_confirm",
+    #     ]:
+    #         st.session_state.pop(k, None)
+    #     st.session_state["current_step"] = 0
+    #     st.rerun()
 
-    st.button("Reset", on_click=do_reset)
+    # st.button("Reset", on_click=do_reset)
 
     # ---------------------------------------------------------------------------
     # 3. Upload client data file
@@ -186,6 +186,30 @@ def main():
             st.info("Please select a template to begin.")
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
+            
+    # ---------------------------------------------------------------------------
+    # 5. Reset Button
+    # ---------------------------------------------------------------------------
+            
+    def do_reset() -> None:
+        """Clear uploaded file and mapping progress."""
+        for k in list(st.session_state.keys()):
+            if k.startswith("layer_confirmed_"):
+                st.session_state.pop(k)
+        for k in [
+            "uploaded_file",
+            "upload_data_file",
+            "template",
+            "template_name",
+            "selected_template_file",
+            "current_template",
+            "auto_computed_confirm",
+        ]:
+            st.session_state.pop(k, None)
+        st.session_state["current_step"] = 0
+        st.rerun()
+
+    st.button("Reset", on_click=do_reset)
 
 
 main()

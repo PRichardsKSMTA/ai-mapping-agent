@@ -105,5 +105,105 @@
       "2025-03-01"
     ],
     "display": "2025-03-01"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nLane ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "ID"
+    ],
+    "display": "ID"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nOrigin City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin City"
+    ],
+    "display": "Origin City"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig\nState",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin State/Province"
+    ],
+    "display": "Origin State/Province"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig Zip\n(5 or 3)",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin Start Postal Code"
+    ],
+    "display": "Origin Start Postal Code"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nDestination City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination City"
+    ],
+    "display": "Destination City"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest\nState",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination End Postal Code"
+    ],
+    "display": "Destination End Postal Code"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest Zip\n(5 or 3)",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination End Postal Code"
+    ],
+    "display": "Destination End Postal Code"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Volume",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "No of Shipments"
+    ],
+    "display": "No of Shipments"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nBid Miles",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Distance (mi)"
+    ],
+    "display": "Distance (mi)"
+  },
+  {
+    "template": "PIT BID",
+    "field": "\nMiles",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Distance (mi)"
+    ],
+    "display": "Distance (mi)"
   }
 ]
