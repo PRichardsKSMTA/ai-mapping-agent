@@ -1,10 +1,11 @@
 from schemas.template_v2 import Template
 from app_utils.excel_utils import read_tabular_file
-from app_utils.template_builder import build_header_template
 from app_utils.template_builder import (
+    build_header_template,
     load_template_json,
     save_template_file,
     apply_field_choices,
+    slugify,
 )
 
 
@@ -40,7 +41,14 @@ def test_load_template_json_valid():
 def test_save_template_file(tmp_path):
     tpl = {"template_name": "demo*temp", "layers": []}
     name = save_template_file(tpl, directory=tmp_path)
+    assert name == "demo-temp"
     assert (tmp_path / f"{name}.json").exists()
+
+
+def test_slugify_examples():
+    assert slugify("Standard COA") == "standard-coa"
+    assert slugify("PIT_BID") == "pit-bid"
+    assert slugify("demo*temp") == "demo-temp"
 
 
 def test_render_sidebar_columns(monkeypatch):
