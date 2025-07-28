@@ -92,3 +92,30 @@ def gpt_field_suggestions(df: pd.DataFrame) -> Dict[str, str]:
     )
     return json.loads(resp.choices[0].message.content)
 
+
+def build_lookup_layer(source_field: str, target_field: str, dictionary_sheet: str, sheet: str | None = None) -> Dict:
+    """Return a lookup layer dict."""
+    layer = {
+        "type": "lookup",
+        "source_field": source_field,
+        "target_field": target_field,
+        "dictionary_sheet": dictionary_sheet,
+    }
+    if sheet:
+        layer["sheet"] = sheet
+    return layer
+
+
+def build_computed_layer(target_field: str, expression: str, sheet: str | None = None) -> Dict:
+    """Return a computed layer with a user-defined expression."""
+    layer = {
+        "type": "computed",
+        "target_field": target_field,
+        "formula": {
+            "strategy": "always",
+            "expression": expression,
+        },
+    }
+    if sheet:
+        layer["sheet"] = sheet
+    return layer

@@ -25,7 +25,8 @@ from pydantic import ValidationError
 from auth import require_login, logout_button
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
-from app_utils.excel_utils import list_sheets
+from app_utils.excel_utils import list_sheets, read_tabular_file
+from app_utils.postprocess_runner import run_postprocess_if_configured
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +181,14 @@ def main():
         st.success(
             "✅ All layers confirmed! You can now download the mapping or run the export."
         )
+
+        if template_obj.postprocess:
+            if st.button("Run Postprocess"):
+                with st.spinner("Running postprocess..."):
+                    sheet = st.session_state.get("upload_sheet", 0)
+                    df, _ = read_tabular_file(st.session_state["uploaded_file"], sheet_name=sheet)
+                    run_postprocess_if_configured(template_obj, df)
+                    st.success("Postprocess complete")
 
     else:
         if not template_obj:

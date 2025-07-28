@@ -1,7 +1,7 @@
 import pytest
 
 from app_utils.mapping_utils import suggest_header_mapping
-from pages.steps.header import remove_field
+from pages.steps.header import remove_field, add_field
 import streamlit as st
 import json
 from schemas.template_v2 import FieldSpec
@@ -31,11 +31,19 @@ def test_remove_field_updates_state():
     st.session_state.clear()
     st.session_state[map_key] = {"Extra": {}, "Name": {}}
     st.session_state[extra_key] = ["Extra"]
+    st.session_state["template"] = {
+        "layers": [
+            {"type": "header", "fields": [{"key": "Name"}, {"key": "Extra"}]}
+        ]
+    }
 
     remove_field("Extra", idx)
 
     assert "Extra" not in st.session_state[map_key]
     assert "Extra" not in st.session_state[extra_key]
+    assert st.session_state["unsaved_changes"] is True
+    fields = st.session_state["template"]["layers"][0]["fields"]
+    assert all(f["key"] != "Extra" for f in fields)
 
 
 def test_saved_suggestion_overrides_fuzzy(monkeypatch, tmp_path):
@@ -84,3 +92,15 @@ def test_saved_suggestion_overrides_fuzzy(monkeypatch, tmp_path):
     assert mapping["Name"]["confidence"] == 1.0
 
 
+
+def test_add_field_sets_unsaved(monkeypatch):
+    idx = 0
+    st.session_state.clear()
+    st.session_state["template"] = {
+        "layers": [{"type": "header", "fields": [{"key": "Name"}]}]
+    }
+    add_field("Extra", idx)
+    assert st.session_state["unsaved_changes"] is True
+    fields = st.session_state["template"]["layers"][0]["fields"]
+    assert any(f["key"] == "Extra" for f in fields)
+    assert "Extra" in st.session_state[f"header_extra_fields_{idx}"]
