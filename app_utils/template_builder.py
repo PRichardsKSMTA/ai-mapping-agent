@@ -9,13 +9,16 @@ from schemas.template_v2 import Template
 
 
 def build_header_template(
-    template_name: str, columns: List[str], required: Dict[str, bool]
+    template_name: str,
+    columns: List[str],
+    required: Dict[str, bool],
+    postprocess: Dict | None = None,
 ) -> Dict:
     """Return a basic header-only template structure."""
     fields = [
         {"key": col, "required": bool(required.get(col, False))} for col in columns
     ]
-    return {
+    tpl = {
         "template_name": template_name,
         "layers": [
             {
@@ -24,6 +27,9 @@ def build_header_template(
             }
         ],
     }
+    if postprocess:
+        tpl["postprocess"] = postprocess
+    return tpl
 
 
 def load_template_json(uploaded) -> Dict:
