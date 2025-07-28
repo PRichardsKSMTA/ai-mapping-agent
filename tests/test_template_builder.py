@@ -2,6 +2,8 @@ from schemas.template_v2 import Template
 from app_utils.excel_utils import read_tabular_file
 from app_utils.template_builder import (
     build_header_template,
+    build_lookup_layer,
+    build_computed_layer,
     load_template_json,
     save_template_file,
     apply_field_choices,
@@ -204,3 +206,12 @@ def test_gpt_field_suggestions(monkeypatch):
     df = pd.DataFrame({"A": [1], "B": [2]})
     res = gpt_field_suggestions(df)
     assert res == {"A": "required", "B": "optional"}
+
+def test_build_lookup_and_computed_layers():
+    lookup = build_lookup_layer("SRC", "DEST", "dict", sheet="Sheet1")
+    computed = build_computed_layer("TOTAL", "df['A'] + df['B']")
+    tpl = {
+        "template_name": "demo",
+        "layers": [lookup, computed],
+    }
+    Template.model_validate(tpl)
