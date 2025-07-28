@@ -40,7 +40,7 @@ def show() -> None:
     # Create new template from sample file
     # ------------------------------------------------------------------
     st.header("Create New Template")
-    name = st.text_input("Template Name", key="tm_name")
+
     uploaded = st.file_uploader(
         "Upload CSV/Excel sample or Template JSON",
         type=["csv", "xls", "xlsx", "xlsm", "json"],
@@ -58,6 +58,7 @@ def show() -> None:
             except Exception as e:  # noqa: BLE001
                 st.error(f"Failed to read JSON: {e}")
         else:
+            st.text_input("Template Name", key="tm_name")
             sheets = list_sheets(uploaded)
             sheet_key = "tm_sheet"
             if len(sheets) > 1:
@@ -90,6 +91,8 @@ def show() -> None:
         st.session_state["tm_required"] = {
             c: selections.get(c) == "required" for c in columns if selections.get(c) != "omit"
         }
+
+    name = st.session_state.get("tm_name", "")
 
     if st.button("Save Template", disabled=not (name and columns)):
         selected_cols, req_map = apply_field_choices(columns, selections)
