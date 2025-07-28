@@ -1,6 +1,6 @@
 # AI Mapping Agent – Project Roadmap (MVP)
 
-*Last updated: 2025-07-28*
+*Last updated: 2025-07-29*
 
 ---
 
@@ -16,8 +16,8 @@
 | --------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | **Template JSON validator** | **✅ Dynamic v2 schema live** – validates any layers-only template        | None                                                                                      |
 | **UI wizard**               | **✅ Layer-driven** wizard; steps generated at runtime                    | None                                                                                      |
-| **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display and GPT fallback implemented; formula dialog stable with save/clear & operand pills. |
-| **Template creation**       | **🚧 In progress** – Template Manager page saves header-only templates; GPT builder not yet wired | Column detector and save to JSON working. |
+| **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display, GPT fallback, and formula dialog with "Suggest formula" GPT helper. |
+| **Template creation**       | **🚧 In progress** – Template Manager with GPT field suggestions; multi-layer support pending | Column detector and save to JSON working. |
 | **Post-Process runner**    | 🚧 stage F – base runner implemented; wizard hook pending | Unit tests cover dispatch.
 | **File structure**          | **✅ Re-structured** (`io`, `mapping`, `ui`, `pages/steps`)               | —                                                                                         |
 
@@ -72,7 +72,7 @@
 | C-2.2 | ✅ Inline Formula Dialog (free-form + pills + live preview)               | Me    | User can build & preview formulas.                           |
 | C-2.3 | ✅ Validate formula on sample rows                                       | Me    | Preview shows values or error only when expression complete. |
 | C-2.4 | ✅ Store final expression & include in output JSON                       | Me    | Mapping JSON includes user expression per field.             |
-| C-2.5 | 🔨 “Suggest formula” helper (GPT-propose)                                | Me    | “Suggest formula” button visible & returns candidate.        |
+| C-2.5 | ✅ “Suggest formula” helper (GPT-propose)                                | Me    | “Suggest formula” button visible & returns candidate.        |
 | C-3   | ✅ Unit tests for all layer strategies                                    | Me    | `pytest` suite green.                                        |
 | C-4   | ✅ Fix progress tracker display                              | Codex | Progress bar shows current step and updates per page.        |
 
@@ -84,7 +84,7 @@
 | D-2 | ✅ Mark required fields & save JSON | Me     | “Save as new template…” emits valid JSON. |
 | D-3 | ✅ Create PIT BID template JSON     | Me     | File in `templates/` directory.           |
 | D-4 | ✅ Dedicated Template Builder page  | Codex  | Step-by-step wizard creates header layer. |
-| D-5 | 🔨 GPT-assisted field suggestions   | Codex  | Builder proposes required fields.         |
+| D-5 | ✅ GPT-assisted field suggestions   | Codex  | Builder proposes required fields.         |
 | D-6 | 🔨 Support lookup & computed layers | Codex  | Builder adds lookup dictionaries and formulas. |
 | D-6.1 | 🗓 Multi-layer builder | Codex  | Builder allows adding sub-layers like `standard-fm-coa.json`. |
 
@@ -198,11 +198,9 @@ Don’ts
 Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 
 ### Tasks
-1. “Suggest formula” GPT helper (C-2.5).
-2. GPT-assisted field suggestions in Template Builder (D-5).
-3. Extend builder to support lookup & computed layers (D-6).
-4. Track `unsaved_changes` for added fields (F-2).
-5. Wire postprocess runner into wizard (F-6).
+1. Extend builder to support lookup & computed layers (D-6).
+2. Track `unsaved_changes` for added fields (F-2).
+3. Wire postprocess runner into wizard (F-6).
 
 ```
 
