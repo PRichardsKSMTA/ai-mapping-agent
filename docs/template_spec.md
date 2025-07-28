@@ -149,7 +149,6 @@ At run-time the user builds an expression; the engine stores its resolution:
 
 ### 3.4  `postprocess` (optional, top-level)
 
-
 ```jsonc
 "postprocess": {
   "type": "sql_insert",
@@ -157,7 +156,16 @@ At run-time the user builds an expression; the engine stores its resolution:
   "table": "dbo.MAPPED_OUTPUT",
   "column_map": { "GL_ID": "GL_ID", "NET_CHANGE": "NET_CHANGE" }
 }
+```
 
+Supported **`type`** values:
+
+| Type            | Purpose                                   |
+|-----------------|--------------------------------------------|
+| `excel_template`| Fill an Excel workbook using mapped data.  |
+| `sql_insert`    | Insert rows into a SQL table via ODBC.     |
+| `http_request`  | Send mapped data as an HTTP request body.  |
+| `python_script` | Execute inline Python code with `df` bound.|
 
 ---
 
