@@ -41,6 +41,20 @@ def detect_header_row(path: str,
     return best_idx if best_idx is not None else 0
 
 
+def _clean_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop fully blank columns without headers and normalize names."""
+    df.columns = df.columns.map(str)
+    drop_cols = [
+        c
+        for c in df.columns
+        if (c.strip() == "" or c.startswith("Unnamed")) and df[c].isna().all()
+    ]
+    if drop_cols:
+        df = df.drop(columns=drop_cols)
+    df.columns = df.columns.map(str)
+    return df
+
+
 @st.cache_data(show_spinner=False)
 def excel_to_json(path: str,
                   sheet_name=0,
@@ -90,9 +104,7 @@ def excel_to_json(path: str,
 
     # 5) Clean and return
     df = df.dropna(how="all")
-    df = df.dropna(axis=1, how="all")
-    df.columns = df.columns.map(str)
-    df = df.loc[:, ~df.columns.str.match(r"^Unnamed")]
+    df = _clean_columns(df)
     return df.to_dict(orient="records"), list(df.columns)
 
 def list_sheets(uploaded_file) -> List[str]:
@@ -138,7 +150,5 @@ def read_tabular_file(
     else:  # CSV
         df = pd.read_csv(uploaded_file)
 
-    df = df.dropna(axis=1, how="all")
-    df.columns = df.columns.map(str)
-    df = df.loc[:, ~df.columns.str.match(r"^Unnamed")]
+    df = _clean_columns(df)
     return df, list(df.columns)

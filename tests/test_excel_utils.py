@@ -27,6 +27,13 @@ def test_read_tabular_file_drops_empty_columns():
     assert cols == ['A']
 
 
+def test_read_tabular_file_header_only():
+    with open('tests/fixtures/header_only.xlsx', 'rb') as f:
+        df, cols = read_tabular_file(f)
+    assert cols == ['A', 'B', 'C']
+    assert df.empty
+
+
 def test_list_sheets_closes_temp(monkeypatch, tmp_path):
     path = tmp_path / "dummy.xlsx"
     excel_utils.pd.DataFrame({'A': [1]}).to_excel(path, index=False)
