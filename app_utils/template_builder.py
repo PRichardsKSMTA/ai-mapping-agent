@@ -5,7 +5,15 @@ from __future__ import annotations
 from typing import Dict, List, Tuple
 import json
 import os
+import re
 from schemas.template_v2 import Template
+
+
+def slugify(name: str) -> str:
+    """Return lowercase kebab-case version of ``name``."""
+    slug = re.sub(r"[^0-9a-zA-Z]+", "-", name)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug.lower()
 
 
 def build_header_template(
@@ -41,7 +49,7 @@ def load_template_json(uploaded) -> Dict:
 
 def save_template_file(tpl: Dict, directory: str = "templates") -> str:
     """Save validated template to templates/<name>.json and return name."""
-    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in tpl["template_name"])
+    safe = slugify(tpl["template_name"])
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, f"{safe}.json")
     with open(path, "w") as f:

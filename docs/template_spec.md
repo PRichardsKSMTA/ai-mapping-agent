@@ -16,7 +16,7 @@ This document describes the **minimal, schema-agnostic JSON format** (v2) accept
 
 | Key | Type | Required | Notes |
 |-----|------|----------|-------|
-| `template_name` | `string` | ✅ | Human-readable name; slugified into kebab-case filename. |
+| `template_name` | `string` | ✅ | Human-readable name; slugified to lowercase kebab-case filename (spaces/underscores → `-`). |
 | `layers` | `array<Layer>` | ✅ | Ordered list of mapping passes. |
 | *(any)* | *any* | optional | Extra metadata preserved for back-compat (e.g., `fields`, `accounts`). |
 

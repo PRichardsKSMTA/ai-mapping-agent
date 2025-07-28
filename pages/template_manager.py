@@ -13,6 +13,7 @@ from app_utils.template_builder import (
     build_header_template,
     load_template_json,
     save_template_file,
+    slugify,
     apply_field_choices,
 )
 from app_utils.ui_utils import render_progress, compute_current_step
@@ -115,7 +116,7 @@ def show() -> None:
         except ValidationError as err:  # noqa: F841
             st.error(f"Invalid template: {err}")
         else:
-            safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+            safe = slugify(name)
             os.makedirs("templates", exist_ok=True)
             with open(os.path.join("templates", f"{safe}.json"), "w") as f:
                 json.dump(tpl, f, indent=2)
@@ -180,9 +181,7 @@ def edit_template(filename: str, data: dict) -> None:
                 else:
                     obj["postprocess"] = post_obj
                 Template.model_validate(obj)
-                safe = "".join(
-                    c if c.isalnum() or c in "-_" else "_" for c in obj["template_name"]
-                )
+                safe = slugify(obj["template_name"])
                 with open(os.path.join("templates", f"{safe}.json"), "w") as f:
                     json.dump(obj, f, indent=2)
                 if safe + ".json" != filename:
