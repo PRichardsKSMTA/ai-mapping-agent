@@ -86,6 +86,7 @@
 | D-4 | 🔨 Dedicated Template Builder page  | Codex  | Step-by-step wizard creates header layer. |
 | D-5 | 🔨 GPT-assisted field suggestions   | Codex  | Builder proposes required fields.         |
 | D-6 | 🔨 Support lookup & computed layers | Codex  | Builder adds lookup dictionaries and formulas. |
+| D-6.1 | 🗓 Multi-layer builder | Codex  | Builder allows adding sub-layers like `standard-fm-coa.json`. |
 
 ### Phase E – Docs, packaging & CI (**complete**)
 
