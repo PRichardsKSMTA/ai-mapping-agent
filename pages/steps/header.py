@@ -78,19 +78,20 @@ def render(layer, idx: int) -> None:
     # 3⃣  Overlay suggestions learned from previous sessions
     for field in layer.fields:  # type: ignore
         key = field.key
-        if mapping.get(key):
-            continue  # already has fuzzy suggestion
         for s in get_suggestions(st.session_state["current_template"], key):
             if s["type"] == "direct":
                 for col in source_cols:
                     if col.lower() == s["columns"][0].lower():
                         mapping[key] = {"src": col, "confidence": 1.0}
                         break
+                if mapping.get(key):
+                    break
             else:  # formula suggestion
                 mapping[key] = {
                     "expr": s["formula"],
                     "expr_display": s["display"],
                 }
+                break
 
 
     st.caption("• ✅ mapped  • 🛈 suggested  • ❌ required & missing")
