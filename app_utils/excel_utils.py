@@ -100,10 +100,15 @@ def list_sheets(uploaded_file) -> List[str]:
     if uploaded_file.name.lower().endswith((".xls", ".xlsx", ".xlsm")):
         import os
         tmp_path = _copy_to_temp(uploaded_file, ".xlsx")
+        wb = load_workbook(tmp_path, read_only=True, keep_vba=True)
         try:
-            wb = load_workbook(tmp_path, read_only=True, keep_vba=True)
-            return [ws.title for ws in wb.worksheets if ws.sheet_state == "visible"]
+            return [
+                ws.title
+                for ws in wb.worksheets
+                if ws.sheet_state == "visible"
+            ]
         finally:
+            wb.close()
             os.unlink(tmp_path)
     return ["Sheet1"]
 
