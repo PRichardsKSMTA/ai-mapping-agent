@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import pytest
 from schemas.template_v2 import Template, ValidationError
 
 
@@ -23,6 +24,32 @@ def test_pit_header_only_valid():
         ],
     }
     Template.model_validate(pit)
+
+
+def test_postprocess_valid():
+    tpl = {
+        "template_name": "demo",
+        "layers": [
+            {"type": "header", "fields": [{"key": "A"}]}
+        ],
+        "postprocess": {
+            "type": "sql_insert",
+            "connection": "mssql://example",
+            "table": "dbo.OUT",
+            "column_map": {"A": "A"},
+        },
+    }
+    Template.model_validate(tpl)
+
+
+def test_postprocess_missing_type_fails():
+    tpl = {
+        "template_name": "demo",
+        "layers": [{"type": "header", "fields": [{"key": "A"}]}],
+        "postprocess": {"table": "dbo.OUT"},
+    }
+    with pytest.raises(ValidationError):
+        Template.model_validate(tpl)
 
 
 def test_missing_layers_fails():

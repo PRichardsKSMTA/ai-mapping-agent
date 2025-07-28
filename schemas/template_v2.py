@@ -65,12 +65,23 @@ class ComputedLayer(BaseModel):
     formula: ComputedFormula
 
 
+class PostprocessSpec(BaseModel):
+    """Optional post-processing instructions."""
+
+    type: str
+    connection: Optional[str] = None
+    table: Optional[str] = None
+    column_map: Optional[Dict[str, str]] = None
+    script: Optional[str] = None
+
+
 Layer = HeaderLayer | LookupLayer | ComputedLayer
 
 
 class Template(BaseModel):
     template_name: str
     layers: List[Layer]
+    postprocess: Optional[PostprocessSpec] = None
 
     # Allow unknown top-level keys (back-compat)
     model_config = ConfigDict(extra="allow")
