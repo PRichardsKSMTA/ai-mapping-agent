@@ -97,8 +97,8 @@ def list_sheets(uploaded_file) -> List[str]:
         import os
         tmp_path = _copy_to_temp(uploaded_file, ".xlsx")
         try:
-            xls = pd.ExcelFile(tmp_path)
-            return xls.sheet_names
+            with pd.ExcelFile(tmp_path) as xls:
+                return xls.sheet_names
         finally:
             os.unlink(tmp_path)
     return ["Sheet1"]
