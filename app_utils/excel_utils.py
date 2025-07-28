@@ -1,6 +1,7 @@
 import pandas as pd  # type: ignore
 import streamlit as st
 from typing import List
+from openpyxl import load_workbook
 
 
 def _copy_to_temp(uploaded_file, suffix: str) -> str:
@@ -89,16 +90,19 @@ def excel_to_json(path: str,
 
     # 5) Clean and return
     df = df.dropna(how="all")
+    df = df.dropna(axis=1, how="all")
+    df.columns = df.columns.map(str)
+    df = df.loc[:, ~df.columns.str.match(r"^Unnamed")]
     return df.to_dict(orient="records"), list(df.columns)
 
 def list_sheets(uploaded_file) -> List[str]:
-    """Return available sheet names for an uploaded CSV or Excel file."""
+    """Return visible sheet names for an uploaded CSV or Excel file."""
     if uploaded_file.name.lower().endswith((".xls", ".xlsx", ".xlsm")):
         import os
         tmp_path = _copy_to_temp(uploaded_file, ".xlsx")
         try:
-            with pd.ExcelFile(tmp_path) as xls:
-                return xls.sheet_names
+            wb = load_workbook(tmp_path, read_only=True, keep_vba=True)
+            return [ws.title for ws in wb.worksheets if ws.sheet_state == "visible"]
         finally:
             os.unlink(tmp_path)
     return ["Sheet1"]
@@ -129,5 +133,7 @@ def read_tabular_file(
     else:  # CSV
         df = pd.read_csv(uploaded_file)
 
+    df = df.dropna(axis=1, how="all")
     df.columns = df.columns.map(str)
+    df = df.loc[:, ~df.columns.str.match(r"^Unnamed")]
     return df, list(df.columns)

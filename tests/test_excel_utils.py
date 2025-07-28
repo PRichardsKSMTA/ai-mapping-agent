@@ -8,11 +8,23 @@ def test_list_sheets():
     assert sheets == ['First', 'Second']
 
 
+def test_list_sheets_filters_hidden():
+    with open('tests/fixtures/multi_hidden.xlsx', 'rb') as f:
+        sheets = list_sheets(f)
+    assert sheets == ['First']
+
+
 def test_read_tabular_file_excel():
     with open('tests/fixtures/multi.xlsx', 'rb') as f:
         df, cols = read_tabular_file(f, sheet_name='Second')
     assert cols == ['B']
     assert df.iloc[0]['B'] == 2
+
+
+def test_read_tabular_file_drops_empty_columns():
+    with open('tests/fixtures/blankcol.xlsx', 'rb') as f:
+        df, cols = read_tabular_file(f, sheet_name='First')
+    assert cols == ['A']
 
 
 def test_list_sheets_closes_temp(monkeypatch, tmp_path):
