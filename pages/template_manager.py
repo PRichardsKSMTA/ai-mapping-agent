@@ -61,14 +61,16 @@ def show() -> None:
                 st.error(f"Failed to read JSON: {e}")
         else:
             st.text_input("Template Name", key="tm_name")
-            sheets = list_sheets(uploaded)
+            with st.spinner("Loading file..."):
+                sheets = list_sheets(uploaded)
             sheet_key = "tm_sheet"
             if len(sheets) > 1:
                 sheet = st.selectbox("Select sheet", sheets, key=sheet_key)
             else:
                 sheet = sheets[0]
                 st.session_state[sheet_key] = sheet
-            _, cols = read_tabular_file(uploaded, sheet_name=sheet)
+            with st.spinner("Reading columns..."):
+                _, cols = read_tabular_file(uploaded, sheet_name=sheet)
             st.session_state["tm_columns"] = cols
     columns = st.session_state.get("tm_columns", [])
     render_sidebar_columns(columns)
@@ -79,8 +81,9 @@ def show() -> None:
         if st.button("Suggest required fields"):
             try:
                 sheet = st.session_state.get("tm_sheet", 0)
-                df, _ = read_tabular_file(uploaded, sheet_name=sheet)
-                suggestions = gpt_field_suggestions(df)
+                with st.spinner("Analyzing sample..."):
+                    df, _ = read_tabular_file(uploaded, sheet_name=sheet)
+                    suggestions = gpt_field_suggestions(df)
                 selections.update(suggestions)
                 required = {
                     c: suggestions.get(c) == "required" for c in columns if suggestions.get(c) != "omit"
@@ -126,21 +129,22 @@ def show() -> None:
         post_txt = st.session_state.get("tm_postprocess", "").strip()
         post_obj = json.loads(post_txt) if post_txt else None
         tpl = build_header_template(name, selected_cols, req_map, post_obj)
-        try:
-            Template.model_validate(tpl)
-        except ValidationError as err:  # noqa: F841
-            st.error(f"Invalid template: {err}")
-        else:
-            safe = slugify(name)
-            os.makedirs("templates", exist_ok=True)
-            with open(os.path.join("templates", f"{safe}.json"), "w") as f:
-                json.dump(tpl, f, indent=2)
-            st.success(f"Saved template '{safe}'")
-            st.session_state.pop("tm_columns", None)
-            st.session_state.pop("tm_required", None)
-            st.session_state.pop("tm_field_select", None)
-            st.session_state.pop("tm_sheet", None)
-            st.rerun()
+        with st.spinner("Saving template..."):
+            try:
+                Template.model_validate(tpl)
+            except ValidationError as err:  # noqa: F841
+                st.error(f"Invalid template: {err}")
+            else:
+                safe = slugify(name)
+                os.makedirs("templates", exist_ok=True)
+                with open(os.path.join("templates", f"{safe}.json"), "w") as f:
+                    json.dump(tpl, f, indent=2)
+                st.success(f"Saved template '{safe}'")
+                st.session_state.pop("tm_columns", None)
+                st.session_state.pop("tm_required", None)
+                st.session_state.pop("tm_field_select", None)
+                st.session_state.pop("tm_sheet", None)
+                st.rerun()
 
     st.divider()
 
@@ -187,25 +191,26 @@ def edit_template(filename: str, data: dict) -> None:
         st.text_area("Postprocess JSON (optional)", post_key, height=200)
         c1, c2 = st.columns(2)
         if c1.button("Save", key=f"{key}_save"):
-            try:
-                obj = json.loads(st.session_state[key])
-                post_txt = st.session_state[post_key].strip()
-                post_obj = json.loads(post_txt) if post_txt else None
-                if post_obj is None:
-                    obj.pop("postprocess", None)
-                else:
-                    obj["postprocess"] = post_obj
-                Template.model_validate(obj)
-                safe = slugify(obj["template_name"])
-                with open(os.path.join("templates", f"{safe}.json"), "w") as f:
-                    json.dump(obj, f, indent=2)
-                if safe + ".json" != filename:
-                    os.remove(os.path.join("templates", filename))
-                st.success("Template saved")
-                st.session_state.pop(key, None)
-                st.rerun()
-            except Exception as err:  # noqa: BLE001
-                st.error(f"❌ {err}")
+            with st.spinner("Saving template..."):
+                try:
+                    obj = json.loads(st.session_state[key])
+                    post_txt = st.session_state[post_key].strip()
+                    post_obj = json.loads(post_txt) if post_txt else None
+                    if post_obj is None:
+                        obj.pop("postprocess", None)
+                    else:
+                        obj["postprocess"] = post_obj
+                    Template.model_validate(obj)
+                    safe = slugify(obj["template_name"])
+                    with open(os.path.join("templates", f"{safe}.json"), "w") as f:
+                        json.dump(obj, f, indent=2)
+                    if safe + ".json" != filename:
+                        os.remove(os.path.join("templates", filename))
+                    st.success("Template saved")
+                    st.session_state.pop(key, None)
+                    st.rerun()
+                except Exception as err:  # noqa: BLE001
+                    st.error(f"❌ {err}")
         if c2.button("Cancel", key=f"{key}_cancel"):
             st.session_state.pop(key, None)
             st.rerun()

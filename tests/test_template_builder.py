@@ -147,6 +147,16 @@ def test_render_sidebar_columns(monkeypatch):
 
             return wrap
 
+        class Spinner:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc) -> None:
+                pass
+
+        def spinner(self, *a, **k):
+            return self.Spinner()
+
     dummy_st = DummyStreamlit()
     monkeypatch.setitem(sys.modules, "streamlit", dummy_st)
     monkeypatch.setitem(

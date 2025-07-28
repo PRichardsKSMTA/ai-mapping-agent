@@ -56,9 +56,10 @@ def render(layer, idx: int) -> None:
     sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
         "upload_sheet", 0
     )
-    df, source_cols = read_tabular_file(
-        st.session_state["uploaded_file"], sheet_name=sheet_name
-    )
+    with st.spinner("Loading file..."):
+        df, source_cols = read_tabular_file(
+            st.session_state["uploaded_file"], sheet_name=sheet_name
+        )
 
     # 2⃣  Build / restore mapping dict (includes confidence from fuzzy match)
     map_key = f"header_mapping_{idx}"
@@ -96,7 +97,8 @@ def render(layer, idx: int) -> None:
     ai_flag = f"header_ai_done_{idx}"
     if not st.session_state.get(ai_flag):
         before = mapping.copy()
-        mapping = apply_gpt_header_fallback(mapping, source_cols)
+        with st.spinner("Querying GPT..."):
+            mapping = apply_gpt_header_fallback(mapping, source_cols)
         st.session_state[map_key] = mapping
         st.session_state[ai_flag] = True
         if mapping != before:

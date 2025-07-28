@@ -94,6 +94,16 @@ class DummyStreamlit:
             return func
         return wrap
 
+    class Spinner:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc) -> None:
+            pass
+
+    def spinner(self, *a, **k):
+        return self.Spinner()
+
 
 def run_manager(
     monkeypatch,

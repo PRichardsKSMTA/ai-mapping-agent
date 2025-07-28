@@ -66,12 +66,13 @@ def main():
         template_obj: Template | None = None
         if selected_file:
             st.session_state["selected_template_file"] = selected_file
-            raw_template = json.loads((TEMPLATES_DIR / selected_file).read_text())
-            try:
-                template_obj = Template.model_validate(raw_template)
-            except ValidationError as err:
-                st.error(f"Template invalid:\n{err}")
-                st.stop()
+            with st.spinner("Loading template..."):
+                raw_template = json.loads((TEMPLATES_DIR / selected_file).read_text())
+                try:
+                    template_obj = Template.model_validate(raw_template)
+                except ValidationError as err:
+                    st.error(f"Template invalid:\n{err}")
+                    st.stop()
 
             # keep raw dict in session for child pages
             st.session_state["template"] = raw_template
@@ -125,7 +126,8 @@ def main():
     )
     if uploaded_file:
         st.session_state["uploaded_file"] = uploaded_file
-        sheets = list_sheets(uploaded_file)
+        with st.spinner("Reading file..."):
+            sheets = list_sheets(uploaded_file)
         sheet_key = "upload_sheet"
         if len(sheets) > 1:
             st.selectbox("Select sheet", sheets, key=sheet_key)
