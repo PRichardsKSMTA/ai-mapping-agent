@@ -128,9 +128,7 @@ def main():
         sheets = list_sheets(uploaded_file)
         sheet_key = "upload_sheet"
         if len(sheets) > 1:
-            st.session_state[sheet_key] = st.selectbox(
-                "Select sheet", sheets, key=sheet_key
-            )
+            st.selectbox("Select sheet", sheets, key=sheet_key)
         else:
             st.session_state[sheet_key] = sheets[0]
 
