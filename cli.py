@@ -10,6 +10,7 @@ from app_utils.excel_utils import excel_to_json
 from app_utils.mapping_utils import suggest_header_mapping
 from app_utils.mapping.computed_layer import resolve_computed_layer
 from app_utils.mapping.exporter import build_output_template
+from app_utils.postprocess_runner import run_postprocess_if_configured
 
 
 def load_template(path: Path) -> Template:
@@ -52,6 +53,9 @@ def main() -> None:
 
     with args.output.open("w") as f:
         json.dump(mapped, f, indent=2)
+
+    # Trigger optional post-process actions
+    run_postprocess_if_configured(template, df)
 
 
 if __name__ == "__main__":
