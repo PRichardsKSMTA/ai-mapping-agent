@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Helpers for building minimal template JSON files."""
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import json
 import os
 from schemas.template_v2 import Template
@@ -41,4 +41,13 @@ def save_template_file(tpl: Dict, directory: str = "templates") -> str:
     with open(path, "w") as f:
         json.dump(tpl, f, indent=2)
     return safe
+
+
+def apply_field_choices(
+    columns: List[str], choices: Dict[str, str]
+) -> Tuple[List[str], Dict[str, bool]]:
+    """Return filtered columns and required map based on user choices."""
+    selected = [c for c in columns if choices.get(c) != "omit"]
+    required = {c: choices.get(c) == "required" for c in selected}
+    return selected, required
 

@@ -13,6 +13,7 @@ from app_utils.template_builder import (
     build_header_template,
     load_template_json,
     save_template_file,
+    apply_field_choices,
 )
 from app_utils.ui_utils import render_progress, compute_current_step
 
@@ -68,17 +69,31 @@ def show() -> None:
             st.session_state["tm_columns"] = cols
     columns = st.session_state.get("tm_columns", [])
     render_sidebar_columns(columns)
+    selections = st.session_state.get("tm_field_select", {})
     required = st.session_state.get("tm_required", {})
     if columns:
-        st.subheader("Mark required fields")
+        st.subheader("Select fields")
         for col in columns:
-            required[col] = st.checkbox(
-                col, key=f"tm_req_{col}", value=required.get(col, False)
+            default = selections.get(
+                col,
+                "required" if required.get(col, False) else "optional",
             )
-        st.session_state["tm_required"] = required
+            choice = st.radio(
+                col,
+                ["optional", "required", "omit"],
+                index=["optional", "required", "omit"].index(default),
+                horizontal=True,
+                key=f"tm_sel_{col}",
+            )
+            selections[col] = choice
+        st.session_state["tm_field_select"] = selections
+        st.session_state["tm_required"] = {
+            c: selections.get(c) == "required" for c in columns if selections.get(c) != "omit"
+        }
 
     if st.button("Save Template", disabled=not (name and columns)):
-        tpl = build_header_template(name, columns, required)
+        selected_cols, req_map = apply_field_choices(columns, selections)
+        tpl = build_header_template(name, selected_cols, req_map)
         try:
             Template.model_validate(tpl)
         except ValidationError as err:  # noqa: F841
@@ -91,6 +106,7 @@ def show() -> None:
             st.success(f"Saved template '{safe}'")
             st.session_state.pop("tm_columns", None)
             st.session_state.pop("tm_required", None)
+            st.session_state.pop("tm_field_select", None)
             st.session_state.pop("tm_sheet", None)
             st.rerun()
 
