@@ -16,9 +16,9 @@
 | --------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | **Template JSON validator** | **✅ Dynamic v2 schema live** – validates any layers-only template        | None                                                                                      |
 | **UI wizard**               | **✅ Layer-driven** wizard; steps generated at runtime                    | None                                                                                      |
-| **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display and GPT fallback still to add; formula dialog stable with save/clear & operand pills. |
-| **Template creation**       | **🚧 In progress** – Template Manager page built; GPT builder not yet wired | Column detector and save to JSON working. |
-| **Post-Process runner**     | **🗓 Planned** – `postprocess_runner.py` to handle python + PIT BID XLSM | Spec drafted; code not started.                                                           |
+| **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display and GPT fallback implemented; formula dialog stable with save/clear & operand pills. |
+| **Template creation**       | **🚧 In progress** – Template Manager page saves header-only templates; GPT builder not yet wired | Column detector and save to JSON working. |
+| **Post-Process runner**    | 🚧 stage F – base runner implemented; wizard hook pending | Unit tests cover dispatch.
 | **File structure**          | **✅ Re-structured** (`io`, `mapping`, `ui`, `pages/steps`)               | —                                                                                         |
 
 ---
@@ -31,11 +31,11 @@
 | **Dynamic validator**      | ✅ passes tests                                                                   | `pytest` suite green.                                |
 | **Dynamic UI wizard**      | ✅ PIT shows 1 step; COA shows 3 (Header → Lookup → Computed).                    |                                                      |
 | **Generic mapping engine** | ✅ lookup embeddings modular; computed resolver working                           | Mapping runs without `KeyError`.                     |
-| **Template builder**       | 🚧 stage D – basic header builder implemented | GPT-assisted builder still TODO. |
+| **Template builder**       | 🚧 stage D – header builder in Template Manager; PIT_BID sample built | GPT-assisted builder still TODO. |
 | **Modular codebase**       | ✅ sub-packages & ≤300 LoC per file                                               | Import paths stable.                                 |
 | **AGENTS.md guides**       | ✅ committed per top-level folder                                                 | Codex answers architecture questions.                |
-| **User-defined fields**    | 🗓 stage F – inline “+ Add field” & persist, flag `unsaved_changes`, save-as-new | Reload shows new columns; validator still green.     |
-| **Post-Process runner**    | 🗓 stage F – dispatch python + PIT\_BID XLSM copy & database insert              | Unit tests cover both run types.                     |
+| **User-defined fields**    | 🚧 stage F – add-field UI working; `unsaved_changes` flag pending | Reload shows new columns; validator still green. |
+| **Post-Process runner**    | 🚧 stage F – base runner implemented; wizard hook pending | Unit tests cover dispatch. |
 | **PIT BID flow**           | 🗓 stage G – end-to-end mapping into XLSM + DB                                   | Demo video recorded; integration test passes.        |
 
 ---
@@ -64,17 +64,17 @@
 
 | #     | Task                                                                     | Owner | Done-when                                                    |
 | ----- | ------------------------------------------------------------------------ | ----- | ------------------------------------------------------------ |
-| C-1   | 🔨 Extract lookup embeddings to `lookup_layer.py`                        | Codex | PIT mapping skips embeddings for header-only.                |
-| C-1.2 | 🔨 Add confidence % display in header & lookup pages                     | Codex | Suggestions show “92 % confident.”                           |
-| C-1.3 | 🔨 GPT fallback for unmapped lookup values                               | Codex | “Auto-map remaining” fills blanks via GPT.                   |
+| C-1   | ✅ Extract lookup embeddings to `lookup_layer.py`                        | Codex | PIT mapping skips embeddings for header-only.                |
+| C-1.2 | ✅ Add confidence % display in header & lookup pages                     | Codex | Suggestions show “92 % confident.”                           |
+| C-1.3 | ✅ GPT fallback for unmapped lookup values                               | Codex | “Auto-map remaining” fills blanks via GPT.                   |
 | C-2   | 🔨 Support computed layer strategies: `first_available` & `user_defined` | Me    | COA sample derives `NET_CHANGE`.                             |
 | C-2.1 | ✅ Direct vs Computed toggle UI                                           | Me    | Toggle appears in computed page.                             |
 | C-2.2 | ✅ Inline Formula Dialog (free-form + pills + live preview)               | Me    | User can build & preview formulas.                           |
 | C-2.3 | ✅ Validate formula on sample rows                                       | Me    | Preview shows values or error only when expression complete. |
-| C-2.4 | 🔨 Store final expression & include in output JSON                       | Me    | Mapping JSON includes user expression per field.             |
+| C-2.4 | ✅ Store final expression & include in output JSON                       | Me    | Mapping JSON includes user expression per field.             |
 | C-2.5 | 🔨 “Suggest formula” helper (GPT-propose)                                | Me    | “Suggest formula” button visible & returns candidate.        |
 | C-3   | ✅ Unit tests for all layer strategies                                    | Me    | `pytest` suite green.                                        |
-| C-4   | 🔨 Fix progress tracker display                              | Codex | Progress bar shows current step and updates per page.        |
+| C-4   | ✅ Fix progress tracker display                              | Codex | Progress bar shows current step and updates per page.        |
 
 ### Phase D – Template Builder Wizard (🚧 Active)
 
@@ -82,8 +82,8 @@
 | --- | ----------------------------------- | ------ | ----------------------------------------- |
 | D-1 | ✅ Column detector sidebar          | Me     | Source columns auto-listed in sidebar.    |
 | D-2 | ✅ Mark required fields & save JSON | Me     | “Save as new template…” emits valid JSON. |
-| D-3 | 🔨 Create PIT BID template JSON     | Me     | File in `templates/` directory.           |
-| D-4 | 🔨 Dedicated Template Builder page  | Codex  | Step-by-step wizard creates header layer. |
+| D-3 | ✅ Create PIT BID template JSON     | Me     | File in `templates/` directory.           |
+| D-4 | ✅ Dedicated Template Builder page  | Codex  | Step-by-step wizard creates header layer. |
 | D-5 | 🔨 GPT-assisted field suggestions   | Codex  | Builder proposes required fields.         |
 | D-6 | 🔨 Support lookup & computed layers | Codex  | Builder adds lookup dictionaries and formulas. |
 | D-6.1 | 🗓 Multi-layer builder | Codex  | Builder allows adding sub-layers like `standard-fm-coa.json`. |
@@ -100,12 +100,12 @@
 
 | #   | Task                                                                                 | Owner | Done-when                                                                                      |
 | --- | ------------------------------------------------------------------------------------ | ----- | ---------------------------------------------------------------------------------------------- |
-| F-1 | 🔨 Inline “+ Add field” button on Header page                                        | Me    | Users can append/rename/delete destination columns live.                                       |
-| F-2 | 🔨 Persist new user-defined fields into in-memory template; flag `unsaved_changes`   | Me    | Reload shows the added columns in header UI.                                                   |
+| F-1 | ✅ Inline “+ Add field” button on Header page                                        | Me    | Users can append/rename/delete destination columns live.                                       |
+| F-2 | 🚧 Persist new user-defined fields into in-memory template; flag `unsaved_changes`   | Me    | Reload shows the added columns in header UI.                                                   |
 | F-3 | 🔨 Template Manager: “Save as new template…” UI + write metadata to DB               | Codex | Persists template JSON + metadata row in `dbo.MAPPING_AGENT_PROCESSES`.                        |
-| F-3.1 | 🔨 Build dedicated Template Manager page; move features off sidebar | Codex | Template Manager page provides upload/download/delete UI without sidebar items. |
-| F-4 | 📄 Extend schema v2.3: optional top-level `"postprocess"` object                     | Codex | Validator green; spec updated in `template_spec.md`.                                           |
-| F-5 | 🔨 `postprocess_runner.py`: dispatch run types (`python_script`, `pit_bid_excel`)    | Codex | Unit tests cover each run type.                                                                |
+| F-3.1 | ✅ Build dedicated Template Manager page; move features off sidebar | Codex | Template Manager page provides upload/download/delete UI without sidebar items. |
+| F-4 | ✅ Extend schema v2.3: optional top-level `"postprocess"` object                     | Codex | Validator green; spec updated in `template_spec.md`.                                           |
+| F-5 | ✅ `postprocess_runner.py`: dispatch run types (`python_script`, `pit_bid_excel`)    | Codex | Unit tests cover each run type.                                                                |
 | F-6 | 🔨 Wizard “Run Export” step: generate `process_guid`, run post-process, capture logs | Codex | Output JSON includes `process_guid`; DB rows in `RFP_OBJECT_DATA` & `MAPPING_AGENT_PROCESSES`. |
 
 ### Phase G – PIT BID template & flow (🗓 Planned)
@@ -198,16 +198,12 @@ Don’ts
 Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 
 ### Tasks
-1. Implement confidence % display in header & lookup pages (C-1.2).
-2. Wire GPT fallback button in lookup (C-1.3).
+1. “Suggest formula” GPT helper (C-2.5).
+2. GPT-assisted field suggestions in Template Builder (D-5).
+3. Extend builder to support lookup & computed layers (D-6).
+4. Track `unsaved_changes` for added fields (F-2).
+5. Wire postprocess runner into wizard (F-6).
 
-3. Store saved formula expressions in output JSON (C-2.4).
-4. “Suggest formula” GPT helper (C-2.5).
-5. Create baseline PIT BID template using Template Builder (D-3).
-6. Build dedicated Template Builder page with GPT suggestions (D-4, D-5).
-7. Extend builder to support lookup & computed layers (D-6).
-8. Draft `postprocess_runner.py` and validate spec (F-4, F-5).
-9. Fix progress tracker visibility during wizard (C-4).
 ```
 
 ---

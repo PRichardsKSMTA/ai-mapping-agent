@@ -5,31 +5,31 @@
       "type": "header",
       "fields": [
         {
-          "key": "\nLane ID",
+          "key": "Lane ID",
           "required": true
         },
         {
-          "key": "\nOrigin City",
+          "key": "Origin City",
           "required": false
         },
         {
-          "key": "Orig\nState",
+          "key": "Orig State",
           "required": false
         },
         {
-          "key": "Orig Zip\n(5 or 3)",
+          "key": "Orig Zip (5 or 3)",
           "required": true
         },
         {
-          "key": "\nDestination City",
+          "key": "Destination City",
           "required": false
         },
         {
-          "key": "Dest\nState",
+          "key": "Dest State",
           "required": false
         },
         {
-          "key": "Dest Zip\n(5 or 3)",
+          "key": "Dest Zip (5 or 3)",
           "required": true
         },
         {
@@ -37,19 +37,19 @@
           "required": false
         },
         {
-          "key": "\nLH Rate",
+          "key": "LH Rate",
           "required": false
         },
         {
-          "key": "\nBid Miles",
+          "key": "Bid Miles",
           "required": false
         },
         {
-          "key": "\nMiles",
+          "key": "Miles",
           "required": false
         },
         {
-          "key": "\nTolls",
+          "key": "Tolls",
           "required": false
         }
       ]
