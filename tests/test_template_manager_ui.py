@@ -35,6 +35,7 @@ class DummyStreamlit:
         self._uploaded = uploaded
         self.text_input_calls = 0
         self.text_area_labels: list[str] = []
+        self.captions: list[str] = []
 
     def title(self, *a, **k) -> None:
         pass
@@ -46,6 +47,7 @@ class DummyStreamlit:
     write = title
     warning = title
     info = title
+    caption = lambda self, txt, **k: self.captions.append(txt)
 
     def text_input(self, *a, **k):
         self.text_input_calls += 1
@@ -168,4 +170,10 @@ def test_postprocess_passed_to_builder(monkeypatch):
     )
 
     assert captured["post"] == {"type": "sql_insert"}
+
+
+def test_postprocess_caption_displayed(monkeypatch):
+    dummy_file = types.SimpleNamespace(name="demo.csv")
+    dummy = run_manager(monkeypatch, uploaded=dummy_file, cols=["A"])
+    assert any("docs/template_spec.md" in c for c in dummy.captions)
 
