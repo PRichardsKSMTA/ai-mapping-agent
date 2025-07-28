@@ -92,7 +92,13 @@ def show() -> None:
             c: selections.get(c) == "required" for c in columns if selections.get(c) != "omit"
         }
 
-    st.text_area("Postprocess JSON (optional)", key="tm_postprocess", height=200)
+    if columns:
+        st.text_area(
+            "Postprocess JSON (optional)",
+            key="tm_postprocess",
+            height=200,
+            placeholder='{"strip": true}  # Example post-processing rules',
+        )
 
     name = st.session_state.get("tm_name", "")
 

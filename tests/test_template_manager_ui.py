@@ -64,6 +64,9 @@ class DummyStreamlit:
         self.text_area_labels.append(label)
         return self.session_state.get(key, "")
 
+    def radio(self, label, options, index=0, **k):
+        return options[index]
+
     def columns(self, spec):
         return [types.SimpleNamespace(button=self.button, write=self.write) for _ in spec]
 
@@ -137,8 +140,14 @@ def test_name_field_after_upload(monkeypatch):
 
 def test_postprocess_field_shown(monkeypatch):
     dummy_file = types.SimpleNamespace(name="demo.csv")
-    dummy = run_manager(monkeypatch, uploaded=dummy_file)
+    dummy = run_manager(monkeypatch, uploaded=dummy_file, cols=["A"]) 
     assert "Postprocess JSON (optional)" in dummy.text_area_labels
+
+
+def test_postprocess_field_hidden_without_columns(monkeypatch):
+    dummy_file = types.SimpleNamespace(name="demo.csv")
+    dummy = run_manager(monkeypatch, uploaded=dummy_file, cols=[])
+    assert "Postprocess JSON (optional)" not in dummy.text_area_labels
 
 
 def test_postprocess_passed_to_builder(monkeypatch):
