@@ -42,17 +42,18 @@ def test_list_sheets_closes_temp(monkeypatch, tmp_path):
         def __init__(self, *_args, **_kwargs):
             pass
 
-        def __enter__(self):
-            return self
+        @property
+        def worksheets(self):
+            class DummySheet:
+                title = "First"
+                sheet_state = "visible"
 
-        def __exit__(self, exc_type, exc, tb):
+            return [DummySheet()]
+
+        def close(self):
             closed["val"] = True
 
-        @property
-        def sheet_names(self):
-            return ["First"]
-
-    monkeypatch.setattr(excel_utils.pd, "ExcelFile", DummyExcelFile)
+    monkeypatch.setattr(excel_utils, "load_workbook", lambda *_args, **_kwargs: DummyExcelFile())
 
     import os
 
