@@ -93,11 +93,14 @@ def show() -> None:
         }
 
     if columns:
+        st.caption(
+            "Optional instructions to run after mapping. See `docs/template_spec.md#3.4` for supported actions."
+        )
         st.text_area(
             "Postprocess JSON (optional)",
             key="tm_postprocess",
             height=200,
-            placeholder='{"strip": true}  # Example post-processing rules',
+            placeholder='{"type": "sql_insert", "table": "dbo.OUT"}',
         )
 
     name = st.session_state.get("tm_name", "")
@@ -162,6 +165,9 @@ def edit_template(filename: str, data: dict) -> None:
     @st.dialog(f"Edit Template '{filename}'", width="large")
     def _dlg() -> None:
         st.text_area("Template JSON", key, height=400)
+        st.caption(
+            "Optional instructions to run after mapping. See `docs/template_spec.md#3.4` for details."
+        )
         st.text_area("Postprocess JSON (optional)", post_key, height=200)
         c1, c2 = st.columns(2)
         if c1.button("Save", key=f"{key}_save"):
