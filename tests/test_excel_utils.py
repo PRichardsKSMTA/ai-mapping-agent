@@ -1,4 +1,3 @@
-import pandas as pd
 import app_utils.excel_utils as excel_utils
 from app_utils.excel_utils import list_sheets, read_tabular_file
 
@@ -18,7 +17,7 @@ def test_read_tabular_file_excel():
 
 def test_list_sheets_closes_temp(monkeypatch, tmp_path):
     path = tmp_path / "dummy.xlsx"
-    pd.DataFrame({'A': [1]}).to_excel(path, index=False)
+    excel_utils.pd.DataFrame({'A': [1]}).to_excel(path, index=False)
 
     def fake_copy(uploaded_file, suffix):
         return str(path)
