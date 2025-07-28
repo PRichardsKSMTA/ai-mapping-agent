@@ -1,5 +1,20 @@
 import pandas as pd  # type: ignore
 import streamlit as st
+from typing import List
+
+
+def _copy_to_temp(uploaded_file, suffix: str) -> str:
+    """Write uploaded file to a temporary path and return the path."""
+    import tempfile
+    import os
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        if hasattr(uploaded_file, "getbuffer"):
+            tmp.write(uploaded_file.getbuffer())
+        else:
+            tmp.write(uploaded_file.read())
+            uploaded_file.seek(0)
+        return tmp.name
 
 def detect_header_row(path: str,
                       sheet_name=0,
@@ -76,11 +91,25 @@ def excel_to_json(path: str,
     df = df.dropna(how="all")
     return df.to_dict(orient="records"), list(df.columns)
 
+def list_sheets(uploaded_file) -> List[str]:
+    """Return available sheet names for an uploaded CSV or Excel file."""
+    if uploaded_file.name.lower().endswith((".xls", ".xlsx", ".xlsm")):
+        import os
+        tmp_path = _copy_to_temp(uploaded_file, ".xlsx")
+        try:
+            xls = pd.ExcelFile(tmp_path)
+            return xls.sheet_names
+        finally:
+            os.unlink(tmp_path)
+    return ["Sheet1"]
+
 # ---------------------------------------------------------------------------
 # Generic reader used by header & lookup pages
 # ---------------------------------------------------------------------------
 
-def read_tabular_file(uploaded_file) -> tuple[pd.DataFrame, list[str]]:
+def read_tabular_file(
+    uploaded_file, sheet_name: str | int | None = 0
+) -> tuple[pd.DataFrame, list[str]]:
     """
     Accepts an in-memory Streamlit UploadedFile (CSV or Excel) and returns:
 
@@ -91,14 +120,11 @@ def read_tabular_file(uploaded_file) -> tuple[pd.DataFrame, list[str]]:
     """
     if uploaded_file.name.lower().endswith((".xls", ".xlsx", ".xlsm")):
         # Save to temp file because detect_header_row expects a path
-        import tempfile, os
+        import os
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
-            tmp.write(uploaded_file.getbuffer())
-            tmp_path = tmp.name
-
-        header_row = detect_header_row(tmp_path)
-        df = pd.read_excel(tmp_path, header=header_row)
+        tmp_path = _copy_to_temp(uploaded_file, ".xlsx")
+        header_row = detect_header_row(tmp_path, sheet_name)
+        df = pd.read_excel(tmp_path, header=header_row, sheet_name=sheet_name)
         os.unlink(tmp_path)
     else:  # CSV
         df = pd.read_csv(uploaded_file)

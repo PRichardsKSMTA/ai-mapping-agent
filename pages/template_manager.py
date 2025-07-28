@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from auth import require_employee
 from schemas.template_v2 import Template
-from app_utils.excel_utils import read_tabular_file
+from app_utils.excel_utils import list_sheets, read_tabular_file
 from app_utils.template_builder import (
     build_header_template,
     load_template_json,
@@ -57,7 +57,14 @@ def show() -> None:
             except Exception as e:  # noqa: BLE001
                 st.error(f"Failed to read JSON: {e}")
         else:
-            _, cols = read_tabular_file(uploaded)
+            sheets = list_sheets(uploaded)
+            sheet_key = "tm_sheet"
+            if len(sheets) > 1:
+                sheet = st.selectbox("Select sheet", sheets, key=sheet_key)
+            else:
+                sheet = sheets[0]
+                st.session_state[sheet_key] = sheet
+            _, cols = read_tabular_file(uploaded, sheet_name=sheet)
             st.session_state["tm_columns"] = cols
     columns = st.session_state.get("tm_columns", [])
     render_sidebar_columns(columns)
@@ -84,6 +91,7 @@ def show() -> None:
             st.success(f"Saved template '{safe}'")
             st.session_state.pop("tm_columns", None)
             st.session_state.pop("tm_required", None)
+            st.session_state.pop("tm_sheet", None)
             st.rerun()
 
     st.divider()

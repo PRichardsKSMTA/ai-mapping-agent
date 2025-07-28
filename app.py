@@ -25,6 +25,7 @@ from pydantic import ValidationError
 from auth import require_login, logout_button
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
+from app_utils.excel_utils import list_sheets
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +125,14 @@ def main():
     )
     if uploaded_file:
         st.session_state["uploaded_file"] = uploaded_file
+        sheets = list_sheets(uploaded_file)
+        sheet_key = "upload_sheet"
+        if len(sheets) > 1:
+            st.session_state[sheet_key] = st.selectbox(
+                "Select sheet", sheets, key=sheet_key
+            )
+        else:
+            st.session_state[sheet_key] = sheets[0]
 
     # ---------------------------------------------------------------------------
     # 4. Main wizard

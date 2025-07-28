@@ -65,5 +65,45 @@
     "formula": "df['2025-05-01']",
     "columns": [],
     "display": "2025-05-01"
+  },
+  {
+    "template": "Standard COA",
+    "field": "NET_CHANGE",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Net Change"
+    ],
+    "display": "Net Change"
+  },
+  {
+    "template": "Standard COA",
+    "field": "GL_NAME",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Account Description"
+    ],
+    "display": "Account Description"
+  },
+  {
+    "template": "Standard COA",
+    "field": "GL_ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Account"
+    ],
+    "display": "Account"
+  },
+  {
+    "template": "Standard COA",
+    "field": "test",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "2025-03-01"
+    ],
+    "display": "2025-03-01"
   }
 ]

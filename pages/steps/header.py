@@ -52,7 +52,10 @@ def render(layer, idx: int) -> None:
     st.header("Step 1 – Map Source Columns to Template Fields")
 
     # 1⃣  Load client data
-    df, source_cols = read_tabular_file(st.session_state["uploaded_file"])
+    df, source_cols = read_tabular_file(
+        st.session_state["uploaded_file"],
+        sheet_name=st.session_state.get("upload_sheet", 0),
+    )
 
     # 2⃣  Build / restore mapping dict (includes confidence from fuzzy match)
     map_key = f"header_mapping_{idx}"

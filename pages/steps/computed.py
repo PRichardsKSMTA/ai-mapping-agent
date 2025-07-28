@@ -10,7 +10,10 @@ from schemas.template_v2 import Template
 def render(layer, idx: int):
     st.header("Step — Configure Computed Field")
 
-    df, _ = read_tabular_file(st.session_state["uploaded_file"])
+    df, _ = read_tabular_file(
+        st.session_state["uploaded_file"],
+        sheet_name=st.session_state.get("upload_sheet", 0),
+    )
 
     # 1. Decide Direct vs Computed
     mode_key = f"computed_mode_{idx}"
