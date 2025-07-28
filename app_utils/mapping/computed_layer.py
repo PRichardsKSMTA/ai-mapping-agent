@@ -18,10 +18,14 @@ Current capabilities
 """
 
 from __future__ import annotations
+
+import json
+import os
 from copy import deepcopy
-from typing import Dict, Any, List, MutableMapping
+from typing import Any, Dict, List, MutableMapping
 
 import pandas as pd
+from openai import OpenAI
 
 
 def _direct_available(df: pd.DataFrame, candidates: List[str]) -> str | None:
@@ -31,7 +35,9 @@ def _direct_available(df: pd.DataFrame, candidates: List[str]) -> str | None:
     return None
 
 
-def _derived_available(df: pd.DataFrame, deps: Dict[str, List[str]]) -> Dict[str, str] | None:
+def _derived_available(
+    df: pd.DataFrame, deps: Dict[str, List[str]]
+) -> Dict[str, str] | None:
     mapping = {}
     for placeholder, variants in deps.items():
         hit = _direct_available(df, variants)
@@ -95,3 +101,24 @@ def persist_expression_from_state(
         new_layer.setdefault("formula", {})["expression"] = result["expression"]
     return new_layer
 
+
+def gpt_formula_suggestion(target_field: str, df: pd.DataFrame) -> str:
+    """Return GPT-proposed expression for ``target_field``."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not set")
+    client = OpenAI(api_key=api_key)
+    system = (
+        "Suggest a pandas expression to derive the target field from the given columns. "
+        "Use df['COL'] syntax and basic arithmetic. Return only the expression string."
+    )
+    payload = {"target": target_field, "columns": list(df.columns)}
+    resp = client.chat.completions.create(
+        model="gpt-3.5-turbo-0125",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": json.dumps(payload)},
+        ],
+        temperature=0.2,
+    )
+    return resp.choices[0].message.content.strip()
