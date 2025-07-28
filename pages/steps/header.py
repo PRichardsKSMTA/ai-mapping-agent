@@ -52,9 +52,11 @@ def render(layer, idx: int) -> None:
     st.header("Step 1 – Map Source Columns to Template Fields")
 
     # 1⃣  Load client data
+    sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
+        "upload_sheet", 0
+    )
     df, source_cols = read_tabular_file(
-        st.session_state["uploaded_file"],
-        sheet_name=st.session_state.get("upload_sheet", 0),
+        st.session_state["uploaded_file"], sheet_name=sheet_name
     )
 
     # 2⃣  Build / restore mapping dict (includes confidence from fuzzy match)

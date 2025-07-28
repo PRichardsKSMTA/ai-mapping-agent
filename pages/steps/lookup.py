@@ -28,9 +28,11 @@ def render(layer, idx: int):
     # ------------------------------------------------------------------ #
     # 1. Load source column values                                       #
     # ------------------------------------------------------------------ #
+    sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
+        "upload_sheet", 0
+    )
     df, _ = read_tabular_file(
-        st.session_state["uploaded_file"],
-        sheet_name=st.session_state.get("upload_sheet", 0),
+        st.session_state["uploaded_file"], sheet_name=sheet_name
     )
     src_col = layer.source_field
     if src_col not in df.columns:
@@ -43,8 +45,9 @@ def render(layer, idx: int):
     # 2. Load dictionary values from template                            #
     # ------------------------------------------------------------------ #
     try:
-        dict_values = [a["GL_NAME"] for a in template.accounts]  # type: ignore
-    except AttributeError:
+        records = getattr(template, layer.dictionary_sheet)
+        dict_values = [rec[layer.target_field] for rec in records]
+    except Exception:
         st.error("Dictionary sheet not yet supported for this template.")
         return
 

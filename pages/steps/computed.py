@@ -10,9 +10,11 @@ from schemas.template_v2 import Template
 def render(layer, idx: int):
     st.header("Step — Configure Computed Field")
 
+    sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
+        "upload_sheet", 0
+    )
     df, _ = read_tabular_file(
-        st.session_state["uploaded_file"],
-        sheet_name=st.session_state.get("upload_sheet", 0),
+        st.session_state["uploaded_file"], sheet_name=sheet_name
     )
 
     # 1. Decide Direct vs Computed
