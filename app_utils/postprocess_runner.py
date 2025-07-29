@@ -80,9 +80,12 @@ def run_postprocess(
 
 
 def run_postprocess_if_configured(
-    template: Template, df: pd.DataFrame
+    template: Template,
+    df: pd.DataFrame,
+    process_guid: str | None = None,
 ) -> List[str]:
     """Run ``run_postprocess`` if ``template.postprocess`` is set."""
+    _ = process_guid  # currently unused but reserved for future DB hooks
     logs: List[str] = []
     if template.postprocess:
         run_postprocess(template.postprocess, df, logs)

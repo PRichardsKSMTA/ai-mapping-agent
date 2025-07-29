@@ -195,8 +195,8 @@ def main():
                     df, _ = read_tabular_file(
                         st.session_state["uploaded_file"], sheet_name=sheet
                     )
-                    logs = run_postprocess_if_configured(template_obj, df)
                     guid = str(uuid.uuid4())
+                    logs = run_postprocess_if_configured(template_obj, df, guid)
                     final_json = build_output_template(
                         template_obj, st.session_state, guid
                     )
