@@ -32,21 +32,16 @@ def test_postprocess_valid():
         "layers": [
             {"type": "header", "fields": [{"key": "A"}]}
         ],
-        "postprocess": {
-            "type": "sql_insert",
-            "connection": "mssql://example",
-            "table": "dbo.OUT",
-            "column_map": {"A": "A"},
-        },
+        "postprocess": {"url": "https://example.com"},
     }
     Template.model_validate(tpl)
 
 
-def test_postprocess_missing_type_fails():
+def test_postprocess_missing_url_fails():
     tpl = {
         "template_name": "demo",
         "layers": [{"type": "header", "fields": [{"key": "A"}]}],
-        "postprocess": {"table": "dbo.OUT"},
+        "postprocess": {},
     }
     with pytest.raises(ValidationError):
         Template.model_validate(tpl)

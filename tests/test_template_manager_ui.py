@@ -202,16 +202,16 @@ def test_postprocess_passed_to_builder(monkeypatch):
         uploaded=dummy_file,
         button_patch=lambda label, *a, **k: label == "Save Template",
         builder=fake_builder,
-        session_state={"tm_name": "demo", "tm_postprocess": "{\"type\": \"sql_insert\"}"},
+        session_state={"tm_name": "demo", "tm_postprocess": "{\"url\": \"https://example.com\"}"},
     )
 
-    assert captured["post"] == {"type": "sql_insert"}
+    assert captured["post"] == {"url": "https://example.com"}
 
 
 def test_postprocess_caption_displayed(monkeypatch):
     dummy_file = types.SimpleNamespace(name="demo.csv")
     dummy = run_manager(monkeypatch, uploaded=dummy_file, cols=["A"])
-    assert any("docs/template_spec.md" in c for c in dummy.captions)
+    assert any("POST mapped data" in c for c in dummy.captions)
 
 
 def test_suggest_required_fields_without_file(monkeypatch):

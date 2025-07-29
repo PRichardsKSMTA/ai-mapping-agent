@@ -21,7 +21,8 @@ from pydantic import (
     Field,
     field_validator,
     ConfigDict,
-    ValidationError
+    ValidationError,
+    HttpUrl,
 )
 from typing import List, Literal, Optional, Dict, Any
 
@@ -66,13 +67,9 @@ class ComputedLayer(BaseModel):
 
 
 class PostprocessSpec(BaseModel):
-    """Optional post-processing instructions."""
+    """Optional POST request instructions."""
 
-    type: str
-    connection: Optional[str] = None
-    table: Optional[str] = None
-    column_map: Optional[Dict[str, str]] = None
-    script: Optional[str] = None
+    url: HttpUrl
 
 
 Layer = HeaderLayer | LookupLayer | ComputedLayer

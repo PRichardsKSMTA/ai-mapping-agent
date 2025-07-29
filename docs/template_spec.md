@@ -152,26 +152,18 @@ At run-time the user builds an expression; the engine stores its resolution:
 
 ```jsonc
 "postprocess": {
-  "type": "sql_insert",
-  "connection": "Driver={ODBC Driver 18 for SQL Server};Server=tcp:demo.database.windows.net;Encrypt=yes;",
-  "table": "dbo.MAPPED_OUTPUT",
-  "column_map": { "GL_ID": "GL_ID", "NET_CHANGE": "NET_CHANGE" }
+  "url": "https://example.com/flow"
 }
 ```
 
-Supported **`type`** values:
-
-| Type            | Purpose                                   |
-|-----------------|--------------------------------------------|
-| `excel_template`| Fill an Excel workbook using mapped data.  |
-| `sql_insert`    | Insert rows into a SQL table via ODBC.     |
-| `http_request`  | Send mapped data as an HTTP request body.  |
-| `python_script` | Execute inline Python code with `df` bound.|
+When present, the mapped rows are sent as a JSON array via HTTP `POST` to the
+specified URL. Set the environment variable `ENABLE_POSTPROCESS=1` to allow
+the request during execution.
 
 After all layers are confirmed the wizard enters a **Run Export** step. If a
-`postprocess` block exists, `run_postprocess_if_configured` executes the selected
-action. A fresh `process_guid` (UUID) is stored in the final JSON together with
-any log messages from that run.
+`postprocess` block exists, `run_postprocess_if_configured` posts the mapped
+rows to the configured URL. A fresh `process_guid` (UUID) is stored in the final
+JSON together with any log messages from that run.
 
 ---
 

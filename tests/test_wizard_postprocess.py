@@ -84,7 +84,7 @@ def run_app(monkeypatch):
     )
     tpl_path = Path("templates/pit-bid.json")
     tpl_data = json.loads(tpl_path.read_text())
-    tpl_data["postprocess"] = {"type": "sql_insert"}
+    tpl_data["postprocess"] = {"url": "https://example.com"}
     orig_read = Path.read_text
     def fake_read(self, *a, **k):
         if self == tpl_path:

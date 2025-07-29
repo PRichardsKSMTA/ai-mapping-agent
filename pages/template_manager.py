@@ -126,13 +126,13 @@ def show() -> None:
 
     if columns:
         st.caption(
-            "Optional instructions to run after mapping. See `docs/template_spec.md#3.4` for supported actions."
+            "Optional instructions to POST mapped data after processing."
         )
         st.text_area(
             "Postprocess JSON (optional)",
             key="tm_postprocess",
             height=200,
-            placeholder='{"type": "sql_insert", "table": "dbo.OUT"}',
+            placeholder='{"url": "https://example.com/hook"}',
         )
 
         extra_layers = st.session_state.setdefault("tm_extra_layers", [])
@@ -249,7 +249,7 @@ def edit_template(filename: str, data: dict) -> None:
     def _dlg() -> None:
         st.text_area("Template JSON", key, height=400)
         st.caption(
-            "Optional instructions to run after mapping. See `docs/template_spec.md#3.4` for details."
+            "Optional instructions to POST mapped data after processing."
         )
         st.text_area("Postprocess JSON (optional)", post_key, height=200)
         c1, c2 = st.columns([1, 1])

@@ -32,7 +32,7 @@ def test_build_header_template_valid():
 def test_build_header_template_with_postprocess():
     cols = ["A"]
     required = {"A": True}
-    post = {"type": "sql_insert"}
+    post = {"url": "https://example.com"}
     tpl = build_header_template("demo", cols, required, post)
     assert tpl["postprocess"] == post
     Template.model_validate(tpl)
