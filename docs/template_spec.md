@@ -126,7 +126,8 @@ Supported **`strategy`** values:
 
 ---
 
-If `strategy` =`"user_defined"` the `candidates` array **may be omitted**.
+If `strategy` =`"user_defined"` the `candidates` array **may be omitted** and
+`expression` is typically left blank.
 At run-time the user builds an expression; the engine stores its resolution:
 
 ```jsonc

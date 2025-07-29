@@ -242,3 +242,11 @@ def test_build_template_multiple_extra_layers():
     layers = [header["layers"][0], l1, l2, c1]
     tpl = build_template("demo", layers)
     Template.model_validate(tpl)
+
+
+def test_user_defined_computed_layer():
+    """Builder should create placeholder with user_defined strategy."""
+    layer = build_computed_layer("TOTAL")
+    assert layer["formula"]["strategy"] == "user_defined"
+    assert "expression" not in layer["formula"]
+    Template.model_validate({"template_name": "demo", "layers": [layer]})

@@ -112,16 +112,22 @@ def build_lookup_layer(
 
 
 def build_computed_layer(
-    target_field: str, expression: str, sheet: str | None = None
+    target_field: str, expression: str | None = None, sheet: str | None = None
 ) -> Dict:
-    """Return a validated computed layer with a user-defined expression."""
+    """Return a validated computed layer.
+
+    If ``expression`` is provided the layer uses ``strategy='always'``.
+    Otherwise it will be ``strategy='user_defined'`` and the user is expected
+    to supply an expression at run-time.
+    """
+
+    formula = {"strategy": "always", "expression": expression} if expression else {
+        "strategy": "user_defined"
+    }
     layer = {
         "type": "computed",
         "target_field": target_field,
-        "formula": {
-            "strategy": "always",
-            "expression": expression,
-        },
+        "formula": formula,
     }
     if sheet:
         layer["sheet"] = sheet

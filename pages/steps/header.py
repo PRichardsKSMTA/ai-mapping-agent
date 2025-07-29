@@ -283,10 +283,10 @@ def render(layer, idx: int) -> None:
 
     with st.expander("Computed Layer"):
         ctgt = st.text_input("Target field", key=f"comp_tgt_{idx}")
-        cexpr = st.text_input("Expression", key=f"comp_expr_{idx}")
+        cexpr = st.text_input("Expression (optional)", key=f"comp_expr_{idx}")
         csheet = st.text_input("Sheet (optional)", key=f"comp_sheet_{idx}")
-        if st.button("Add Computed Layer", key=f"add_comp_{idx}") and ctgt and cexpr:
-            append_computed_layer(ctgt, cexpr, csheet or None)
+        if st.button("Add Computed Layer", key=f"add_comp_{idx}") and ctgt:
+            append_computed_layer(ctgt, cexpr or None, csheet or None)
             st.rerun()
 
     if st.button("Save Template", key=f"save_template_{idx}"):
