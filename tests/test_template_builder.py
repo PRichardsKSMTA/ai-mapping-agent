@@ -222,3 +222,23 @@ def test_build_template_with_header_and_extra_layers():
     layers = [header["layers"][0], lookup, comp]
     tpl = build_template("demo", layers)
     Template.model_validate(tpl)
+
+
+def test_lookup_and_computed_helpers_validate():
+    lookup = build_lookup_layer("SRC", "DEST", "dict")
+    computed = build_computed_layer("TGT", "df['A']")
+    # Validation via models should raise no error
+    from schemas.template_v2 import LookupLayer, ComputedLayer
+
+    LookupLayer.model_validate(lookup)
+    ComputedLayer.model_validate(computed)
+
+
+def test_build_template_multiple_extra_layers():
+    header = build_header_template("demo", ["A"], {"A": True})
+    l1 = build_lookup_layer("A", "A", "dict1")
+    l2 = build_lookup_layer("A", "B", "dict2", sheet="Sheet1")
+    c1 = build_computed_layer("TOTAL", "df['A'] + df['B']")
+    layers = [header["layers"][0], l1, l2, c1]
+    tpl = build_template("demo", layers)
+    Template.model_validate(tpl)

@@ -138,27 +138,52 @@ def show() -> None:
         extra_layers = st.session_state.setdefault("tm_extra_layers", [])
 
         st.subheader("Add Lookup Layer")
-        src = st.text_input("Source column", key="tm_lookup_src")
-        tgt = st.text_input("Target field", key="tm_lookup_tgt")
-        dsh = st.text_input("Dictionary sheet", key="tm_lookup_dict")
+        lcol1, lcol2 = st.columns([1, 1])
+        src = lcol1.selectbox(
+            "Source column",
+            options=[""] + columns,
+            key="tm_lookup_src",
+        )
+        tgt = lcol1.text_input("Target field", key="tm_lookup_tgt")
+        dsh = lcol2.text_input("Dictionary sheet", key="tm_lookup_dict")
+        lsheet = lcol2.text_input(
+            "Sheet (optional)", key="tm_lookup_sheet", placeholder="Sheet1"
+        )
         if st.button("Add Lookup Layer") and src and tgt and dsh:
-            extra_layers.append(build_lookup_layer(src, tgt, dsh))
+            extra_layers.append(
+                build_lookup_layer(src, tgt, dsh, sheet=lsheet or None)
+            )
             st.session_state["tm_lookup_src"] = ""
             st.session_state["tm_lookup_tgt"] = ""
             st.session_state["tm_lookup_dict"] = ""
+            st.session_state["tm_lookup_sheet"] = ""
+            st.session_state["unsaved_changes"] = True
 
         st.subheader("Add Computed Layer")
-        ctgt = st.text_input("Computed target", key="tm_comp_tgt")
-        expr = st.text_input("Expression", key="tm_comp_expr")
+        ccol1, ccol2 = st.columns([1, 1])
+        ctgt = ccol1.text_input("Computed target", key="tm_comp_tgt")
+        expr = ccol1.text_input("Expression", key="tm_comp_expr")
+        csheet = ccol2.text_input(
+            "Sheet (optional)", key="tm_comp_sheet", placeholder="Sheet1"
+        )
         if st.button("Add Computed Layer") and ctgt and expr:
-            extra_layers.append(build_computed_layer(ctgt, expr))
+            extra_layers.append(
+                build_computed_layer(ctgt, expr, sheet=csheet or None)
+            )
             st.session_state["tm_comp_tgt"] = ""
             st.session_state["tm_comp_expr"] = ""
+            st.session_state["tm_comp_sheet"] = ""
+            st.session_state["unsaved_changes"] = True
 
         if extra_layers:
             st.markdown("**Additional layers:**")
-            for l in extra_layers:
+            for i, l in enumerate(extra_layers):
                 st.json(l)
+                if st.button("Remove", key=f"rm_layer_{i}"):
+                    extra_layers.pop(i)
+                    st.session_state["tm_extra_layers"] = extra_layers
+                    st.session_state["unsaved_changes"] = True
+                    st.rerun()
 
     name = st.session_state.get("tm_name", "")
 
@@ -227,7 +252,7 @@ def edit_template(filename: str, data: dict) -> None:
             "Optional instructions to run after mapping. See `docs/template_spec.md#3.4` for details."
         )
         st.text_area("Postprocess JSON (optional)", post_key, height=200)
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns([1, 1])
         if c1.button("Save", key=f"{key}_save"):
             with st.spinner("Saving template..."):
                 try:
@@ -261,7 +286,7 @@ def confirm_delete(filename: str) -> None:
     @st.dialog("Confirm Delete", width="small")
     def _dlg() -> None:
         st.warning(f"Delete template '{filename}'?")
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns([1, 1])
         if c1.button("Delete", key=f"del_{filename}_yes"):
             os.remove(os.path.join("templates", filename))
             st.rerun()

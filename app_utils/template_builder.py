@@ -7,7 +7,7 @@ import json
 import os
 import re
 import pandas as pd
-from schemas.template_v2 import Template
+from schemas.template_v2 import Template, LookupLayer, ComputedLayer
 
 
 def slugify(name: str) -> str:
@@ -96,8 +96,10 @@ def gpt_field_suggestions(df: pd.DataFrame) -> Dict[str, str]:
     return json.loads(resp.choices[0].message.content)
 
 
-def build_lookup_layer(source_field: str, target_field: str, dictionary_sheet: str, sheet: str | None = None) -> Dict:
-    """Return a lookup layer dict."""
+def build_lookup_layer(
+    source_field: str, target_field: str, dictionary_sheet: str, sheet: str | None = None
+) -> Dict:
+    """Return a validated lookup layer dict."""
     layer = {
         "type": "lookup",
         "source_field": source_field,
@@ -106,11 +108,13 @@ def build_lookup_layer(source_field: str, target_field: str, dictionary_sheet: s
     }
     if sheet:
         layer["sheet"] = sheet
-    return layer
+    return LookupLayer.model_validate(layer).model_dump(exclude_none=True)
 
 
-def build_computed_layer(target_field: str, expression: str, sheet: str | None = None) -> Dict:
-    """Return a computed layer with a user-defined expression."""
+def build_computed_layer(
+    target_field: str, expression: str, sheet: str | None = None
+) -> Dict:
+    """Return a validated computed layer with a user-defined expression."""
     layer = {
         "type": "computed",
         "target_field": target_field,
@@ -121,4 +125,4 @@ def build_computed_layer(target_field: str, expression: str, sheet: str | None =
     }
     if sheet:
         layer["sheet"] = sheet
-    return layer
+    return ComputedLayer.model_validate(layer).model_dump(exclude_none=True)
