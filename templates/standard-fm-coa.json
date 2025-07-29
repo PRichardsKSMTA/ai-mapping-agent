@@ -23,8 +23,7 @@
       "fields": [
         { "key": "GL_ID" },
         { "key": "DETAIL_LEVEL" },
-        { "key": "GL_NAME" },
-        { "key": "NET_CHANGE" }
+        { "key": "GL_NAME" }
       ]
     },
 
