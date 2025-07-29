@@ -11,6 +11,9 @@ from schemas.template_v2 import Template
 from app_utils.excel_utils import list_sheets, read_tabular_file
 from app_utils.template_builder import (
     build_header_template,
+    build_lookup_layer,
+    build_computed_layer,
+    build_template,
     load_template_json,
     save_template_file,
     slugify,
@@ -125,13 +128,40 @@ def show() -> None:
             placeholder='{"type": "sql_insert", "table": "dbo.OUT"}',
         )
 
+        extra_layers = st.session_state.setdefault("tm_extra_layers", [])
+
+        st.subheader("Add Lookup Layer")
+        src = st.text_input("Source column", key="tm_lookup_src")
+        tgt = st.text_input("Target field", key="tm_lookup_tgt")
+        dsh = st.text_input("Dictionary sheet", key="tm_lookup_dict")
+        if st.button("Add Lookup Layer") and src and tgt and dsh:
+            extra_layers.append(build_lookup_layer(src, tgt, dsh))
+            st.session_state["tm_lookup_src"] = ""
+            st.session_state["tm_lookup_tgt"] = ""
+            st.session_state["tm_lookup_dict"] = ""
+
+        st.subheader("Add Computed Layer")
+        ctgt = st.text_input("Computed target", key="tm_comp_tgt")
+        expr = st.text_input("Expression", key="tm_comp_expr")
+        if st.button("Add Computed Layer") and ctgt and expr:
+            extra_layers.append(build_computed_layer(ctgt, expr))
+            st.session_state["tm_comp_tgt"] = ""
+            st.session_state["tm_comp_expr"] = ""
+
+        if extra_layers:
+            st.markdown("**Additional layers:**")
+            for l in extra_layers:
+                st.json(l)
+
     name = st.session_state.get("tm_name", "")
 
     if st.button("Save Template", disabled=not (name and columns)):
         selected_cols, req_map = apply_field_choices(columns, selections)
         post_txt = st.session_state.get("tm_postprocess", "").strip()
         post_obj = json.loads(post_txt) if post_txt else None
-        tpl = build_header_template(name, selected_cols, req_map, post_obj)
+        header_only = build_header_template(name, selected_cols, req_map)
+        all_layers = [header_only["layers"][0]] + st.session_state.get("tm_extra_layers", [])
+        tpl = build_template(name, all_layers, post_obj)
         with st.spinner("Saving template..."):
             try:
                 Template.model_validate(tpl)
@@ -147,6 +177,7 @@ def show() -> None:
                 st.session_state.pop("tm_required", None)
                 st.session_state.pop("tm_field_select", None)
                 st.session_state.pop("tm_sheet", None)
+                st.session_state.pop("tm_extra_layers", None)
                 st.rerun()
 
     st.divider()

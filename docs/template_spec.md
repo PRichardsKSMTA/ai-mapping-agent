@@ -176,6 +176,14 @@ Supported **`type`** values:
 3. Implement a helper in `app_utils.mapping.<your_layer>.py`.
 4. Update UI to call that helper when `layer.type == "your_type"`.
 
+### 4.1\u2003Template Builder helpers
+
+The `app_utils.template_builder` module offers convenience functions for programmatically
+assembling templates. Use `build_lookup_layer` or `build_computed_layer` to create
+layer objects and pass them to `build_template()` along with the mandatory header
+layer. The builder validates the final structure against the schema so any
+mistakes raise a `ValidationError`.
+
 ---
 
 ## 5 Examples

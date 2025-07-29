@@ -17,6 +17,19 @@ def slugify(name: str) -> str:
     return slug.lower()
 
 
+def build_template(
+    template_name: str,
+    layers: List[Dict],
+    postprocess: Dict | None = None,
+) -> Dict:
+    """Return a validated template structure with arbitrary layers."""
+    tpl = {"template_name": template_name, "layers": layers}
+    if postprocess:
+        tpl["postprocess"] = postprocess
+    Template.model_validate(tpl)
+    return tpl
+
+
 def build_header_template(
     template_name: str,
     columns: List[str],
@@ -27,18 +40,8 @@ def build_header_template(
     fields = [
         {"key": col, "required": bool(required.get(col, False))} for col in columns
     ]
-    tpl = {
-        "template_name": template_name,
-        "layers": [
-            {
-                "type": "header",
-                "fields": fields,
-            }
-        ],
-    }
-    if postprocess:
-        tpl["postprocess"] = postprocess
-    return tpl
+    header_layer = {"type": "header", "fields": fields}
+    return build_template(template_name, [header_layer], postprocess)
 
 
 def load_template_json(uploaded) -> Dict:
