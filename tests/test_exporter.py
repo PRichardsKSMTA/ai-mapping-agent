@@ -54,3 +54,10 @@ def test_extra_field_expression():
     header_layer = out["layers"][0]
     added = next(f for f in header_layer["fields"] if f["key"] == "ADDED")
     assert added["expression"] == "df['A']*2"
+
+
+def test_process_guid_added():
+    template = load_sample("standard-fm-coa")
+    state = {}
+    out = build_output_template(template, state, process_guid="123")
+    assert out.get("process_guid") == "123"

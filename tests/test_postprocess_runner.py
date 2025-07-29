@@ -54,15 +54,16 @@ def test_if_configured_helper(monkeypatch):
     called = {}
     monkeypatch.setattr(
         'app_utils.postprocess_runner.run_postprocess',
-        lambda cfg, df: called.setdefault('run', True)
+        lambda cfg, df, log=None: called.setdefault('run', True)
     )
     tpl = Template.model_validate({
         'template_name': 'demo',
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
         'postprocess': {'type': 'sql_insert'}
     })
-    run_postprocess_if_configured(tpl, pd.DataFrame())
+    logs = run_postprocess_if_configured(tpl, pd.DataFrame())
     assert called.get('run') is True
+    assert isinstance(logs, list)
 
 
 def test_unknown_type_raises():

@@ -27,6 +27,8 @@ from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
 from app_utils.excel_utils import list_sheets, read_tabular_file
 from app_utils.postprocess_runner import run_postprocess_if_configured
+from app_utils.mapping.exporter import build_output_template
+import uuid
 
 
 # ---------------------------------------------------------------------------
@@ -182,18 +184,35 @@ def main():
                 # so halt execution after rendering the current step.
                 st.stop()
 
-        # All layers confirmed
-        st.success(
-            "✅ All layers confirmed! You can now download the mapping or run the export."
-        )
+        # All layers confirmed - run export step
+        st.success("✅ All layers confirmed! Proceed to export.")
 
-        if template_obj.postprocess:
-            if st.button("Run Postprocess"):
+        if not st.session_state.get("export_complete"):
+            st.header("Step — Run Export")
+            if st.button("Run Export"):
                 with st.spinner("Running postprocess..."):
                     sheet = st.session_state.get("upload_sheet", 0)
-                    df, _ = read_tabular_file(st.session_state["uploaded_file"], sheet_name=sheet)
-                    run_postprocess_if_configured(template_obj, df)
-                    st.success("Postprocess complete")
+                    df, _ = read_tabular_file(
+                        st.session_state["uploaded_file"], sheet_name=sheet
+                    )
+                    logs = run_postprocess_if_configured(template_obj, df)
+                    guid = str(uuid.uuid4())
+                    final_json = build_output_template(
+                        template_obj, st.session_state, guid
+                    )
+                    st.session_state.update(
+                        {
+                            "export_complete": True,
+                            "export_logs": logs,
+                            "final_json": final_json,
+                        }
+                    )
+                    st.rerun()
+        else:
+            st.success("Postprocess complete")
+            for line in st.session_state.get("export_logs", []):
+                st.write(line)
+            st.json(st.session_state.get("final_json"))
 
     else:
         if not template_obj:

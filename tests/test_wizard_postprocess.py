@@ -46,7 +46,7 @@ class DummyStreamlit:
     def file_uploader(self, *a, **k):
         return None
     def button(self, label, *a, **k):
-        return label == "Run Postprocess"
+        return label == "Run Export"
     def spinner(self, *a, **k):
         return DummyContainer()
     def empty(self):
@@ -75,7 +75,7 @@ def run_app(monkeypatch):
     called = {}
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",
-        lambda tpl, df: called.setdefault("run", True),
+        lambda tpl, df: (called.setdefault("run", True), ["ok"])[1],
     )
     tpl_path = Path("templates/pit-bid.json")
     tpl_data = json.loads(tpl_path.read_text())
