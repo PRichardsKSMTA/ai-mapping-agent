@@ -31,6 +31,8 @@ class DummySidebar:
         pass
     def info(self, *a, **k):
         pass
+    def button(self, *a, **k):
+        return False
 
 class DummyStreamlit:
     def __init__(self):
