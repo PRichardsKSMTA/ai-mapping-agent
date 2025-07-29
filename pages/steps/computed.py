@@ -20,19 +20,24 @@ def render(layer, idx: int):
             st.session_state["uploaded_file"], sheet_name=sheet_name
         )
 
+    strategy = getattr(layer, "formula", {}).get("strategy", "first_available")
+
     # 1. Decide Direct vs Computed
     mode_key = f"computed_mode_{idx}"
-    mode = st.radio(
-        "How should this field be populated?",
-        options=["Direct (one column)", "Computed (expression)"],
-        key=mode_key,
-    )
+    if strategy == "user_defined":
+        mode = "Computed (expression)"
+    else:
+        mode = st.radio(
+            "How should this field be populated?",
+            options=["Direct (one column)", "Computed (expression)"],
+            key=mode_key,
+        )
 
     result_key = f"computed_result_{idx}"
     result = st.session_state.get(result_key, {"resolved": False})
 
     # 2A. Direct mapping UI
-    if mode.startswith("Direct"):
+    if mode.startswith("Direct") and strategy != "user_defined":
         col = st.selectbox(
             "Select source column",
             options=[""] + list(df.columns),

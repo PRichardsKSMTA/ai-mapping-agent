@@ -1,0 +1,16 @@
+{
+  "template_name": "User Defined Demo",
+  "layers": [
+    {
+      "type": "header",
+      "fields": [
+        {"key": "A", "required": true}
+      ]
+    },
+    {
+      "type": "computed",
+      "target_field": "TOTAL",
+      "formula": {"strategy": "user_defined"}
+    }
+  ]
+}

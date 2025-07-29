@@ -162,13 +162,13 @@ def show() -> None:
         st.subheader("Add Computed Layer")
         ccol1, ccol2 = st.columns([1, 1])
         ctgt = ccol1.text_input("Computed target", key="tm_comp_tgt")
-        expr = ccol1.text_input("Expression", key="tm_comp_expr")
+        expr = ccol1.text_input("Expression (optional)", key="tm_comp_expr")
         csheet = ccol2.text_input(
             "Sheet (optional)", key="tm_comp_sheet", placeholder="Sheet1"
         )
-        if st.button("Add Computed Layer") and ctgt and expr:
+        if st.button("Add Computed Layer") and ctgt:
             extra_layers.append(
-                build_computed_layer(ctgt, expr, sheet=csheet or None)
+                build_computed_layer(ctgt, expr or None, sheet=csheet or None)
             )
             st.session_state["tm_comp_tgt"] = ""
             st.session_state["tm_comp_expr"] = ""

@@ -54,8 +54,35 @@ def resolve_computed_layer(layer: Dict[str, Any], df: pd.DataFrame) -> Dict[str,
     formula = layer["formula"]
     strategy = formula.get("strategy", "first_available")
 
+    if strategy == "always":
+        expr = formula.get("expression")
+        if not expr:
+            raise ValueError("'expression' required when strategy='always'")
+        return {
+            "resolved": True,
+            "method": "derived",
+            "source_cols": [],
+            "expression": expr,
+        }
+
+    if strategy == "user_defined":
+        expr = formula.get("expression")
+        if expr:
+            return {
+                "resolved": True,
+                "method": "derived",
+                "source_cols": [],
+                "expression": expr,
+            }
+        return {
+            "resolved": False,
+            "method": None,
+            "source_cols": [],
+            "expression": None,
+        }
+
     if strategy != "first_available":
-        raise NotImplementedError("Only first_available strategy supported")
+        raise NotImplementedError("Unsupported strategy")
 
     for cand in formula["candidates"]:
         if cand["type"] == "direct":

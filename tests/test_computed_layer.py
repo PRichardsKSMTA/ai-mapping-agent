@@ -2,7 +2,10 @@ import json
 
 import pandas as pd
 
-from app_utils.mapping.computed_layer import gpt_formula_suggestion
+from app_utils.mapping.computed_layer import (
+    gpt_formula_suggestion,
+    resolve_computed_layer,
+)
 
 
 def test_gpt_formula_suggestion(monkeypatch):
@@ -29,3 +32,14 @@ def test_gpt_formula_suggestion(monkeypatch):
     df = pd.DataFrame({"A": [1], "B": [2]})
     expr = gpt_formula_suggestion("NET_CHANGE", df)
     assert expr == "df['A'] + df['B']"
+
+
+def test_resolve_user_defined_unresolved():
+    layer = {
+        "type": "computed",
+        "target_field": "TOTAL",
+        "formula": {"strategy": "user_defined"},
+    }
+    df = pd.DataFrame({"A": [1]})
+    result = resolve_computed_layer(layer, df)
+    assert result["resolved"] is False

@@ -51,8 +51,8 @@ class LookupLayer(BaseModel):
 
 
 class ComputedFormula(BaseModel):
-    # strategy: first_available | always
-    strategy: Literal["first_available", "always"] = "first_available"
+    # strategy: first_available | user_defined | always
+    strategy: Literal["first_available", "user_defined", "always"] = "first_available"
     candidates: Optional[List[Dict[str, Any]]] = None
     expression: Optional[str] = None
     dependencies: Optional[Dict[str, List[str]]] = None
