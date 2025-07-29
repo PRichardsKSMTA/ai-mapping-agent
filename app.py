@@ -37,6 +37,11 @@ def main():
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
     st.title("AI Mapping Agent")
 
+    if st.session_state.get("unsaved_changes"):
+        st.warning(
+            "You have unsaved template changes. Use the Template Manager to save them."
+        )
+
     TEMPLATES_DIR = Path("templates")
     TEMPLATES_DIR.mkdir(exist_ok=True)
 

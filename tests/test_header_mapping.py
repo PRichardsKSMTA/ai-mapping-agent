@@ -1,7 +1,7 @@
 import pytest
 
 from app_utils.mapping_utils import suggest_header_mapping
-from pages.steps.header import remove_field, add_field
+from pages.steps.header import remove_field, add_field, set_field_mapping
 import streamlit as st
 import json
 from schemas.template_v2 import FieldSpec
@@ -104,3 +104,32 @@ def test_add_field_sets_unsaved(monkeypatch):
     fields = st.session_state["template"]["layers"][0]["fields"]
     assert any(f["key"] == "Extra" for f in fields)
     assert "Extra" in st.session_state[f"header_extra_fields_{idx}"]
+
+
+def test_set_field_mapping_marks_unsaved():
+    idx = 0
+    key = f"header_mapping_{idx}"
+    st.session_state.clear()
+    st.session_state[key] = {"Name": {}}
+
+    set_field_mapping("Name", idx, {"src": "Col"})
+    assert st.session_state["unsaved_changes"] is True
+    assert st.session_state[key]["Name"]["src"] == "Col"
+
+
+def test_persist_template_clears_unsaved(monkeypatch):
+    import sys
+    import types
+
+    st.session_state["unsaved_changes"] = True
+
+    monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
+    from pages import template_manager
+
+    def fake_save(_tpl):
+        return "demo"
+
+    monkeypatch.setattr(template_manager, "save_template_file", fake_save)
+    template_manager.persist_template({"template_name": "demo", "layers": []})
+    assert st.session_state["unsaved_changes"] is False
+    sys.modules.pop("pages.template_manager", None)

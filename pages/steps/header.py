@@ -19,6 +19,16 @@ from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.ui.formula_dialog import open_formula_dialog, RETURN_KEY_TEMPLATE
 
 
+def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
+    """Persist mapping for ``field_key`` and mark session dirty if changed."""
+    map_key = f"header_mapping_{idx}"
+    mapping = st.session_state.setdefault(map_key, {})
+    if mapping.get(field_key) != value:
+        mapping[field_key] = value
+        st.session_state[map_key] = mapping
+        st.session_state["unsaved_changes"] = True
+
+
 def remove_field(field_key: str, idx: int) -> None:
     """Delete a user-added field from session state."""
     map_key = f"header_mapping_{idx}"
@@ -154,7 +164,7 @@ def render(layer, idx: int) -> None:
             label_visibility="collapsed",
         )
         if new_src:
-            mapping[key] = {"src": new_src}                  # user override
+            set_field_mapping(key, idx, {"src": new_src})       # user override
             add_suggestion(                                 # learn it
                 {
                     "template": st.session_state["current_template"],
@@ -166,7 +176,7 @@ def render(layer, idx: int) -> None:
                 }
             )
         elif "src" in mapping.get(key, {}):
-            mapping[key] = {}
+            set_field_mapping(key, idx, {})
 
         # ── Gear button (Formula builder) ───────────────────────────────
         if row[1].button("⚙️", key=f"calc_{key}", help="Formula builder"):
@@ -178,7 +188,7 @@ def render(layer, idx: int) -> None:
         if res_key in st.session_state:
             expr = st.session_state.pop(res_key)
             display = st.session_state.pop(res_disp_key, "")
-            mapping[key] = {"expr": expr, "expr_display": display}
+            set_field_mapping(key, idx, {"expr": expr, "expr_display": display})
             add_suggestion(  # store formula learning
                 {
                     "template": st.session_state["current_template"],

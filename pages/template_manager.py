@@ -23,6 +23,13 @@ from app_utils.template_builder import (
 from app_utils.ui_utils import render_progress, compute_current_step
 
 
+def persist_template(tpl: dict) -> str:
+    """Save template and reset unsaved flag."""
+    name = save_template_file(tpl)
+    st.session_state["unsaved_changes"] = False
+    return name
+
+
 def render_sidebar_columns(columns: List[str]) -> None:
     """Display detected columns in the sidebar."""
     st.sidebar.subheader("Detected Columns")
@@ -55,7 +62,7 @@ def show() -> None:
         if uploaded.name.lower().endswith(".json"):
             try:
                 tpl = load_template_json(uploaded)
-                safe = save_template_file(tpl)
+                safe = persist_template(tpl)
                 st.success(f"Saved template '{safe}'")
                 st.rerun()
             except ValidationError as err:
@@ -168,10 +175,7 @@ def show() -> None:
             except ValidationError as err:  # noqa: F841
                 st.error(f"Invalid template: {err}")
             else:
-                safe = slugify(name)
-                os.makedirs("templates", exist_ok=True)
-                with open(os.path.join("templates", f"{safe}.json"), "w") as f:
-                    json.dump(tpl, f, indent=2)
+                safe = persist_template(tpl)
                 st.success(f"Saved template '{safe}'")
                 st.session_state.pop("tm_columns", None)
                 st.session_state.pop("tm_required", None)
@@ -241,6 +245,7 @@ def edit_template(filename: str, data: dict) -> None:
                     if safe + ".json" != filename:
                         os.remove(os.path.join("templates", filename))
                     st.success("Template saved")
+                    st.session_state["unsaved_changes"] = False
                     st.session_state.pop(key, None)
                     st.rerun()
                 except Exception as err:  # noqa: BLE001
