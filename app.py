@@ -78,7 +78,7 @@ def main():
         st.session_state["current_step"] = 0
         if user_email:
             set_last_template(user_email, "")
-        st.rerun()
+        st.session_state["_reset_triggered"] = True
 
     # ---------------------------------------------------------------------------
     # 1. Sidebar – choose template
@@ -132,6 +132,8 @@ def main():
     progress_box = st.sidebar.empty()
     render_progress(progress_box)
     st.sidebar.button("Reset", on_click=do_reset)
+    if st.session_state.pop("_reset_triggered", False):
+        st.rerun()
 
     # ---------------------------------------------------------------------------
     # 3. Upload client data file
