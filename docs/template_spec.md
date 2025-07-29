@@ -207,7 +207,7 @@ mistakes raise a `ValidationError`.
 
 ### 5.2 Standard COA (header + lookup + computed)
 
-See `templates/standard-coa.json`.
+See `templates/standard-fm-coa.json`. The header is mapped once and the lookup layer fills `GL_ID` and `DETAIL_LEVEL` based on the chosen `GL_NAME`.
 
 ### 5.3 Multi-period profit (user-defined computed)
 
@@ -232,7 +232,7 @@ See `templates/standard-coa.json`.
 
 ## 6 File-naming convention
 
-* Save each template as **kebab-case** (`pit-bid.json`, `standard-coa.json`).
+* Save each template as **kebab-case** (`pit-bid.json`, `standard-fm-coa.json`).
 * The validator doesn’t care, but kebab-case improves CLI/URL readability.
 
 ---
