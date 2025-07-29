@@ -150,15 +150,6 @@ def main():
         for idx, layer in enumerate(template_obj.layers):
             layer_flag = f"layer_confirmed_{idx}"
 
-            # Auto-confirm computed layer if header page already handled it
-            if (
-                layer.type == "computed"
-                and st.session_state.get("auto_computed_confirm")
-                and not st.session_state.get(layer_flag)
-            ):
-                st.session_state[layer_flag] = True
-                continue
-
             if not st.session_state.get(layer_flag):
 
                 if layer.type == "header":
@@ -219,11 +210,11 @@ def main():
             st.info("Please select a template to begin.")
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
-            
+
     # ---------------------------------------------------------------------------
     # 5. Reset Button
     # ---------------------------------------------------------------------------
-            
+
     def do_reset() -> None:
         """Clear uploaded file and mapping progress."""
         for k in list(st.session_state.keys()):
@@ -243,6 +234,7 @@ def main():
         st.rerun()
 
     st.button("Reset", on_click=do_reset)
+
 
 main()
 logout_button()
