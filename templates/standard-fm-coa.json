@@ -18,6 +18,15 @@
         { "key": "NET_CHANGE",   "required": false }
       ]
     },
+    {
+      "type": "header",
+      "fields": [
+        { "key": "GL_ID" },
+        { "key": "DETAIL_LEVEL" },
+        { "key": "GL_NAME" },
+        { "key": "NET_CHANGE" }
+      ]
+    },
 
     {
       "type": "lookup",
