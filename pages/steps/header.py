@@ -49,7 +49,8 @@ def remove_field(field_key: str, idx: int) -> None:
         layer = tpl["layers"][idx]
         layer["fields"] = [f for f in layer.get("fields", []) if f.get("key") != field_key]
         st.session_state["template"] = tpl
-        st.session_state["unsaved_changes"] = True
+
+    st.session_state["unsaved_changes"] = True
 
 
 def add_field(field_key: str, idx: int) -> None:
@@ -72,7 +73,8 @@ def add_field(field_key: str, idx: int) -> None:
         if not any(f.get("key") == field_key for f in layer.get("fields", [])):
             layer.setdefault("fields", []).append({"key": field_key, "required": False})
         st.session_state["template"] = tpl
-        st.session_state["unsaved_changes"] = True
+
+    st.session_state["unsaved_changes"] = True
 
 # ─── CSS tweaks ───────────────────────────────────────────────────────
 st.markdown(
