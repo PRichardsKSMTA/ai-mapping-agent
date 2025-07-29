@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Header mapping step with dynamic field and layer controls."""
 import pandas as pd
 import streamlit as st
@@ -14,6 +15,8 @@ from app_utils.template_builder import (
     save_template_file,
 )
 from app_utils.ui_utils import set_steps_from_template
+
+
 def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
     """Persist mapping for ``field_key`` and mark session dirty if changed."""
     map_key = f"header_mapping_{idx}"
@@ -22,6 +25,8 @@ def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
         mapping[field_key] = value
         st.session_state[map_key] = mapping
         st.session_state["unsaved_changes"] = True
+
+
 def remove_field(field_key: str, idx: int) -> None:
     """Delete a user-added field from session state."""
     map_key = f"header_mapping_{idx}"
@@ -37,9 +42,13 @@ def remove_field(field_key: str, idx: int) -> None:
     tpl = st.session_state.get("template")
     if tpl:
         layer = tpl["layers"][idx]
-        layer["fields"] = [f for f in layer.get("fields", []) if f.get("key") != field_key]
+        layer["fields"] = [
+            f for f in layer.get("fields", []) if f.get("key") != field_key
+        ]
         st.session_state["template"] = tpl
     st.session_state["unsaved_changes"] = True
+
+
 def add_field(field_key: str, idx: int) -> None:
     """Append a new field to session state and template."""
     map_key = f"header_mapping_{idx}"
@@ -58,6 +67,8 @@ def add_field(field_key: str, idx: int) -> None:
             layer.setdefault("fields", []).append({"key": field_key, "required": False})
         st.session_state["template"] = tpl
     st.session_state["unsaved_changes"] = True
+
+
 def append_lookup_layer(
     source_field: str,
     target_field: str,
@@ -68,12 +79,18 @@ def append_lookup_layer(
     tpl = st.session_state.get("template")
     if not tpl:
         return
-    layer = build_lookup_layer(source_field, target_field, dictionary_sheet, sheet=sheet)
+    layer = build_lookup_layer(
+        source_field, target_field, dictionary_sheet, sheet=sheet
+    )
     tpl.setdefault("layers", []).append(layer)
     st.session_state["template"] = tpl
     set_steps_from_template(tpl["layers"])
     st.session_state["unsaved_changes"] = True
-def append_computed_layer(target_field: str, expression: str, sheet: str | None = None) -> None:
+
+
+def append_computed_layer(
+    target_field: str, expression: str, sheet: str | None = None
+) -> None:
     """Append a computed layer to the in-memory template."""
     tpl = st.session_state.get("template")
     if not tpl:
@@ -83,6 +100,8 @@ def append_computed_layer(target_field: str, expression: str, sheet: str | None 
     st.session_state["template"] = tpl
     set_steps_from_template(tpl["layers"])
     st.session_state["unsaved_changes"] = True
+
+
 def save_current_template() -> str | None:
     """Save ``st.session_state['template']`` using ``save_template_file``."""
     tpl = st.session_state.get("template")
@@ -91,6 +110,7 @@ def save_current_template() -> str | None:
     name = save_template_file(tpl)
     st.session_state["unsaved_changes"] = False
     return name
+
 
 # ─── CSS tweaks ───────────────────────────────────────────────────────
 st.markdown(
@@ -106,6 +126,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
 
 # ─── Main render function ─────────────────────────────────────────────
 def render(layer, idx: int) -> None:
@@ -129,10 +150,10 @@ def render(layer, idx: int) -> None:
     # List of user-added fields
     extra_key = f"header_extra_fields_{idx}"
     extra_fields: list[str] = st.session_state.setdefault(extra_key, [])
-    
+
     for k, v in list(mapping.items()):
         if isinstance(v, str):
-            mapping[k] = {"src": v} 
+            mapping[k] = {"src": v}
 
     for field in layer.fields:  # type: ignore
         key = field.key
@@ -149,7 +170,7 @@ def render(layer, idx: int) -> None:
                     "expr": s["formula"],
                     "expr_display": s["display"],
                 }
-                
+
     ai_flag = f"header_ai_done_{idx}"
     if not st.session_state.get(ai_flag):
         before = mapping.copy()
@@ -178,8 +199,8 @@ def render(layer, idx: int) -> None:
             label_visibility="collapsed",
         )
         if new_src:
-            set_field_mapping(key, idx, {"src": new_src})       # user override
-            add_suggestion(                                 # learn it
+            set_field_mapping(key, idx, {"src": new_src})  # user override
+            add_suggestion(  # learn it
                 {
                     "template": st.session_state["current_template"],
                     "field": key,
@@ -209,28 +230,37 @@ def render(layer, idx: int) -> None:
                     "field": key,
                     "type": "formula",
                     "formula": expr,
-                    "columns": [],               # filled by dialog store
+                    "columns": [],  # filled by dialog store
                     "display": display or expr,
                 }
             )
 
         # ── Expression / confidence cell ────────────────────────────────
-        expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(key, {}).get("expr")
+        expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(
+            key, {}
+        ).get("expr")
         conf = mapping.get(key, {}).get("confidence")
         if expr_disp:
             row[2].markdown(f"`{expr_disp}`")
         elif conf is not None and "src" in mapping.get(key, {}):
             pct = int(round(conf * 100))
-            row[2].markdown(f"<span class='confidence-badge'>🛈 {pct}%</span>", unsafe_allow_html=True)
+            row[2].markdown(
+                f"<span class='confidence-badge'>🛈 {pct}%</span>",
+                unsafe_allow_html=True,
+            )
         else:
             row[2].markdown("")
 
         # ── Template label & status icon ────────────────────────────────
         row[3].markdown(f"**{key}**")
         status = (
-            "✅" if "src" in mapping.get(key, {}) else
-            "⚙️" if "expr" in mapping.get(key, {}) else
-            ("🛈" if conf is not None else "❌" if required else "—")
+            "✅"
+            if "src" in mapping.get(key, {})
+            else (
+                "⚙️"
+                if "expr" in mapping.get(key, {})
+                else ("🛈" if conf is not None else "❌" if required else "—")
+            )
         )
         row[4].markdown(status)
 
@@ -260,13 +290,18 @@ def render(layer, idx: int) -> None:
             st.rerun()
 
     ready = all(
-        (("src" in mapping.get(f.key, {}) and mapping[f.key]["src"]) or ("expr" in mapping.get(f.key, {})))
-        if f.required else True
+        (
+            (
+                ("src" in mapping.get(f.key, {}) and mapping[f.key]["src"])
+                or ("expr" in mapping.get(f.key, {}))
+            )
+            if f.required
+            else True
+        )
         for f in layer.fields  # type: ignore
     )
     if st.button("Confirm Header Mapping", disabled=not ready, key=f"confirm_{idx}"):
         st.session_state[f"layer_confirmed_{idx}"] = True
-        st.session_state["auto_computed_confirm"] = True
         st.rerun()
 
     st.divider()
@@ -277,7 +312,12 @@ def render(layer, idx: int) -> None:
         ltgt = st.text_input("Target field", key=f"lookup_tgt_{idx}")
         ldict = st.text_input("Dictionary sheet", key=f"lookup_dict_{idx}")
         lsheet = st.text_input("Sheet (optional)", key=f"lookup_sheet_{idx}")
-        if st.button("Add Lookup Layer", key=f"add_lookup_{idx}") and lsrc and ltgt and ldict:
+        if (
+            st.button("Add Lookup Layer", key=f"add_lookup_{idx}")
+            and lsrc
+            and ltgt
+            and ldict
+        ):
             append_lookup_layer(lsrc, ltgt, ldict, lsheet or None)
             st.rerun()
 
