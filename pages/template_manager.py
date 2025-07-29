@@ -79,20 +79,23 @@ def show() -> None:
     if columns:
         st.subheader("Select fields")
         if st.button("Suggest required fields"):
-            try:
-                sheet = st.session_state.get("tm_sheet", 0)
-                with st.spinner("Analyzing sample..."):
-                    df, _ = read_tabular_file(uploaded, sheet_name=sheet)
-                    suggestions = gpt_field_suggestions(df)
-                selections.update(suggestions)
-                required = {
-                    c: suggestions.get(c) == "required" for c in columns if suggestions.get(c) != "omit"
-                }
-                st.session_state["tm_field_select"] = selections
-                st.session_state["tm_required"] = required
-                st.rerun()
-            except Exception as err:  # noqa: BLE001
-                st.error(str(err))
+            if uploaded is None:
+                st.error("Please upload a sample file first.")
+            else:
+                try:
+                    sheet = st.session_state.get("tm_sheet", 0)
+                    with st.spinner("Analyzing sample..."):
+                        df, _ = read_tabular_file(uploaded, sheet_name=sheet)
+                        suggestions = gpt_field_suggestions(df)
+                    selections.update(suggestions)
+                    required = {
+                        c: suggestions.get(c) == "required" for c in columns if suggestions.get(c) != "omit"
+                    }
+                    st.session_state["tm_field_select"] = selections
+                    st.session_state["tm_required"] = required
+                    st.rerun()
+                except Exception as err:  # noqa: BLE001
+                    st.error(str(err))
         for col in columns:
             default = selections.get(
                 col,

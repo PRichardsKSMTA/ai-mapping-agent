@@ -112,6 +112,8 @@ def run_manager(
     builder=None,
     session_state=None,
     cols=None,
+    reader=None,
+    gpt_patch=None,
 ):
     dummy_st = DummyStreamlit(uploaded)
     if button_patch:
@@ -126,10 +128,17 @@ def run_manager(
     monkeypatch.setattr(
         "app_utils.excel_utils.list_sheets", lambda _uploaded: ["Sheet1"]
     )
+    if reader is None:
+        reader = lambda _uploaded, sheet_name=None: ([], cols or [])
     monkeypatch.setattr(
         "app_utils.excel_utils.read_tabular_file",
-        lambda _uploaded, sheet_name=None: ([], cols or []),
+        reader,
     )
+    if gpt_patch:
+        monkeypatch.setattr(
+            "app_utils.template_builder.gpt_field_suggestions",
+            gpt_patch,
+        )
     if builder:
         monkeypatch.setattr(
             "app_utils.template_builder.build_header_template", builder
@@ -186,4 +195,24 @@ def test_postprocess_caption_displayed(monkeypatch):
     dummy_file = types.SimpleNamespace(name="demo.csv")
     dummy = run_manager(monkeypatch, uploaded=dummy_file, cols=["A"])
     assert any("docs/template_spec.md" in c for c in dummy.captions)
+
+
+def test_suggest_required_fields_without_file(monkeypatch):
+    calls = {"read": 0}
+
+    def fake_reader(_uploaded, sheet_name=None):
+        calls["read"] += 1
+        return [], []
+
+    dummy = run_manager(
+        monkeypatch,
+        uploaded=None,
+        cols=["A"],
+        session_state={"tm_columns": ["A"]},
+        button_patch=lambda label, *a, **k: label == "Suggest required fields",
+        reader=fake_reader,
+        gpt_patch=lambda df: {},
+    )
+
+    assert calls["read"] == 0
 
