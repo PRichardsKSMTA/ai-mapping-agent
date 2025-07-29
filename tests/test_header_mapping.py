@@ -1,7 +1,14 @@
 import pytest
 
 from app_utils.mapping_utils import suggest_header_mapping
-from pages.steps.header import remove_field, add_field, set_field_mapping
+from pages.steps.header import (
+    remove_field,
+    add_field,
+    set_field_mapping,
+    append_lookup_layer,
+    append_computed_layer,
+    save_current_template,
+)
 import streamlit as st
 import json
 from schemas.template_v2 import FieldSpec
@@ -144,3 +151,19 @@ def test_persist_template_clears_unsaved(monkeypatch):
     template_manager.persist_template({"template_name": "demo", "layers": []})
     assert st.session_state["unsaved_changes"] is False
     sys.modules.pop("pages.template_manager", None)
+
+
+def test_append_layers_and_save(monkeypatch, tmp_path):
+    st.session_state.clear()
+    st.session_state["template"] = {"template_name": "demo", "layers": []}
+
+    append_lookup_layer("SRC", "TGT", "dict")
+    append_computed_layer("TOTAL", "df['A']")
+    assert len(st.session_state["template"]["layers"]) == 2
+
+    monkeypatch.setattr(
+        "pages.steps.header.save_template_file", lambda tpl: "demo-saved"
+    )
+    name = save_current_template()
+    assert name == "demo-saved"
+    assert st.session_state["unsaved_changes"] is False
