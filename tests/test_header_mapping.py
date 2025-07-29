@@ -106,6 +106,17 @@ def test_add_field_sets_unsaved(monkeypatch):
     assert "Extra" in st.session_state[f"header_extra_fields_{idx}"]
 
 
+def test_add_remove_field_without_template():
+    idx = 0
+    st.session_state.clear()
+    add_field("Extra", idx)
+    assert st.session_state["unsaved_changes"] is True
+    assert "template" not in st.session_state
+    st.session_state["unsaved_changes"] = False
+    remove_field("Extra", idx)
+    assert st.session_state["unsaved_changes"] is True
+
+
 def test_set_field_mapping_marks_unsaved():
     idx = 0
     key = f"header_mapping_{idx}"
