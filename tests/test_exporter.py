@@ -16,7 +16,7 @@ def test_expressions_in_output():
         "header_mapping_0": {
             "NET_CHANGE": {"expr": "df['A'] + df['B']"}
         },
-        "computed_result_3": {
+        "computed_result_2": {
             "resolved": True,
             "method": "derived",
             "source_cols": ["A", "B"],
@@ -28,7 +28,7 @@ def test_expressions_in_output():
     net_change = next(f for f in header_layer["fields"] if f["key"] == "NET_CHANGE")
     assert net_change["expression"] == "df['A'] + df['B']"
 
-    computed_layer = out["layers"][3]
+    computed_layer = out["layers"][2]
     assert computed_layer["formula"]["expression"] == "df['A'] - df['B']"
 
 
