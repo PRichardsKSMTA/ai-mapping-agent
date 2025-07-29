@@ -17,7 +17,7 @@
 | **Template JSON validator** | **✅ Dynamic v2 schema live** – validates any layers-only template        | None                                                                                      |
 | **UI wizard**               | **✅ Layer-driven** wizard; steps generated at runtime                    | None                                                                                      |
 | **Mapping helpers**         | **✅ Modular** – header, lookup, computed helpers in `app_utils/mapping/` | Confidence % display, GPT fallback, and formula dialog with "Suggest formula" GPT helper. |
-| **Template creation**       | **🚧 In progress** – Template Manager with GPT field suggestions; multi-layer support pending | Column detector and save to JSON working. |
+| **Template creation**       | **🚧 In progress** – Template Manager with GPT field suggestions; supports multi-layer templates and maps headers once | Column detector and save to JSON working. |
 | **Post-Process runner**    | 🚧 stage F – base runner implemented; wizard hook pending | Unit tests cover dispatch.
 | **File structure**          | **✅ Re-structured** (`io`, `mapping`, `ui`, `pages/steps`)               | —                                                                                         |
 
@@ -87,7 +87,7 @@
 | D-5 | ✅ GPT-assisted field suggestions   | Codex  | Builder proposes required fields.         |
 | D-6 | ~~Support lookup & computed layers~~ **superseded** | Codex  | Replaced by runtime layer addition (see D-7). |
 | D-7 | 🔨 Runtime addition of lookup & computed layers | Codex  | Builder lets users insert lookup/computed steps on the fly and updates the template JSON. |
-| D-6.1 | 🗓 Multi-layer builder | Codex  | Builder allows adding sub-layers like `standard-fm-coa.json`. |
+| D-6.1 | 🗓 Multi-layer builder | Codex  | Builder allows adding sub-layers; single-header flow uses `standard-fm-coa.json`. |
 
 ### Phase E – Docs, packaging & CI (**complete**)
 
