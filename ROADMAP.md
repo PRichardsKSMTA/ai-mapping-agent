@@ -85,7 +85,8 @@
 | D-3 | ✅ Create PIT BID template JSON     | Me     | File in `templates/` directory.           |
 | D-4 | ✅ Dedicated Template Builder page  | Codex  | Step-by-step wizard creates header layer. |
 | D-5 | ✅ GPT-assisted field suggestions   | Codex  | Builder proposes required fields.         |
-| D-6 | 🔨 Support lookup & computed layers | Codex  | Builder adds lookup dictionaries and formulas. |
+| D-6 | ~~Support lookup & computed layers~~ **superseded** | Codex  | Replaced by runtime layer addition (see D-7). |
+| D-7 | 🔨 Runtime addition of lookup & computed layers | Codex  | Builder lets users insert lookup/computed steps on the fly and updates the template JSON. |
 | D-6.1 | 🗓 Multi-layer builder | Codex  | Builder allows adding sub-layers like `standard-fm-coa.json`. |
 
 ### Phase E – Docs, packaging & CI (**complete**)
@@ -101,12 +102,13 @@
 | #   | Task                                                                                 | Owner | Done-when                                                                                      |
 | --- | ------------------------------------------------------------------------------------ | ----- | ---------------------------------------------------------------------------------------------- |
 | F-1 | ✅ Inline “+ Add field” button on Header page                                        | Me    | Users can append/rename/delete destination columns live.                                       |
-| F-2 | 🚧 Persist new user-defined fields into in-memory template; flag `unsaved_changes`   | Me    | Reload shows the added columns in header UI.                                                   |
-| F-3 | 🔨 Template Manager: “Save as new template…” UI + write metadata to DB               | Codex | Persists template JSON + metadata row in `dbo.MAPPING_AGENT_PROCESSES`.                        |
+| F-2 | 🚧 Persist user-defined fields **and runtime layers** into in-memory template; flag `unsaved_changes`; wizard can save updated template | Me    | Reload shows new columns and layers after saving. |
+| F-3 | 🔨 Template Manager: “Save as new template…” UI + write metadata to DB (reuse wizard save logic)             | Codex | Persists template JSON + metadata row in `dbo.MAPPING_AGENT_PROCESSES`.                        |
 | F-3.1 | ✅ Build dedicated Template Manager page; move features off sidebar | Codex | Template Manager page provides upload/download/delete UI without sidebar items. |
 | F-4 | ✅ Extend schema v2.3: optional top-level `"postprocess"` object                     | Codex | Validator green; spec updated in `template_spec.md`.                                           |
 | F-5 | ✅ `postprocess_runner.py`: dispatch run types (`python_script`, `pit_bid_excel`)    | Codex | Unit tests cover each run type.                                                                |
 | F-6 | 🔨 Wizard “Run Export” step: generate `process_guid`, run post-process, capture logs | Codex | Output JSON includes `process_guid`; DB rows in `RFP_OBJECT_DATA` & `MAPPING_AGENT_PROCESSES`. |
+| F-7 | 🗓 Extend schema v2.2: refine `user_defined` formulas for runtime layers | Codex | Validator green with new field; docs updated. |
 
 ### Phase G – PIT BID template & flow (🗓 Planned)
 
@@ -198,8 +200,8 @@ Don’ts
 Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
 
 ### Tasks
-1. Extend builder to support lookup & computed layers (D-6).
-2. Track `unsaved_changes` for added fields (F-2).
+1. Runtime addition of lookup & computed layers (D-7).
+2. Track `unsaved_changes` for added fields and layers (F-2).
 3. Wire postprocess runner into wizard (F-6).
 
 ```
