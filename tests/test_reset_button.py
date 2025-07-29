@@ -1,0 +1,92 @@
+import importlib
+import sys
+import types
+
+class DummyContainer:
+    def __enter__(self):
+        return self
+    def __exit__(self, *exc):
+        pass
+    def markdown(self, *a, **k):
+        pass
+    def progress(self, *a, **k):
+        pass
+
+class DummySidebar:
+    def __init__(self, st):
+        self.st = st
+    def __enter__(self):
+        return self
+    def __exit__(self, *exc):
+        pass
+    def subheader(self, *a, **k):
+        pass
+    def selectbox(self, label, options, index=0, **k):
+        return options[index] if options else None
+    def empty(self):
+        return DummyContainer()
+    def write(self, *a, **k):
+        pass
+    def info(self, *a, **k):
+        pass
+    def button(self, label, on_click=None, *a, **k):
+        if label == "Reset":
+            if on_click:
+                on_click()
+            return True
+        return False
+
+class DummyStreamlit:
+    def __init__(self):
+        self.session_state = {}
+        self.sidebar = DummySidebar(self)
+        self.rerun_called = False
+    def set_page_config(self, *a, **k):
+        pass
+    def title(self, *a, **k):
+        pass
+    header = subheader = success = error = write = warning = info = title
+    def selectbox(self, label, options, index=0, **k):
+        return options[index] if options else None
+    def file_uploader(self, *a, **k):
+        return None
+    def button(self, *a, **k):
+        return False
+    def spinner(self, *a, **k):
+        return DummyContainer()
+    def empty(self):
+        return DummyContainer()
+    def rerun(self):
+        self.rerun_called = True
+    def markdown(self, *a, **k):
+        pass
+    def cache_data(self, *a, **k):
+        def wrap(func):
+            return func
+        return wrap
+
+def run_app(monkeypatch):
+    st = DummyStreamlit()
+    monkeypatch.setitem(sys.modules, "streamlit", st)
+    monkeypatch.setenv("DISABLE_AUTH", "1")
+    monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
+    monkeypatch.setattr("auth.logout_button", lambda: None)
+    monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: [])
+    monkeypatch.setattr("app_utils.excel_utils.read_tabular_file", lambda _f, sheet_name=None: ([], []))
+    st.session_state.update({
+        "selected_template_file": "demo.json",
+        "uploaded_file": object(),
+        "template": {},
+        "template_name": "Demo",
+        "current_template": "Demo",
+        "layer_confirmed_0": True,
+    })
+    sys.modules.pop("app", None)
+    importlib.import_module("app")
+    return st
+
+
+def test_reset_button_triggers_rerun(monkeypatch):
+    st = run_app(monkeypatch)
+    assert st.rerun_called is True
+    assert "uploaded_file" not in st.session_state

@@ -141,6 +141,7 @@ def test_persist_template_clears_unsaved(monkeypatch):
 
     st.session_state["unsaved_changes"] = True
 
+    monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
     from pages import template_manager
 
