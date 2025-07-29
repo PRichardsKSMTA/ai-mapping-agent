@@ -72,10 +72,15 @@ def run_app(monkeypatch):
         "app_utils.excel_utils.read_tabular_file",
         lambda _f, sheet_name=None: (pd.DataFrame({"A": [1]}), ["A"]),
     )
-    called = {}
+    called: dict[str, object] = {}
+    def fake_runner(tpl, df, guid=None):
+        called["run"] = True
+        called["guid"] = guid
+        return ["ok"]
+
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",
-        lambda tpl, df: (called.setdefault("run", True), ["ok"])[1],
+        fake_runner,
     )
     tpl_path = Path("templates/pit-bid.json")
     tpl_data = json.loads(tpl_path.read_text())
@@ -96,9 +101,11 @@ def run_app(monkeypatch):
     })
     sys.modules.pop("app", None)
     importlib.import_module("app")
-    return called
+    return called, st.session_state
 
 
 def test_postprocess_runner_called(monkeypatch):
-    called = run_app(monkeypatch)
+    called, state = run_app(monkeypatch)
     assert called.get("run") is True
+    assert called.get("guid") is not None
+    assert state.get("export_logs") == ["ok"]
