@@ -22,7 +22,8 @@ from pathlib import Path
 import streamlit as st
 from pydantic import ValidationError
 
-from auth import require_login, logout_button
+from auth import require_login, logout_button, get_user_email
+from app_utils.user_prefs import get_last_template, set_last_template
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
 from app_utils.excel_utils import list_sheets, read_tabular_file
@@ -47,11 +48,37 @@ def main():
     TEMPLATES_DIR = Path("templates")
     TEMPLATES_DIR.mkdir(exist_ok=True)
 
+    user_email = get_user_email()
+    if user_email and "selected_template_file" not in st.session_state:
+        last = get_last_template(user_email)
+        if last:
+            st.session_state["selected_template_file"] = last
+
     def reset_layer_confirmations() -> None:
         """Remove all layer_confirmed_* flags from session state."""
         for k in list(st.session_state.keys()):
             if k.startswith("layer_confirmed_"):
                 del st.session_state[k]
+
+    def do_reset() -> None:
+        """Clear uploaded file and mapping progress."""
+        for k in list(st.session_state.keys()):
+            if k.startswith("layer_confirmed_"):
+                st.session_state.pop(k)
+        for k in [
+            "uploaded_file",
+            "upload_data_file",
+            "template",
+            "template_name",
+            "selected_template_file",
+            "current_template",
+            "auto_computed_confirm",
+        ]:
+            st.session_state.pop(k, None)
+        st.session_state["current_step"] = 0
+        if user_email:
+            set_last_template(user_email, "")
+        st.rerun()
 
     # ---------------------------------------------------------------------------
     # 1. Sidebar – choose template
@@ -74,6 +101,8 @@ def main():
         template_obj: Template | None = None
         if selected_file:
             st.session_state["selected_template_file"] = selected_file
+            if user_email:
+                set_last_template(user_email, selected_file)
             with st.spinner("Loading template..."):
                 raw_template = json.loads((TEMPLATES_DIR / selected_file).read_text())
                 try:
@@ -102,26 +131,7 @@ def main():
 
     progress_box = st.sidebar.empty()
     render_progress(progress_box)
-
-    # def do_reset() -> None:
-    #     """Clear uploaded file and mapping progress."""
-    #     for k in list(st.session_state.keys()):
-    #         if k.startswith("layer_confirmed_"):
-    #             st.session_state.pop(k)
-    #     for k in [
-    #         "uploaded_file",
-    #         "upload_data_file",
-    #         "template",
-    #         "template_name",
-    #         "selected_template_file",
-    #         "current_template",
-    #         "auto_computed_confirm",
-    #     ]:
-    #         st.session_state.pop(k, None)
-    #     st.session_state["current_step"] = 0
-    #     st.rerun()
-
-    # st.button("Reset", on_click=do_reset)
+    st.sidebar.button("Reset", on_click=do_reset)
 
     # ---------------------------------------------------------------------------
     # 3. Upload client data file
@@ -210,31 +220,5 @@ def main():
             st.info("Please select a template to begin.")
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
-
-    # ---------------------------------------------------------------------------
-    # 5. Reset Button
-    # ---------------------------------------------------------------------------
-
-    def do_reset() -> None:
-        """Clear uploaded file and mapping progress."""
-        for k in list(st.session_state.keys()):
-            if k.startswith("layer_confirmed_"):
-                st.session_state.pop(k)
-        for k in [
-            "uploaded_file",
-            "upload_data_file",
-            "template",
-            "template_name",
-            "selected_template_file",
-            "current_template",
-            "auto_computed_confirm",
-        ]:
-            st.session_state.pop(k, None)
-        st.session_state["current_step"] = 0
-        st.rerun()
-
-    st.button("Reset", on_click=do_reset)
-
-
 main()
 logout_button()
