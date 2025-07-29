@@ -167,6 +167,11 @@ Supported **`type`** values:
 | `http_request`  | Send mapped data as an HTTP request body.  |
 | `python_script` | Execute inline Python code with `df` bound.|
 
+After all layers are confirmed the wizard enters a **Run Export** step. If a
+`postprocess` block exists, `run_postprocess_if_configured` executes the selected
+action. A fresh `process_guid` (UUID) is stored in the final JSON together with
+any log messages from that run.
+
 ---
 
 ## 4 Extending with new layer types

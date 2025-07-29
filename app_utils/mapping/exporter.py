@@ -27,7 +27,11 @@ def _apply_header_expressions(layer: Dict[str, Any], idx: int, state: MutableMap
     return new_layer
 
 
-def build_output_template(template: Template, state: MutableMapping[str, Any]) -> Dict[str, Any]:
+def build_output_template(
+    template: Template,
+    state: MutableMapping[str, Any],
+    process_guid: str | None = None,
+) -> Dict[str, Any]:
     """Return template JSON enriched with user expressions."""
     tpl = deepcopy(template.model_dump())
     layers = []
@@ -39,4 +43,6 @@ def build_output_template(template: Template, state: MutableMapping[str, Any]) -
         else:
             layers.append(layer)
     tpl["layers"] = layers
+    if process_guid:
+        tpl["process_guid"] = process_guid
     return tpl
