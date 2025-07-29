@@ -4,6 +4,7 @@ from app_utils.template_builder import (
     build_header_template,
     build_lookup_layer,
     build_computed_layer,
+    build_template,
     load_template_json,
     save_template_file,
     apply_field_choices,
@@ -210,8 +211,14 @@ def test_gpt_field_suggestions(monkeypatch):
 def test_build_lookup_and_computed_layers():
     lookup = build_lookup_layer("SRC", "DEST", "dict", sheet="Sheet1")
     computed = build_computed_layer("TOTAL", "df['A'] + df['B']")
-    tpl = {
-        "template_name": "demo",
-        "layers": [lookup, computed],
-    }
+    tpl = build_template("demo", [lookup, computed])
+    Template.model_validate(tpl)
+
+
+def test_build_template_with_header_and_extra_layers():
+    header = build_header_template("demo", ["A"], {"A": True})
+    lookup = build_lookup_layer("A", "A", "dict")
+    comp = build_computed_layer("TOTAL", "df['A']")
+    layers = [header["layers"][0], lookup, comp]
+    tpl = build_template("demo", layers)
     Template.model_validate(tpl)

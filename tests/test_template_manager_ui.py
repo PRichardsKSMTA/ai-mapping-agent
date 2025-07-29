@@ -141,7 +141,7 @@ def run_manager(
         )
     if builder:
         monkeypatch.setattr(
-            "app_utils.template_builder.build_header_template", builder
+            "app_utils.template_builder.build_template", builder
         )
     sys.modules.pop("pages.template_manager", None)
     importlib.import_module("pages.template_manager")
@@ -176,9 +176,9 @@ def test_postprocess_passed_to_builder(monkeypatch):
 
     captured = {}
 
-    def fake_builder(name, cols, req, post=None):
+    def fake_builder(name, layers, post=None):
         captured["post"] = post
-        return {"template_name": name, "layers": [{"type": "header", "fields": []}]}
+        return {"template_name": name, "layers": layers}
 
     dummy = run_manager(
         monkeypatch,
