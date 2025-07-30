@@ -176,11 +176,10 @@ JSON together with any log messages from that run.
 
 ### 4.1\u2003Template Builder helpers
 
-The `app_utils.template_builder` module offers convenience functions for programmatically
-assembling templates. Use `build_lookup_layer` or `build_computed_layer` to create
-layer objects and pass them to `build_template()` along with the mandatory header
-layer. The builder validates the final structure against the schema so any
-mistakes raise a `ValidationError`.
+The `app_utils.template_builder` module provides utilities for building the
+initial header layer via `build_header_template` and saving it with
+`build_template()`. Lookup mappings and computed formulas are added later by the
+mapping wizard when the user defines them.
 
 ---
 
