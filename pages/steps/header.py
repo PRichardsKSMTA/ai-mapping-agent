@@ -5,104 +5,20 @@ import streamlit as st
 from schemas.template_v2 import FieldSpec
 from app_utils.excel_utils import read_tabular_file
 from app_utils.mapping_utils import suggest_header_mapping
-from app_utils.suggestion_store import add_suggestion, get_suggestions
+from app_utils.suggestion_store import get_suggestions
+import re
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.ui.formula_dialog import open_formula_dialog, RETURN_KEY_TEMPLATE
-from app_utils.template_builder import (
-    build_lookup_layer,
-    build_computed_layer,
-    save_template_file,
+from app_utils.ui.header_utils import (
+    set_field_mapping,
+    remove_field,
+    add_field,
+    append_lookup_layer,
+    append_computed_layer,
+    save_current_template,
+    persist_suggestions_from_mapping,
 )
 from app_utils.ui_utils import set_steps_from_template
-
-def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
-    """Persist mapping for ``field_key`` and mark session dirty if changed."""
-    map_key = f"header_mapping_{idx}"
-    mapping = st.session_state.setdefault(map_key, {})
-    if mapping.get(field_key) != value:
-        mapping[field_key] = value
-        st.session_state[map_key] = mapping
-        st.session_state["unsaved_changes"] = True
-
-def remove_field(field_key: str, idx: int) -> None:
-    """Delete a user-added field from session state."""
-    map_key = f"header_mapping_{idx}"
-    extra_key = f"header_extra_fields_{idx}"
-    mapping = st.session_state.get(map_key, {})
-    mapping.pop(field_key, None)
-    st.session_state[map_key] = mapping
-    extras = st.session_state.get(extra_key, [])
-    if field_key in extras:
-        extras.remove(field_key)
-        st.session_state[extra_key] = extras
-    # Update in-memory template and flag unsaved changes
-    tpl = st.session_state.get("template")
-    if tpl:
-        layer = tpl["layers"][idx]
-        layer["fields"] = [
-            f for f in layer.get("fields", []) if f.get("key") != field_key
-        ]
-        st.session_state["template"] = tpl
-    st.session_state["unsaved_changes"] = True
-
-def add_field(field_key: str, idx: int) -> None:
-    """Append a new field to session state and template."""
-    map_key = f"header_mapping_{idx}"
-    extra_key = f"header_extra_fields_{idx}"
-    mapping = st.session_state.setdefault(map_key, {})
-    mapping[field_key] = {}
-    st.session_state[map_key] = mapping
-    extras = st.session_state.setdefault(extra_key, [])
-    if field_key not in extras:
-        extras.append(field_key)
-        st.session_state[extra_key] = extras
-    tpl = st.session_state.get("template")
-    if tpl:
-        layer = tpl["layers"][idx]
-        if not any(f.get("key") == field_key for f in layer.get("fields", [])):
-            layer.setdefault("fields", []).append({"key": field_key, "required": False})
-        st.session_state["template"] = tpl
-    st.session_state["unsaved_changes"] = True
-
-def append_lookup_layer(
-    source_field: str,
-    target_field: str,
-    dictionary_sheet: str,
-    sheet: str | None = None,
-) -> None:
-    """Append a lookup layer to the in-memory template."""
-    tpl = st.session_state.get("template")
-    if not tpl:
-        return
-    layer = build_lookup_layer(
-        source_field, target_field, dictionary_sheet, sheet=sheet
-    )
-    tpl.setdefault("layers", []).append(layer)
-    st.session_state["template"] = tpl
-    set_steps_from_template(tpl["layers"])
-    st.session_state["unsaved_changes"] = True
-
-def append_computed_layer(
-    target_field: str, expression: str, sheet: str | None = None
-) -> None:
-    """Append a computed layer to the in-memory template."""
-    tpl = st.session_state.get("template")
-    if not tpl:
-        return
-    layer = build_computed_layer(target_field, expression, sheet=sheet)
-    tpl.setdefault("layers", []).append(layer)
-    st.session_state["template"] = tpl
-    set_steps_from_template(tpl["layers"])
-    st.session_state["unsaved_changes"] = True
-
-def save_current_template() -> str | None:
-    """Save ``st.session_state['template']`` using ``save_template_file``."""
-    tpl = st.session_state.get("template")
-    if not tpl:
-        return None
-    name = save_template_file(tpl)
-    st.session_state["unsaved_changes"] = False
-    return name
 
 # ─── CSS tweaks ───────────────────────────────────────────────────────
 st.markdown(
@@ -320,8 +236,6 @@ def render(layer, idx: int) -> None:
         for f in layer.fields  # type: ignore
     )
     if st.button("Confirm Header Mapping", disabled=not ready, key=f"confirm_{idx}"):
+        persist_suggestions_from_mapping(layer, mapping, source_cols)
         st.session_state[f"layer_confirmed_{idx}"] = True
         st.rerun()
-
-    if st.button("Save Template", key=f"save_template_{idx}"):
-        save_current_template()

@@ -61,18 +61,29 @@ def main():
                 del st.session_state[k]
 
     def do_reset() -> None:
-        """Clear uploaded file and mapping progress."""
+        """Clear uploaded file, mappings, and export state."""
+        prefixes = [
+            "layer_confirmed_",
+            "header_",
+            "lookup_",
+            "computed_",
+        ]
         for k in list(st.session_state.keys()):
-            if k.startswith("layer_confirmed_"):
+            if any(k.startswith(p) for p in prefixes):
                 st.session_state.pop(k)
         for k in [
             "uploaded_file",
             "upload_data_file",
+            "upload_sheet",
+            "upload_sheets",
             "template",
             "template_name",
             "selected_template_file",
             "current_template",
             "auto_computed_confirm",
+            "export_complete",
+            "export_logs",
+            "final_json",
         ]:
             st.session_state.pop(k, None)
         st.session_state["current_step"] = 0

@@ -1,13 +1,15 @@
 import pytest
+import types
 
 from app_utils.mapping_utils import suggest_header_mapping
-from pages.steps.header import (
+from app_utils.ui.header_utils import (
     remove_field,
     add_field,
     set_field_mapping,
     append_lookup_layer,
     append_computed_layer,
     save_current_template,
+    persist_suggestions_from_mapping,
 )
 import streamlit as st
 import json
@@ -163,8 +165,23 @@ def test_append_layers_and_save(monkeypatch, tmp_path):
     assert len(st.session_state["template"]["layers"]) == 2
 
     monkeypatch.setattr(
-        "pages.steps.header.save_template_file", lambda tpl: "demo-saved"
+        "app_utils.ui.header_utils.save_template_file", lambda tpl: "demo-saved"
     )
     name = save_current_template()
     assert name == "demo-saved"
     assert st.session_state["unsaved_changes"] is False
+
+
+def test_persist_suggestions_from_mapping(monkeypatch, tmp_path):
+    st.session_state.clear()
+    sug_file = tmp_path / "mapping_suggestions.json"
+    monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug_file)
+
+    st.session_state["current_template"] = "demo"
+    layer = types.SimpleNamespace(fields=[FieldSpec(key="Name")])
+    mapping = {"Name": {"src": "ColA"}}
+
+    persist_suggestions_from_mapping(layer, mapping, ["ColA"])
+
+    saved = json.loads(sug_file.read_text())
+    assert saved[0]["columns"] == ["ColA"]
