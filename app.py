@@ -148,6 +148,7 @@ def main():
         st.session_state["uploaded_file"] = uploaded_file
         with st.spinner("Reading file..."):
             sheets = list_sheets(uploaded_file)
+        st.session_state["upload_sheets"] = sheets
         sheet_key = "upload_sheet"
         if len(sheets) > 1:
             st.selectbox("Select sheet", sheets, key=sheet_key)

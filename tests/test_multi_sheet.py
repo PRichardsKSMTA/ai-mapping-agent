@@ -32,6 +32,9 @@ class DummyStreamlit:
     def error(self, msg):
         raise RuntimeError(msg)
 
+    def warning(self, msg):
+        pass
+
     def spinner(self, *a, **k):
         return self.Spinner()
 
@@ -60,8 +63,7 @@ def test_header_uses_layer_sheet(monkeypatch):
     st.session_state["upload_sheet"] = "First"
 
     layer = HeaderLayer(type="header", sheet="Second", fields=[FieldSpec(key="B")])
-    with pytest.raises(RuntimeError):
-        header_step.render(layer, 0)
+    header_step.render(layer, 0)
 
     assert captured["sheet"] == "Second"
 

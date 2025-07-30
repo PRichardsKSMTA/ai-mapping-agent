@@ -126,16 +126,40 @@ def render(layer, idx: int) -> None:
     sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
         "upload_sheet", 0
     )
+    sheets = st.session_state.get("upload_sheets", [sheet_name])
+
+    df = None
+    source_cols: list[str] | None = None
     with st.spinner("Loading file..."):
-        df, source_cols = read_tabular_file(
-            st.session_state["uploaded_file"], sheet_name=sheet_name
+        for candidate in [sheet_name] + [s for s in sheets if s != sheet_name]:
+            try:
+                df, source_cols = read_tabular_file(
+                    st.session_state["uploaded_file"], sheet_name=candidate
+                )
+                sheet_name = candidate
+                break
+            except Exception:  # noqa: BLE001
+                continue
+
+    if df is None or source_cols is None:
+        st.warning(
+            "Sheet could not be read. Please select a different sheet from the dropdown."
         )
+        return
+
+    if sheet_name != st.session_state.get("upload_sheet"):
+        st.session_state["upload_sheet"] = sheet_name
 
     map_key = f"header_mapping_{idx}"
-    if map_key not in st.session_state:
+    sheet_key = f"header_sheet_{idx}"
+    if (
+        map_key not in st.session_state
+        or st.session_state.get(sheet_key) != sheet_name
+    ):
         auto = suggest_header_mapping([f.key for f in layer.fields], source_cols)
-        # auto = {field_key: {"src": header, "confidence": 0.91}|{}}
         st.session_state[map_key] = auto
+        st.session_state[sheet_key] = sheet_name
+        st.session_state.pop(f"header_ai_done_{idx}", None)
     mapping = st.session_state[map_key]
 
     # List of user-added fields
