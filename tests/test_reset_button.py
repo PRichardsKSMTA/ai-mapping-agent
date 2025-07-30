@@ -80,6 +80,10 @@ def run_app(monkeypatch):
         "template_name": "Demo",
         "current_template": "Demo",
         "layer_confirmed_0": True,
+        "export_complete": True,
+        "export_logs": ["log"],
+        "final_json": {"a": 1},
+        "header_mapping_0": {"A": {"src": "A"}},
     })
     sys.modules.pop("app", None)
     importlib.import_module("app")
@@ -90,3 +94,5 @@ def test_reset_button_triggers_rerun(monkeypatch):
     st = run_app(monkeypatch)
     assert st.rerun_called is True
     assert "uploaded_file" not in st.session_state
+    assert "export_complete" not in st.session_state
+    assert "header_mapping_0" not in st.session_state
