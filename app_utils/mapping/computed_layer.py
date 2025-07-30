@@ -23,6 +23,7 @@ import json
 import os
 from copy import deepcopy
 from typing import Any, Dict, List, MutableMapping
+import re
 
 import pandas as pd
 from openai import OpenAI
@@ -117,15 +118,43 @@ def resolve_computed_layer(layer: Dict[str, Any], df: pd.DataFrame) -> Dict[str,
     }
 
 
+def _convert_expression(expr: str) -> tuple[str, Dict[str, List[str]]]:
+    """Return placeholder-based expression and dependency map."""
+    deps: Dict[str, List[str]] = {}
+
+    def repl(match: re.Match[str]) -> str:
+        col = match.group(1)
+        deps[col] = [col]
+        return f"${col}"
+
+    new_expr = re.sub(r"df\['([^']+)'\]", repl, expr)
+    return new_expr, deps
+
+
 def persist_expression_from_state(
     layer: Dict[str, Any], idx: int, state: MutableMapping[str, Any]
 ) -> Dict[str, Any]:
-    """Return a copy of ``layer`` with user expression injected."""
+    """Return ``layer`` with user expressions appended as candidates."""
     new_layer = deepcopy(layer)
     key = f"computed_result_{idx}"
     result = state.get(key)
-    if result and result.get("resolved") and result.get("expression"):
-        new_layer.setdefault("formula", {})["expression"] = result["expression"]
+    if not (result and result.get("resolved") and result.get("expression")):
+        return new_layer
+
+    expr, deps = _convert_expression(result["expression"])
+    formula = new_layer.setdefault("formula", {})
+
+    if formula.get("strategy") != "first_available":
+        formula.clear()
+        formula["strategy"] = "first_available"
+        formula["candidates"] = [
+            {"type": "direct", "source_candidates": [new_layer.get("target_field")]}]
+    formula.pop("expression", None)
+    formula.pop("dependencies", None)
+    cands = formula.setdefault("candidates", [])
+    if not any(c.get("type") == "derived" and c.get("expression") == expr for c in cands):
+        cands.append({"type": "derived", "expression": expr, "dependencies": deps})
+
     return new_layer
 
 

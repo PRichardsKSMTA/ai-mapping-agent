@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 """Header mapping step with dynamic field and layer controls."""
 import pandas as pd
 import streamlit as st
@@ -16,7 +15,6 @@ from app_utils.template_builder import (
 )
 from app_utils.ui_utils import set_steps_from_template
 
-
 def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
     """Persist mapping for ``field_key`` and mark session dirty if changed."""
     map_key = f"header_mapping_{idx}"
@@ -25,7 +23,6 @@ def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
         mapping[field_key] = value
         st.session_state[map_key] = mapping
         st.session_state["unsaved_changes"] = True
-
 
 def remove_field(field_key: str, idx: int) -> None:
     """Delete a user-added field from session state."""
@@ -48,7 +45,6 @@ def remove_field(field_key: str, idx: int) -> None:
         st.session_state["template"] = tpl
     st.session_state["unsaved_changes"] = True
 
-
 def add_field(field_key: str, idx: int) -> None:
     """Append a new field to session state and template."""
     map_key = f"header_mapping_{idx}"
@@ -68,7 +64,6 @@ def add_field(field_key: str, idx: int) -> None:
         st.session_state["template"] = tpl
     st.session_state["unsaved_changes"] = True
 
-
 def append_lookup_layer(
     source_field: str,
     target_field: str,
@@ -87,7 +82,6 @@ def append_lookup_layer(
     set_steps_from_template(tpl["layers"])
     st.session_state["unsaved_changes"] = True
 
-
 def append_computed_layer(
     target_field: str, expression: str, sheet: str | None = None
 ) -> None:
@@ -101,7 +95,6 @@ def append_computed_layer(
     set_steps_from_template(tpl["layers"])
     st.session_state["unsaved_changes"] = True
 
-
 def save_current_template() -> str | None:
     """Save ``st.session_state['template']`` using ``save_template_file``."""
     tpl = st.session_state.get("template")
@@ -110,7 +103,6 @@ def save_current_template() -> str | None:
     name = save_template_file(tpl)
     st.session_state["unsaved_changes"] = False
     return name
-
 
 # ─── CSS tweaks ───────────────────────────────────────────────────────
 st.markdown(
@@ -126,7 +118,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
 # ─── Main render function ─────────────────────────────────────────────
 def render(layer, idx: int) -> None:
@@ -303,31 +294,6 @@ def render(layer, idx: int) -> None:
     if st.button("Confirm Header Mapping", disabled=not ready, key=f"confirm_{idx}"):
         st.session_state[f"layer_confirmed_{idx}"] = True
         st.rerun()
-
-    st.divider()
-    st.subheader("Add Additional Layers")
-
-    with st.expander("Lookup Layer"):
-        lsrc = st.text_input("Source column", key=f"lookup_src_{idx}")
-        ltgt = st.text_input("Target field", key=f"lookup_tgt_{idx}")
-        ldict = st.text_input("Dictionary sheet", key=f"lookup_dict_{idx}")
-        lsheet = st.text_input("Sheet (optional)", key=f"lookup_sheet_{idx}")
-        if (
-            st.button("Add Lookup Layer", key=f"add_lookup_{idx}")
-            and lsrc
-            and ltgt
-            and ldict
-        ):
-            append_lookup_layer(lsrc, ltgt, ldict, lsheet or None)
-            st.rerun()
-
-    with st.expander("Computed Layer"):
-        ctgt = st.text_input("Target field", key=f"comp_tgt_{idx}")
-        cexpr = st.text_input("Expression (optional)", key=f"comp_expr_{idx}")
-        csheet = st.text_input("Sheet (optional)", key=f"comp_sheet_{idx}")
-        if st.button("Add Computed Layer", key=f"add_comp_{idx}") and ctgt:
-            append_computed_layer(ctgt, cexpr or None, csheet or None)
-            st.rerun()
 
     if st.button("Save Template", key=f"save_template_{idx}"):
         save_current_template()
