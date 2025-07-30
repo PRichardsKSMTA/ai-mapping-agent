@@ -29,7 +29,10 @@ def test_expressions_in_output():
     assert net_change["expression"] == "df['A'] + df['B']"
 
     computed_layer = out["layers"][2]
-    assert computed_layer["formula"]["expression"] == "df['A'] - df['B']"
+    formula = computed_layer["formula"]
+    assert formula["strategy"] == "first_available"
+    derived = [c for c in formula["candidates"] if c["type"] == "derived"]
+    assert any(c["expression"] == "$A - $B" for c in derived)
 
 
 def test_extra_fields_preserved():
