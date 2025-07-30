@@ -102,6 +102,7 @@ def test_lookup_dictionary_sheet(monkeypatch):
     captured = {}
 
     def fake_match(src_vals, dict_vals):
+        captured["src"] = src_vals
         captured["dict"] = dict_vals
         raise RuntimeError("stop")
 
@@ -128,7 +129,8 @@ def test_lookup_dictionary_sheet(monkeypatch):
     with pytest.raises(RuntimeError):
         lookup_step.render(layer, 0)
 
-    assert captured["dict"] == ["one", "two"]
+    assert captured["src"] == ["one", "two"]
+    assert captured["dict"] == ["1"]
 
 
 class DummyContainer:

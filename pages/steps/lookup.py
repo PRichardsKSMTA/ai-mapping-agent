@@ -1,5 +1,11 @@
 """
-Lookup mapping UI – maps client values → dictionary values.
+Lookup mapping UI – maps template values → client values.
+
+The behaviour now mirrors the header-mapping step: each dictionary value
+(typically a standard account name) is mapped to the closest matching value in
+the uploaded file. The mapping is stored under ``lookup_mapping_<idx>`` in
+``st.session_state`` where keys are template values and the values are the
+chosen client values.
 """
 
 from __future__ import annotations
@@ -57,7 +63,7 @@ def render(layer, idx: int):
     # ------------------------------------------------------------------ #
     key_map = f"lookup_mapping_{idx}"
     if key_map not in st.session_state:
-        st.session_state[key_map] = match_lookup_values(unique_vals, dict_values)
+        st.session_state[key_map] = match_lookup_values(dict_values, unique_vals)
 
     mapping = st.session_state[key_map]
     ai_flag = f"lookup_ai_done_{idx}"
@@ -66,10 +72,10 @@ def render(layer, idx: int):
         if unmapped_init:
             try:
                 with st.spinner("Querying GPT..."):
-                    suggestions = gpt_lookup_completion(unmapped_init, dict_values)
-                for src, match in suggestions.items():
+                    suggestions = gpt_lookup_completion(unmapped_init, unique_vals)
+                for templ, match in suggestions.items():
                     if match:
-                        mapping[src] = match
+                        mapping[templ] = match
                 st.session_state[key_map] = mapping
             except Exception as e:  # noqa: BLE001
                 st.error(str(e))
@@ -81,12 +87,12 @@ def render(layer, idx: int):
 
     edited = st.data_editor(
         pd.DataFrame(
-            {"Source": list(mapping.keys()), "Match": list(mapping.values())}
+            {"Template": list(mapping.keys()), "Source": list(mapping.values())}
         ),
         num_rows="dynamic",
         key=f"editor_{idx}",
     )
-    mapping = dict(zip(edited["Source"], edited["Match"]))
+    mapping = dict(zip(edited["Template"], edited["Source"]))
     st.session_state[key_map] = mapping
 
     # ------------------------------------------------------------------ #

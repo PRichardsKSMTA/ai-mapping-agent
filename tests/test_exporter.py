@@ -64,3 +64,11 @@ def test_process_guid_added():
     state = {}
     out = build_output_template(template, state, process_guid="123")
     assert out.get("process_guid") == "123"
+
+
+def test_lookup_mapping_saved():
+    template = load_sample("standard-fm-coa")
+    state = {"lookup_mapping_1": {"STD": "Client"}}
+    out = build_output_template(template, state)
+    lookup_layer = out["layers"][1]
+    assert lookup_layer["mapping"]["STD"] == "Client"
