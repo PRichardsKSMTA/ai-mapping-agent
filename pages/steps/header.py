@@ -5,7 +5,7 @@ import streamlit as st
 from schemas.template_v2 import FieldSpec
 from app_utils.excel_utils import read_tabular_file
 from app_utils.mapping_utils import suggest_header_mapping
-from app_utils.suggestion_store import get_suggestions
+from app_utils.suggestion_store import get_suggestions, add_suggestion
 import re
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.ui.formula_dialog import open_formula_dialog, RETURN_KEY_TEMPLATE
