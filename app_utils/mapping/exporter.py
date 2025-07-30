@@ -27,6 +27,15 @@ def _apply_header_expressions(layer: Dict[str, Any], idx: int, state: MutableMap
     return new_layer
 
 
+def _apply_lookup_mapping(layer: Dict[str, Any], idx: int, state: MutableMapping[str, Any]) -> Dict[str, Any]:
+    """Attach user-defined value mappings to ``layer`` if present."""
+    new_layer = deepcopy(layer)
+    mapping = state.get(f"lookup_mapping_{idx}")
+    if mapping:
+        new_layer["mapping"] = mapping
+    return new_layer
+
+
 def build_output_template(
     template: Template,
     state: MutableMapping[str, Any],
@@ -38,6 +47,8 @@ def build_output_template(
     for idx, layer in enumerate(tpl.get("layers", [])):
         if layer.get("type") == "header":
             layers.append(_apply_header_expressions(layer, idx, state))
+        elif layer.get("type") == "lookup":
+            layers.append(_apply_lookup_mapping(layer, idx, state))
         elif layer.get("type") == "computed":
             layers.append(persist_expression_from_state(layer, idx, state))
         else:

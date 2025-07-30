@@ -7,7 +7,7 @@ import pandas as pd
 
 from schemas.template_v2 import Template
 from app_utils.excel_utils import excel_to_json
-from app_utils.mapping_utils import suggest_header_mapping
+from app_utils.mapping_utils import suggest_header_mapping, match_lookup_values
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.mapping.computed_layer import resolve_computed_layer
 from app_utils.mapping.exporter import build_output_template
@@ -36,6 +36,13 @@ def auto_map(template: Template, df: pd.DataFrame) -> Dict[str, Any]:
             mapping = suggest_header_mapping(fields, columns)
             mapping = apply_gpt_header_fallback(mapping, columns)
             state[f"header_mapping_{idx}"] = mapping
+        elif layer.type == "lookup":
+            src = layer.source_field
+            if src in df.columns:
+                unique_vals = sorted(df[src].dropna().unique().astype(str))
+                records = getattr(template, layer.dictionary_sheet, [])
+                dict_vals = [rec[layer.target_field] for rec in records]
+                state[f"lookup_mapping_{idx}"] = match_lookup_values(dict_vals, unique_vals)
         elif layer.type == "computed":
             result = resolve_computed_layer(layer.model_dump(), df)
             state[f"computed_result_{idx}"] = result
