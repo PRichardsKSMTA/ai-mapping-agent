@@ -6,9 +6,6 @@ from app_utils.ui.header_utils import (
     remove_field,
     add_field,
     set_field_mapping,
-    append_lookup_layer,
-    append_computed_layer,
-    save_current_template,
     persist_suggestions_from_mapping,
 )
 import streamlit as st
@@ -155,21 +152,6 @@ def test_persist_template_clears_unsaved(monkeypatch):
     assert st.session_state["unsaved_changes"] is False
     sys.modules.pop("pages.template_manager", None)
 
-
-def test_append_layers_and_save(monkeypatch, tmp_path):
-    st.session_state.clear()
-    st.session_state["template"] = {"template_name": "demo", "layers": []}
-
-    append_lookup_layer("SRC", "TGT", "dict")
-    append_computed_layer("TOTAL", "df['A']")
-    assert len(st.session_state["template"]["layers"]) == 2
-
-    monkeypatch.setattr(
-        "app_utils.ui.header_utils.save_template_file", lambda tpl: "demo-saved"
-    )
-    name = save_current_template()
-    assert name == "demo-saved"
-    assert st.session_state["unsaved_changes"] is False
 
 
 def test_persist_suggestions_from_mapping(monkeypatch, tmp_path):

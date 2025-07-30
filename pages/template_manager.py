@@ -135,55 +135,6 @@ def show() -> None:
             placeholder='{"url": "https://example.com/hook"}',
         )
 
-        extra_layers = st.session_state.setdefault("tm_extra_layers", [])
-
-        st.subheader("Add Lookup Layer")
-        lcol1, lcol2 = st.columns([1, 1])
-        src = lcol1.selectbox(
-            "Source column",
-            options=[""] + columns,
-            key="tm_lookup_src",
-        )
-        tgt = lcol1.text_input("Target field", key="tm_lookup_tgt")
-        dsh = lcol2.text_input("Dictionary sheet", key="tm_lookup_dict")
-        lsheet = lcol2.text_input(
-            "Sheet (optional)", key="tm_lookup_sheet", placeholder="Sheet1"
-        )
-        if st.button("Add Lookup Layer") and src and tgt and dsh:
-            extra_layers.append(
-                build_lookup_layer(src, tgt, dsh, sheet=lsheet or None)
-            )
-            st.session_state["tm_lookup_src"] = ""
-            st.session_state["tm_lookup_tgt"] = ""
-            st.session_state["tm_lookup_dict"] = ""
-            st.session_state["tm_lookup_sheet"] = ""
-            st.session_state["unsaved_changes"] = True
-
-        st.subheader("Add Computed Layer")
-        ccol1, ccol2 = st.columns([1, 1])
-        ctgt = ccol1.text_input("Computed target", key="tm_comp_tgt")
-        expr = ccol1.text_input("Expression (optional)", key="tm_comp_expr")
-        csheet = ccol2.text_input(
-            "Sheet (optional)", key="tm_comp_sheet", placeholder="Sheet1"
-        )
-        if st.button("Add Computed Layer") and ctgt:
-            extra_layers.append(
-                build_computed_layer(ctgt, expr or None, sheet=csheet or None)
-            )
-            st.session_state["tm_comp_tgt"] = ""
-            st.session_state["tm_comp_expr"] = ""
-            st.session_state["tm_comp_sheet"] = ""
-            st.session_state["unsaved_changes"] = True
-
-        if extra_layers:
-            st.markdown("**Additional layers:**")
-            for i, l in enumerate(extra_layers):
-                st.json(l)
-                if st.button("Remove", key=f"rm_layer_{i}"):
-                    extra_layers.pop(i)
-                    st.session_state["tm_extra_layers"] = extra_layers
-                    st.session_state["unsaved_changes"] = True
-                    st.rerun()
 
     name = st.session_state.get("tm_name", "")
 
@@ -192,8 +143,7 @@ def show() -> None:
         post_txt = st.session_state.get("tm_postprocess", "").strip()
         post_obj = json.loads(post_txt) if post_txt else None
         header_only = build_header_template(name, selected_cols, req_map)
-        all_layers = [header_only["layers"][0]] + st.session_state.get("tm_extra_layers", [])
-        tpl = build_template(name, all_layers, post_obj)
+        tpl = build_template(name, [header_only["layers"][0]], post_obj)
         with st.spinner("Saving template..."):
             try:
                 Template.model_validate(tpl)
@@ -206,7 +156,6 @@ def show() -> None:
                 st.session_state.pop("tm_required", None)
                 st.session_state.pop("tm_field_select", None)
                 st.session_state.pop("tm_sheet", None)
-                st.session_state.pop("tm_extra_layers", None)
                 st.rerun()
 
     st.divider()

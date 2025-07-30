@@ -1,7 +1,6 @@
 import types
 import importlib
 import sys
-from app_utils.template_builder import build_lookup_layer, build_computed_layer
 
 class DummySidebar:
     def __init__(self) -> None:
@@ -234,58 +233,4 @@ def test_suggest_required_fields_without_file(monkeypatch):
     assert calls["read"] == 0
 
 
-def test_add_lookup_and_computed_layers(monkeypatch):
-    dummy_file = types.SimpleNamespace(name="demo.csv")
-
-    def btn(label, *a, **k):
-        return label in {"Add Lookup Layer", "Add Computed Layer"}
-
-    dummy = run_manager(
-        monkeypatch,
-        uploaded=dummy_file,
-        cols=["A"],
-        button_patch=btn,
-        session_state={
-            "tm_columns": ["A"],
-            "tm_lookup_src": "A",
-            "tm_lookup_tgt": "B",
-            "tm_lookup_dict": "dict",
-            "tm_comp_tgt": "TOTAL",
-            "tm_comp_expr": "df['A']",
-        },
-    )
-
-    layers = dummy.session_state.get("tm_extra_layers")
-    assert len(layers) == 2
-    assert layers[0]["type"] == "lookup"
-    assert layers[1]["type"] == "computed"
-
-
-def test_save_template_includes_extra_layers(monkeypatch):
-    dummy_file = types.SimpleNamespace(name="demo.csv")
-    extra = [
-        build_lookup_layer("A", "A", "dict"),
-        build_computed_layer("TOTAL", "df['A']"),
-    ]
-    captured = {}
-
-    def fake_builder(name, layers, post=None):
-        captured["layers"] = layers
-        return {"template_name": name, "layers": layers}
-
-    dummy = run_manager(
-        monkeypatch,
-        uploaded=dummy_file,
-        cols=["A"],
-        button_patch=lambda label, *a, **k: label == "Save Template",
-        builder=fake_builder,
-        session_state={
-            "tm_columns": ["A"],
-            "tm_field_select": {"A": "required"},
-            "tm_name": "demo",
-            "tm_extra_layers": extra,
-        },
-    )
-
-    assert len(captured["layers"]) == 1 + len(extra)
 
