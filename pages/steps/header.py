@@ -172,7 +172,9 @@ def render(layer, idx: int) -> None:
 
     for field in layer.fields:  # type: ignore
         key = field.key
-        for s in get_suggestions(st.session_state["current_template"], key):
+        for s in get_suggestions(
+            st.session_state["current_template"], key, headers=source_cols
+        ):
             if s["type"] == "direct":
                 for col in source_cols:
                     if col.lower() == s["columns"][0].lower():
@@ -215,7 +217,7 @@ def render(layer, idx: int) -> None:
         )
         if new_src:
             set_field_mapping(key, idx, {"src": new_src})  # user override
-            add_suggestion(  # learn it
+            add_suggestion(
                 {
                     "template": st.session_state["current_template"],
                     "field": key,
@@ -223,7 +225,8 @@ def render(layer, idx: int) -> None:
                     "formula": None,
                     "columns": [new_src],
                     "display": new_src,
-                }
+                },
+                headers=source_cols,
             )
         elif "src" in mapping.get(key, {}):
             set_field_mapping(key, idx, {})
@@ -239,15 +242,16 @@ def render(layer, idx: int) -> None:
             expr = st.session_state.pop(res_key)
             display = st.session_state.pop(res_disp_key, "")
             set_field_mapping(key, idx, {"expr": expr, "expr_display": display})
-            add_suggestion(  # store formula learning
+            add_suggestion(
                 {
                     "template": st.session_state["current_template"],
                     "field": key,
                     "type": "formula",
                     "formula": expr,
-                    "columns": [],  # filled by dialog store
+                    "columns": [],
                     "display": display or expr,
-                }
+                },
+                headers=source_cols,
             )
 
         # ── Expression / confidence cell ────────────────────────────────

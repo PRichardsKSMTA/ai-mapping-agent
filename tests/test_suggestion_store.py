@@ -39,3 +39,25 @@ def test_add_suggestion_dedup(monkeypatch, tmp_path):
 
     saved = json.loads(path.read_text())
     assert len(saved) == 1
+
+
+def test_add_suggestion_replace_on_header(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    path.write_text("[]")
+    monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", path)
+
+    base = {
+        "template": "Demo",
+        "field": "Name",
+        "type": "direct",
+        "formula": None,
+        "columns": ["ColA"],
+        "display": "ColA",
+    }
+    headers = ["ColA", "ColB"]
+    suggestion_store.add_suggestion(base, headers=headers)
+    suggestion_store.add_suggestion({**base, "columns": ["ColB"]}, headers=headers)
+
+    saved = json.loads(path.read_text())
+    assert len(saved) == 1
+    assert saved[0]["columns"] == ["ColB"]

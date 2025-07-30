@@ -83,7 +83,7 @@ def test_saved_suggestion_overrides_fuzzy(monkeypatch, tmp_path):
 
     for f in fields:
         key = f.key
-        for s in suggestion_store.get_suggestions("simple-template", key):
+        for s in suggestion_store.get_suggestions("simple-template", key, headers=source_cols):
             if s["type"] == "direct":
                 for col in source_cols:
                     if col.lower() == s["columns"][0].lower():

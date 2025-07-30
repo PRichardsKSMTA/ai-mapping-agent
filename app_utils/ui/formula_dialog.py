@@ -134,7 +134,8 @@ def open_formula_dialog(df: pd.DataFrame, dialog_key: str) -> None:
                     "formula": expr,
                     "columns": re.findall(r"df\['([^']+)'\]", expr),
                     "display": st.session_state[f"{result_key}_display"],
-                }
+                },
+                headers=list(df.columns),
             )
             st.session_state.pop(expr_key, None)
             st.rerun()  # closes modal
