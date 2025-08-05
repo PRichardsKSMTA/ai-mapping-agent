@@ -6,6 +6,13 @@ from typing import Dict, List
 import os
 from pathlib import Path
 
+try:  # pragma: no cover - optional dependency
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except Exception:  # pragma: no cover - if python-dotenv not installed
+    pass
+
 try:  # pragma: no cover - handled in tests via monkeypatch
     import tomllib  # Python 3.11+
 except Exception:  # pragma: no cover
@@ -55,8 +62,12 @@ def _connect() -> "pyodbc.Connection":
     return pyodbc.connect(conn_str)
 
 
-def fetch_operation_codes(email: str) -> List[str]:
-    """Return sorted operation codes for a user email."""
+def fetch_operation_codes(email: str | None = None) -> List[str]:
+    """Return sorted operation codes for a user email.
+
+    Falls back to the demo user when ``email`` is ``None``.
+    """
+    email = email or os.getenv("DEV_USER_EMAIL", "pete.richards@ksmta.com")
     try:
         conn = _connect()
     except RuntimeError as err:  # pragma: no cover - exercised in integration

@@ -101,23 +101,22 @@ def main():
     # ---------------------------------------------------------------------------
 
     with st.sidebar:
-        if user_email:
-            st.subheader("Select Operation")
-            try:
-                op_codes = fetch_operation_codes(user_email)
-            except RuntimeError as err:
-                st.error(f"Operation lookup failed: {err}")
-                return
-            if not op_codes:
-                st.error("No operations available.")
-                return
-            op_idx = 0
-            if st.session_state.get("operation_code") in op_codes:
-                op_idx = op_codes.index(st.session_state["operation_code"])
-            st.selectbox("Operation", op_codes, index=op_idx, key="operation_code")
-            st.session_state["operational_scac"] = get_operational_scac(
-                st.session_state["operation_code"]
-            )
+        st.subheader("Select Operation")
+        try:
+            op_codes = fetch_operation_codes()
+        except RuntimeError as err:
+            st.error(f"Operation lookup failed: {err}")
+            return
+        if not op_codes:
+            st.error("No operations available.")
+            return
+        op_idx = 0
+        if st.session_state.get("operation_code") in op_codes:
+            op_idx = op_codes.index(st.session_state["operation_code"])
+        st.selectbox("Operation", op_codes, index=op_idx, key="operation_code")
+        st.session_state["operational_scac"] = get_operational_scac(
+            st.session_state["operation_code"]
+        )
 
         st.subheader("Select Template")
         template_files = sorted(p.name for p in TEMPLATES_DIR.glob("*.json"))
