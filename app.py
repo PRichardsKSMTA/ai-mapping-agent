@@ -24,6 +24,11 @@ from pydantic import ValidationError
 
 from auth import require_login, logout_button, get_user_email
 from app_utils.user_prefs import get_last_template, set_last_template
+from app_utils.azure_sql import (
+    fetch_operation_codes,
+    fetch_customers,
+    get_operational_scac,
+)
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
 from app_utils.excel_utils import list_sheets, read_tabular_file
@@ -96,6 +101,20 @@ def main():
     # ---------------------------------------------------------------------------
 
     with st.sidebar:
+        if user_email:
+            st.subheader("Select Operation")
+            op_codes = fetch_operation_codes(user_email)
+            if not op_codes:
+                st.error("No operations available.")
+                return
+            op_idx = 0
+            if st.session_state.get("operation_code") in op_codes:
+                op_idx = op_codes.index(st.session_state["operation_code"])
+            st.selectbox("Operation", op_codes, index=op_idx, key="operation_code")
+            st.session_state["operational_scac"] = get_operational_scac(
+                st.session_state["operation_code"]
+            )
+
         st.subheader("Select Template")
         template_files = sorted(p.name for p in TEMPLATES_DIR.glob("*.json"))
 
@@ -147,7 +166,37 @@ def main():
         st.rerun()
 
     # ---------------------------------------------------------------------------
-    # 3. Upload client data file
+    # 3. Customer selection (PIT BID only)
+    # ---------------------------------------------------------------------------
+
+    if (
+        st.session_state.get("template_name") == "PIT BID"
+        and st.session_state.get("operational_scac")
+    ):
+        scac = st.session_state["operational_scac"]
+        if (
+            st.session_state.get("customer_options") is None
+            or st.session_state.get("customer_scac") != scac
+        ):
+            st.session_state["customer_options"] = fetch_customers(scac)
+            st.session_state["customer_scac"] = scac
+        cust_records = st.session_state["customer_options"]
+        cust_names = [c["BILLTO_NAME"] for c in cust_records]
+        if cust_names:
+            cust_idx = 0
+            if st.session_state.get("customer_name") in cust_names:
+                cust_idx = cust_names.index(st.session_state["customer_name"])
+            selected_name = st.selectbox(
+                "Customer", cust_names, index=cust_idx, key="customer_name"
+            )
+            st.session_state["selected_customer"] = next(
+                c for c in cust_records if c["BILLTO_NAME"] == selected_name
+            )
+        else:
+            st.warning("No customers found for selected operation.")
+
+    # ---------------------------------------------------------------------------
+    # 4. Upload client data file
     # ---------------------------------------------------------------------------
 
     uploaded_file = st.file_uploader(
@@ -167,7 +216,7 @@ def main():
             st.session_state[sheet_key] = sheets[0]
 
     # ---------------------------------------------------------------------------
-    # 4. Main wizard
+    # 5. Main wizard
     # ---------------------------------------------------------------------------
 
     if st.session_state.get("uploaded_file") and template_obj:

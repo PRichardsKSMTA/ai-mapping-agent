@@ -7,3 +7,4 @@ pydantic
 tiktoken
 pytest
 python-Levenshtein
+pyodbc
