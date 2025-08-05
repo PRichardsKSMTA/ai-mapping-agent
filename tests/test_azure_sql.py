@@ -1,6 +1,5 @@
 import types
-
-import types
+import pytest
 
 from app_utils import azure_sql
 
@@ -34,7 +33,10 @@ def test_fetch_operation_codes(monkeypatch):
 
     fake_pyodbc = types.SimpleNamespace(connect=lambda conn_str: FakeConn())
     monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
-    monkeypatch.setenv("AZURE_SQL_CONN_STRING", "Driver={};")
+    monkeypatch.setenv("SQL_SERVER", "srv")
+    monkeypatch.setenv("SQL_DATABASE", "db")
+    monkeypatch.setenv("SQL_USERNAME", "user")
+    monkeypatch.setenv("SQL_PASSWORD", "pwd")
 
     codes = azure_sql.fetch_operation_codes("user@example.com")
     assert codes == ["ADSJ_VAN", "DEK1_REF"]
@@ -73,7 +75,34 @@ def test_fetch_customers(monkeypatch):
 
     fake_pyodbc = types.SimpleNamespace(connect=lambda conn_str: FakeConn())
     monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
-    monkeypatch.setenv("AZURE_SQL_CONN_STRING", "Driver={};")
+    monkeypatch.setenv("SQL_SERVER", "srv")
+    monkeypatch.setenv("SQL_DATABASE", "db")
+    monkeypatch.setenv("SQL_USERNAME", "user")
+    monkeypatch.setenv("SQL_PASSWORD", "pwd")
 
     customers = azure_sql.fetch_customers("ADSJ")
     assert [c["BILLTO_NAME"] for c in customers] == ["Alpha", "Beta"]
+
+
+def test_connect_requires_config(monkeypatch):
+    monkeypatch.setattr(azure_sql, "pyodbc", types.SimpleNamespace())
+    for key in [
+        "SQL_SERVER",
+        "SQL_DATABASE",
+        "SQL_USERNAME",
+        "SQL_PASSWORD",
+        "AZURE_SQL_CONN_STRING",
+    ]:
+        monkeypatch.delenv(key, raising=False)
+    with pytest.raises(RuntimeError):
+        azure_sql._connect()
+
+
+def test_connect_requires_pyodbc(monkeypatch):
+    monkeypatch.setattr(azure_sql, "pyodbc", None)
+    monkeypatch.setenv("SQL_SERVER", "srv")
+    monkeypatch.setenv("SQL_DATABASE", "db")
+    monkeypatch.setenv("SQL_USERNAME", "user")
+    monkeypatch.setenv("SQL_PASSWORD", "pwd")
+    with pytest.raises(RuntimeError):
+        azure_sql._connect()

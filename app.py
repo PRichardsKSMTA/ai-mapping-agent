@@ -103,7 +103,11 @@ def main():
     with st.sidebar:
         if user_email:
             st.subheader("Select Operation")
-            op_codes = fetch_operation_codes(user_email)
+            try:
+                op_codes = fetch_operation_codes(user_email)
+            except RuntimeError as err:
+                st.error(f"Operation lookup failed: {err}")
+                return
             if not op_codes:
                 st.error("No operations available.")
                 return
@@ -178,8 +182,12 @@ def main():
             st.session_state.get("customer_options") is None
             or st.session_state.get("customer_scac") != scac
         ):
-            st.session_state["customer_options"] = fetch_customers(scac)
-            st.session_state["customer_scac"] = scac
+            try:
+                st.session_state["customer_options"] = fetch_customers(scac)
+                st.session_state["customer_scac"] = scac
+            except RuntimeError as err:
+                st.error(f"Customer lookup failed: {err}")
+                return
         cust_records = st.session_state["customer_options"]
         cust_names = [c["BILLTO_NAME"] for c in cust_records]
         if cust_names:
