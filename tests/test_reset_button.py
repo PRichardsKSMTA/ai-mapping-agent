@@ -21,8 +21,11 @@ class DummySidebar:
         pass
     def subheader(self, *a, **k):
         pass
-    def selectbox(self, label, options, index=0, **k):
-        return options[index] if options else None
+    def selectbox(self, label, options, index=0, key=None, **k):
+        choice = options[index] if options else None
+        if key:
+            self.st.session_state[key] = choice
+        return choice
     def empty(self):
         return DummyContainer()
     def write(self, *a, **k):
@@ -46,8 +49,11 @@ class DummyStreamlit:
     def title(self, *a, **k):
         pass
     header = subheader = success = error = write = warning = info = title
-    def selectbox(self, label, options, index=0, **k):
-        return options[index] if options else None
+    def selectbox(self, label, options, index=0, key=None, **k):
+        choice = options[index] if options else None
+        if key:
+            self.session_state[key] = choice
+        return choice
     def file_uploader(self, *a, **k):
         return None
     def button(self, *a, **k):
@@ -73,6 +79,9 @@ def run_app(monkeypatch):
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: [])
     monkeypatch.setattr("app_utils.excel_utils.read_tabular_file", lambda _f, sheet_name=None: ([], []))
+    monkeypatch.setattr(
+        "app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["DEK1_REF"]
+    )
     st.session_state.update({
         "selected_template_file": "demo.json",
         "uploaded_file": object(),

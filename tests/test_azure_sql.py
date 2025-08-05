@@ -42,6 +42,39 @@ def test_fetch_operation_codes(monkeypatch):
     assert codes == ["ADSJ_VAN", "DEK1_REF"]
 
 
+def test_fetch_operation_codes_default_email(monkeypatch):
+    class FakeCursor:
+        def execute(self, query, email):  # pragma: no cover - exercised via call
+            assert email == "pete.richards@ksmta.com"
+            self.description = [("OPERATION_CD",)]
+            self.rows = [("DEK1_REF",)]
+            return self
+
+        def fetchall(self):
+            return self.rows
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    fake_pyodbc = types.SimpleNamespace(connect=lambda conn_str: FakeConn())
+    monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
+    monkeypatch.setenv("SQL_SERVER", "srv")
+    monkeypatch.setenv("SQL_DATABASE", "db")
+    monkeypatch.setenv("SQL_USERNAME", "user")
+    monkeypatch.setenv("SQL_PASSWORD", "pwd")
+    monkeypatch.delenv("DEV_USER_EMAIL", raising=False)
+
+    codes = azure_sql.fetch_operation_codes()
+    assert codes == ["DEK1_REF"]
+
+
 def test_fetch_customers(monkeypatch):
     class FakeCursor:
         def execute(self, query, scac):  # pragma: no cover - exercised via call

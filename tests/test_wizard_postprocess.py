@@ -16,15 +16,23 @@ class DummyContainer:
         pass
 
 class DummySidebar:
+    def __init__(self, st):
+        self.st = st
+
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
         pass
+
     def subheader(self, *a, **k):
         pass
-    def selectbox(self, label, options, index=0, **k):
-        return options[index]
+
+    def selectbox(self, label, options, index=0, key=None, **k):
+        choice = options[index]
+        if key:
+            self.st.session_state[key] = choice
+        return choice
     def empty(self):
         return DummyContainer()
     def write(self, *a, **k):
@@ -37,14 +45,17 @@ class DummySidebar:
 class DummyStreamlit:
     def __init__(self):
         self.session_state = {}
-        self.sidebar = DummySidebar()
+        self.sidebar = DummySidebar(self)
     def set_page_config(self, *a, **k):
         pass
     def title(self, *a, **k):
         pass
     header = subheader = success = error = write = warning = info = title
-    def selectbox(self, label, options, index=0, **k):
-        return options[index]
+    def selectbox(self, label, options, index=0, key=None, **k):
+        choice = options[index]
+        if key:
+            self.session_state[key] = choice
+        return choice
     def file_uploader(self, *a, **k):
         return None
     def button(self, label, *a, **k):
@@ -74,6 +85,10 @@ def run_app(monkeypatch):
         "app_utils.excel_utils.read_tabular_file",
         lambda _f, sheet_name=None: (pd.DataFrame({"A": [1]}), ["A"]),
     )
+    monkeypatch.setattr(
+        "app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["ADSJ_VAN"]
+    )
+    monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
     called: dict[str, object] = {}
     def fake_runner(tpl, df, guid=None):
         called["run"] = True
