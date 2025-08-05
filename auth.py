@@ -14,7 +14,7 @@ AAD_EMPLOYEE_GROUP_IDS=            # optional
 AAD_EMPLOYEE_DOMAINS=ksmcpa.com,ksmta.com
 AAD_KSMTA_GROUP_IDS=cccccccc-cccc-cccc-cccc-cccccccccccc
 DISABLE_AUTH=1                     # set to 0 or unset for real login
-DEV_USER_EMAIL=dev@ksmta.com
+DEV_USER_EMAIL=pete.richards@ksmta.com
 """
 
 from __future__ import annotations
@@ -25,7 +25,12 @@ from functools import wraps
 from typing import Any, Dict, Set
 
 import streamlit as st
-from dotenv import load_dotenv
+
+try:  # pragma: no cover - optional dependency
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - if python-dotenv not installed
+    def load_dotenv() -> bool:  # type: ignore
+        return False
 
 load_dotenv()
 
@@ -37,7 +42,7 @@ DISABLE_AUTH = os.getenv("DISABLE_AUTH", "0") == "1"
 if DISABLE_AUTH:
     # Seed fake session values
     st.session_state.setdefault(
-        "user_email", os.getenv("DEV_USER_EMAIL", "dev@ksmta.com")
+        "user_email", os.getenv("DEV_USER_EMAIL", "pete.richards@ksmta.com")
     )
     st.session_state.setdefault("is_employee", True)
     st.session_state.setdefault("is_ksmta", True)
