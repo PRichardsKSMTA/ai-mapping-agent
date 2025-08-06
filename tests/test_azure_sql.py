@@ -293,3 +293,35 @@ def test_insert_pit_bid_rows_customer_column(monkeypatch):
     )
     azure_sql.insert_pit_bid_rows(df, "OP", None)
     assert captured["params"][1] == "Cust1"
+
+
+def test_insert_pit_bid_rows_fuzzy_mapping(monkeypatch):
+    captured = {}
+
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["params"] = params
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    df = pd.DataFrame(
+        {
+            "CUSTOMER": ["Acme"],
+            "Freight Type": ["TL"],
+            "Foo": ["bar"],
+        }
+    )
+    azure_sql.insert_pit_bid_rows(df, "OP", None)
+    assert captured["params"][1] == "Acme"  # CUSTOMER_NAME
+    assert captured["params"][11] == "TL"  # FREIGHT_TYPE
+    assert captured["params"][14] == "bar"  # ADHOC_INFO1
+
