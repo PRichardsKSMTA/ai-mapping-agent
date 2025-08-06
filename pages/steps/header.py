@@ -2,12 +2,14 @@ from __future__ import annotations
 """Header mapping step with dynamic field and layer controls."""
 import pandas as pd
 import streamlit as st
-from schemas.template_v2 import FieldSpec
-from app_utils.excel_utils import read_tabular_file
+from pathlib import Path
+from schemas.template_v2 import FieldSpec, Template
+from app_utils.excel_utils import read_tabular_file, save_mapped_csv
 from app_utils.mapping_utils import suggest_header_mapping
 from app_utils.suggestion_store import get_suggestions, add_suggestion
 import re
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
+from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.formula_dialog import open_formula_dialog, RETURN_KEY_TEMPLATE
 from app_utils.ui.header_utils import (
     set_field_mapping,
@@ -239,3 +241,25 @@ def render(layer, idx: int) -> None:
         persist_suggestions_from_mapping(layer, mapping, source_cols)
         st.session_state[f"layer_confirmed_{idx}"] = True
         st.rerun()
+
+    # Offer mapped CSV download for current state
+    try:
+        tpl_raw = st.session_state.get("template")
+        if tpl_raw is not None:
+            tpl_obj = Template.model_validate(tpl_raw)
+            tpl_json = build_output_template(tpl_obj, st.session_state)
+            import tempfile
+
+            tmp_path = Path(tempfile.mkstemp(suffix=".csv")[1])
+            save_mapped_csv(df, tpl_json, tmp_path)
+            csv_bytes = tmp_path.read_bytes()
+            tmp_path.unlink()
+            st.download_button(
+                "Download mapped CSV",
+                data=csv_bytes,
+                file_name="mapped.csv",
+                mime="text/csv",
+                key=f"download_mapped_{idx}",
+            )
+    except Exception:  # noqa: BLE001
+        pass

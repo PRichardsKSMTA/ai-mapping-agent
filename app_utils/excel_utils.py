@@ -1,7 +1,12 @@
 import pandas as pd  # type: ignore
 import streamlit as st
+from pathlib import Path
 from typing import List
 from openpyxl import load_workbook
+from schemas.template_v2 import Template
+from app_utils.dataframe_transform import apply_header_mappings
+from types import SimpleNamespace
+from typing import Any
 
 
 def _copy_to_temp(uploaded_file, suffix: str) -> str:
@@ -152,3 +157,24 @@ def read_tabular_file(
 
     df = _clean_columns(df)
     return df, list(df.columns)
+
+
+def _to_namespace(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return SimpleNamespace(**{k: _to_namespace(v) for k, v in obj.items()})
+    if isinstance(obj, list):
+        return [_to_namespace(v) for v in obj]
+    return obj
+
+
+def save_mapped_csv(df: pd.DataFrame, template: Template | dict[str, Any], path: Path) -> None:
+    """Apply header mappings from ``template`` and write CSV to ``path``.
+
+    ``template`` may be a :class:`Template` model or a ``dict`` produced by
+    :func:`build_output_template`. Columns are renamed via
+    :func:`apply_header_mappings` and saved without the index.
+    """
+
+    tpl_obj = _to_namespace(template) if isinstance(template, dict) else template
+    mapped = apply_header_mappings(df, tpl_obj)
+    mapped.to_csv(path, index=False)

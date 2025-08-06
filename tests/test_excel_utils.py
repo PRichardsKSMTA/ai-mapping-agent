@@ -1,5 +1,7 @@
+import pandas as pd
 import app_utils.excel_utils as excel_utils
-from app_utils.excel_utils import list_sheets, read_tabular_file
+from pathlib import Path
+from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
 
 
 def test_list_sheets():
@@ -83,3 +85,24 @@ def test_list_sheets_closes_temp(monkeypatch, tmp_path):
 
     sheets = excel_utils.list_sheets(DummyUpload())
     assert sheets == ["First"]
+
+
+def test_save_mapped_csv(tmp_path):
+    df = pd.DataFrame({"A": [1], "B": [2]})
+    tpl = {
+        "template_name": "t",
+        "layers": [
+            {
+                "type": "header",
+                "fields": [
+                    {"key": "X", "source": "A"},
+                    {"key": "Y", "source": "B"},
+                ],
+            }
+        ],
+    }
+    out_path = tmp_path / "mapped.csv"
+    save_mapped_csv(df, tpl, out_path)
+    text = out_path.read_text().strip().splitlines()
+    assert text[0] == "X,Y"
+    assert text[1] == "1,2"

@@ -6,7 +6,7 @@ from typing import Any, Dict
 import pandas as pd
 
 from schemas.template_v2 import Template
-from app_utils.excel_utils import excel_to_json
+from app_utils.excel_utils import excel_to_json, save_mapped_csv
 from app_utils.mapping_utils import suggest_header_mapping, match_lookup_values
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.mapping.computed_layer import resolve_computed_layer
@@ -54,6 +54,11 @@ def main() -> None:
     parser.add_argument("template", type=Path, help="Path to template JSON")
     parser.add_argument("input_file", type=Path, help="Path to CSV/Excel source")
     parser.add_argument("output", type=Path, help="Destination for mapped JSON")
+    parser.add_argument(
+        "--csv-output",
+        type=Path,
+        help="Optional path to save mapped CSV",
+    )
     args = parser.parse_args()
 
     template = load_template(args.template)
@@ -63,6 +68,9 @@ def main() -> None:
 
     with args.output.open("w") as f:
         json.dump(mapped, f, indent=2)
+
+    if args.csv_output:
+        save_mapped_csv(df, mapped, args.csv_output)
 
     # Trigger optional post-process actions
     run_postprocess_if_configured(template, df)
