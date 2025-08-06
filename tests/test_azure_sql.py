@@ -182,6 +182,10 @@ def test_insert_pit_bid_rows(monkeypatch):
     assert captured["params"][0] == "OP"
     assert captured["params"][1] == "Customer"
     assert captured["params"][2] == "L1"
+    assert captured["params"][5] == "11111"  # ORIG_POSTAL_CD
+    assert captured["params"][8] == "22222"  # DEST_POSTAL_CD
+    assert captured["params"][9] == 5  # BID_VOLUME
+    assert captured["params"][10] == 1.2  # LH_RATE
     assert captured["params"][14] == "bar"  # ADHOC_INFO1
     assert captured["params"][24] == 100  # RFP_MILES
     assert captured["params"][28] is None  # VOLUME_FREQUENCY

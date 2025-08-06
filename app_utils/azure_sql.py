@@ -203,57 +203,41 @@ def insert_pit_bid_rows(
         text = str(val).strip()
         return text or None
 
-    dest_sources: Dict[str, List[str]] = {}
-    for src, dest in field_map.items():
-        dest_sources.setdefault(dest, []).append(src)
+
+    # Rename DataFrame columns to their target database names.
+    df_db = df.rename(columns=field_map).copy()
+    if df_db.columns.duplicated().any():
+        for col in df_db.columns[df_db.columns.duplicated()].unique():
+            cols = [c for c in df_db.columns if c == col]
+            df_db[col] = df_db[cols].bfill(axis=1).iloc[:, 0]
+        df_db = df_db.loc[:, ~df_db.columns.duplicated()]
 
     conn = _connect()
     with conn:
         cur = conn.cursor()
-        for _, row in df.iterrows():
+        for _, row in df_db.iterrows():
             values = {c: None for c in columns}
             values["OPERATION_CD"] = operation_cd
             values["PROCESS_GUID"] = process_guid
             values["INSERTED_DTTM"] = now
 
-            used: set[str] = set()
+            for col in df_db.columns:
+                if col in columns:
+                    if col == "CUSTOMER_NAME" and customer_name is not None:
+                        continue
+                    if col in float_fields:
+                        values[col] = _to_float(row[col])
+                    else:
+                        values[col] = _to_str(row[col])
 
-            for dest in columns:
-                if dest.startswith("ADHOC_INFO") or dest in {"OPERATION_CD", "PROCESS_GUID", "INSERTED_DTTM"}:
-                    continue
-                if dest == "CUSTOMER_NAME" and customer_name is not None:
-                    if dest in row.index:
-                        used.add(dest)
-                    for src in dest_sources.get(dest, []):
-                        if src in row.index:
-                            used.add(src)
-                    continue
-
-                val = None
-                if dest in row.index:
-                    val = row.get(dest)
-                    used.add(dest)
-                    for src in dest_sources.get(dest, []):
-                        if src in row.index:
-                            used.add(src)
-                else:
-                    for src in dest_sources.get(dest, []):
-                        if src in row.index:
-                            used.add(src)
-                            candidate = row.get(src)
-                            if val is None and not pd.isna(candidate) and candidate != "":
-                                val = candidate
-                if dest in float_fields:
-                    values[dest] = _to_float(val)
-                else:
-                    values[dest] = _to_str(val)
 
             if customer_name is not None:
                 values["CUSTOMER_NAME"] = customer_name
 
-            adhoc_cols = [c for c in row.index if c not in used]
-            for i, col in enumerate(adhoc_cols[:10], start=1):
-                values[f"ADHOC_INFO{i}"] = _to_str(row.get(col))
+            unmapped = [c for c in df_db.columns if c not in columns]
+            for i, col in enumerate(unmapped[:10], start=1):
+                values[f"ADHOC_INFO{i}"] = _to_str(row[col])
+
 
             cur.execute(
                 f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
