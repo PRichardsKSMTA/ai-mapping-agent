@@ -166,7 +166,7 @@ def insert_pit_bid_rows(
         "BTF_FSC_PER_MILE",
     ] + [f"ADHOC_INFO{i}" for i in range(1, 11)] + [
         "RFP_MILES",
-        "RFP_TOLLS",
+        "FM_TOLLS",
         "PROCESS_GUID",
         "INSERTED_DTTM",
         "VOLUME_FREQUENCY",
