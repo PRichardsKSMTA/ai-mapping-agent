@@ -122,18 +122,32 @@ def insert_pit_bid_rows(
     ``ADHOC_INFO10``. Remaining optional fields are left ``NULL``.
     """
 
-    col_map = {
-        "Lane ID": "LANE_ID",
-        "Origin City": "ORIG_CITY",
-        "Orig State": "ORIG_ST",
-        "Orig Zip (5 or 3)": "ORIG_POSTAL_CD",
-        "Destination City": "DEST_CITY",
-        "Dest State": "DEST_ST",
-        "Dest Zip (5 or 3)": "DEST_POSTAL_CD",
-        "Bid Volume": "BID_VOLUME",
-        "LH Rate": "LH_RATE",
-    }
-    known = set(col_map) | {"Bid Miles", "Tolls"}
+    field_specs = [
+        ("LANE_ID", ["Lane ID", "LANE_ID"]),
+        ("ORIG_CITY", ["Origin City", "ORIG_CITY"]),
+        ("ORIG_ST", ["Orig State", "ORIG_ST"]),
+        (
+            "ORIG_POSTAL_CD",
+            ["Orig Zip (5 or 3)", "ORIG_POSTAL_CD"],
+        ),
+        ("DEST_CITY", ["Destination City", "DEST_CITY"]),
+        ("DEST_ST", ["Dest State", "DEST_ST"]),
+        (
+            "DEST_POSTAL_CD",
+            ["Dest Zip (5 or 3)", "DEST_POSTAL_CD"],
+        ),
+        ("BID_VOLUME", ["Bid Volume", "BID_VOLUME"]),
+        ("LH_RATE", ["LH Rate", "LH_RATE"]),
+    ]
+    known = {src for _, srcs in field_specs for src in srcs}
+    known |= {"Bid Miles", "Miles", "Tolls"}
+    customer_col = None
+    if customer_name is None:
+        for cand in ("Customer Name", "CUSTOMER_NAME"):
+            if cand in df.columns:
+                customer_col = cand
+                known.add(cand)
+                break
     extra_cols = [c for c in df.columns if c not in known]
     columns = [
         "OPERATION_CD",
@@ -151,8 +165,8 @@ def insert_pit_bid_rows(
         "TEMP_CAT",
         "BTF_FSC_PER_MILE",
     ] + [f"ADHOC_INFO{i}" for i in range(1, 11)] + [
-        "FM_MILES",
-        "FM_TOLLS",
+        "RFP_MILES",
+        "RFP_TOLLS",
         "PROCESS_GUID",
         "INSERTED_DTTM",
         "VOLUME_FREQUENCY",
@@ -179,25 +193,35 @@ def insert_pit_bid_rows(
         cur = conn.cursor()
         for _, row in df.iterrows():
             base_vals: List[Any] = []
-            for src in col_map:
-                val = row.get(src)
-                if src in {"Bid Volume", "LH Rate"}:
+            for dest, srcs in field_specs:
+                val = None
+                for src in srcs:
+                    val = row.get(src)
+                    if val not in (None, "") and not pd.isna(val):
+                        break
+                if dest in {"BID_VOLUME", "LH_RATE"}:
                     base_vals.append(_to_float(val))
                 else:
                     base_vals.append(_to_str(val))
             adhoc_vals = [_to_str(row.get(col)) for col in extra_cols][:10]
             adhoc_vals.extend([None] * (10 - len(adhoc_vals)))
+            miles_val = row.get("Bid Miles")
+            if miles_val in (None, "") or pd.isna(miles_val):
+                miles_val = row.get("Miles")
+            cust_val = customer_name
+            if cust_val is None and customer_col:
+                cust_val = _to_str(row.get(customer_col))
             values = (
-                [operation_cd, customer_name]
+                [operation_cd, cust_val]
                 + base_vals
                 + [None, None, None]
                 + adhoc_vals
                 + [
-                    _to_float(row.get("Bid Miles")),
+                    _to_float(miles_val),
                     _to_float(row.get("Tolls")),
                     process_guid,
                     now,
-                    "UNKNOWN",
+                    None,
                 ]
             )
             cur.execute(

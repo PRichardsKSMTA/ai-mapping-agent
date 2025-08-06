@@ -190,15 +190,21 @@ def main():
         cust_records = st.session_state["customer_options"]
         cust_names = [c["BILLTO_NAME"] for c in cust_records]
         if cust_names:
-            cust_idx = 0
+            options = [""] + cust_names
+            idx = 0
             if st.session_state.get("customer_name") in cust_names:
-                cust_idx = cust_names.index(st.session_state["customer_name"])
+                idx = cust_names.index(st.session_state["customer_name"]) + 1
             selected_name = st.selectbox(
-                "Customer", cust_names, index=cust_idx, key="customer_name"
+                "Customer (optional)", options, index=idx, key="customer_name_select"
             )
-            st.session_state["selected_customer"] = next(
-                c for c in cust_records if c["BILLTO_NAME"] == selected_name
-            )
+            if selected_name:
+                st.session_state["customer_name"] = selected_name
+                st.session_state["selected_customer"] = next(
+                    c for c in cust_records if c["BILLTO_NAME"] == selected_name
+                )
+            else:
+                st.session_state["customer_name"] = None
+                st.session_state["selected_customer"] = None
         else:
             st.warning("No customers found for selected operation.")
 
