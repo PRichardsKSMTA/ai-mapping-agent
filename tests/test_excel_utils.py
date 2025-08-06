@@ -102,7 +102,8 @@ def test_save_mapped_csv(tmp_path):
         ],
     }
     out_path = tmp_path / "mapped.csv"
-    save_mapped_csv(df, tpl, out_path)
+    mapped_df = save_mapped_csv(df, tpl, out_path)
     text = out_path.read_text().strip().splitlines()
     assert text[0] == "X,Y"
     assert text[1] == "1,2"
+    assert list(mapped_df.columns) == ["X", "Y"]

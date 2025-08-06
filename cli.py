@@ -7,6 +7,7 @@ import pandas as pd
 
 from schemas.template_v2 import Template
 from app_utils.excel_utils import excel_to_json, save_mapped_csv
+from app_utils import azure_sql
 from app_utils.mapping_utils import suggest_header_mapping, match_lookup_values
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.mapping.computed_layer import resolve_computed_layer
@@ -59,6 +60,16 @@ def main() -> None:
         type=Path,
         help="Optional path to save mapped CSV",
     )
+    parser.add_argument(
+        "--operation-code",
+        type=str,
+        help="Operation code for SQL insert",
+    )
+    parser.add_argument(
+        "--customer-name",
+        type=str,
+        help="Optional customer name for SQL insert",
+    )
     args = parser.parse_args()
 
     template = load_template(args.template)
@@ -70,7 +81,12 @@ def main() -> None:
         json.dump(mapped, f, indent=2)
 
     if args.csv_output:
-        save_mapped_csv(df, mapped, args.csv_output)
+        mapped_df = save_mapped_csv(df, mapped, args.csv_output)
+        if args.operation_code and template.template_name == "PIT BID":
+            rows = azure_sql.insert_pit_bid_rows(
+                mapped_df, args.operation_code, args.customer_name
+            )
+            print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
 
     # Trigger optional post-process actions
     run_postprocess_if_configured(template, df)

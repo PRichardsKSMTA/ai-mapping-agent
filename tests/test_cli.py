@@ -1,6 +1,10 @@
 import json
 import subprocess
 from pathlib import Path
+import sys
+
+import cli
+from app_utils import azure_sql
 
 
 def test_cli_basic(tmp_path: Path):
@@ -36,4 +40,41 @@ def test_cli_csv_output(tmp_path: Path):
     content = out_csv.read_text().strip().splitlines()
     assert content[0] == 'Name,Value'
     assert content[1] == 'Alice,1'
+
+
+def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
+    tpl = Path('templates/pit-bid.json')
+    src = tmp_path / 'src.csv'
+    src.write_text('Lane ID,Bid Volume\nL1,5\n')
+    out_json = tmp_path / 'out.json'
+    out_csv = tmp_path / 'out.csv'
+
+    captured: dict[str, object] = {}
+
+    def fake_insert(df, op, cust):
+        captured['cols'] = list(df.columns)
+        captured['op'] = op
+        captured['cust'] = cust
+        return len(df)
+
+    monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
+    monkeypatch.setattr(sys, 'argv', [
+        'cli.py',
+        str(tpl),
+        str(src),
+        str(out_json),
+        '--csv-output',
+        str(out_csv),
+        '--operation-code',
+        'OP',
+        '--customer-name',
+        'Cust',
+    ])
+
+    cli.main()
+    out = capsys.readouterr().out
+    assert 'Inserted 1 rows into RFP_OBJECT_DATA' in out
+    assert captured['op'] == 'OP'
+    assert captured['cust'] == 'Cust'
+    assert 'Lane ID' in captured['cols']
 

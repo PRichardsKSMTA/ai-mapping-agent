@@ -167,14 +167,18 @@ def _to_namespace(obj: Any) -> Any:
     return obj
 
 
-def save_mapped_csv(df: pd.DataFrame, template: Template | dict[str, Any], path: Path) -> None:
+def save_mapped_csv(
+    df: pd.DataFrame, template: Template | dict[str, Any], path: Path
+) -> pd.DataFrame:
     """Apply header mappings from ``template`` and write CSV to ``path``.
 
     ``template`` may be a :class:`Template` model or a ``dict`` produced by
     :func:`build_output_template`. Columns are renamed via
-    :func:`apply_header_mappings` and saved without the index.
+    :func:`apply_header_mappings` and saved without the index. The mapped
+    DataFrame is returned for further processing.
     """
 
     tpl_obj = _to_namespace(template) if isinstance(template, dict) else template
     mapped = apply_header_mappings(df, tpl_obj)
     mapped.to_csv(path, index=False)
+    return mapped
