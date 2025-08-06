@@ -90,7 +90,8 @@ def run_app(monkeypatch):
     )
     monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
     called: dict[str, object] = {}
-    def fake_runner(tpl, df, guid=None):
+
+    def fake_runner(tpl, df, guid=None, *args):
         called["run"] = True
         called["guid"] = guid
         return ["ok"]
