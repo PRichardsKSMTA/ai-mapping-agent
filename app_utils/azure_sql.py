@@ -145,7 +145,7 @@ def insert_pit_bid_rows(
     in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
     """
 
-    columns = [
+    base_columns = [
         "OPERATION_CD",
         "CUSTOMER_NAME",
         "LANE_ID",
@@ -160,16 +160,15 @@ def insert_pit_bid_rows(
         "FREIGHT_TYPE",
         "TEMP_CAT",
         "BTF_FSC_PER_MILE",
-    ] + [f"ADHOC_INFO{i}" for i in range(1, 11)] + [
+    ]
+    adhoc_slots = [f"ADHOC_INFO{i}" for i in range(1, 11)]
+    tail_columns = [
         "RFP_MILES",
         "FM_TOLLS",
         "PROCESS_GUID",
         "INSERTED_DTTM",
         "VOLUME_FREQUENCY",
     ]
-    placeholders = ",".join(["?"] * len(columns))
-    now = datetime.utcnow()
-
     float_fields = {
         "BID_VOLUME",
         "LH_RATE",
@@ -215,37 +214,45 @@ def insert_pit_bid_rows(
     conn = _connect()
     with conn:
         cur = conn.cursor()
+        cur.execute(
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' "
+            "AND TABLE_NAME = 'RFP_OBJECT_DATA'"
+        )
+        db_columns = {row[0] for row in cur.fetchall()}
+        extra_columns = [
+            col
+            for col in df_db.columns
+            if col in db_columns
+            and col not in base_columns
+            and col not in tail_columns
+            and col not in adhoc_slots
+        ]
+        columns = base_columns + extra_columns + adhoc_slots + tail_columns
+        placeholders = ",".join(["?"] * len(columns))
+        now = datetime.utcnow()
         row_count = 0
         for _, row in df_db.iterrows():
             values = {c: None for c in columns}
             values["OPERATION_CD"] = operation_cd
             values["PROCESS_GUID"] = process_guid
             values["INSERTED_DTTM"] = now
-
             for col in df_db.columns:
-                if col in columns:
+                if col in values:
                     if col == "CUSTOMER_NAME" and customer_name is not None:
                         continue
                     if col in float_fields:
                         values[col] = _to_float(row[col])
                     else:
                         values[col] = _to_str(row[col])
-
-
             if customer_name is not None:
                 values["CUSTOMER_NAME"] = customer_name
-
-            unmapped = [c for c in df_db.columns if c not in columns]
-            adhoc_slots = [f"ADHOC_INFO{i}" for i in range(1, 11)]
+            unmapped = [c for c in df_db.columns if c not in values]
             available_slots = [slot for slot in adhoc_slots if values[slot] is None]
             for slot, col in zip(available_slots, unmapped):
                 values[slot] = _to_str(row[col])
-
-
             cur.execute(
                 f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
                 [values[c] for c in columns],
             )
             row_count += 1
-
     return row_count
