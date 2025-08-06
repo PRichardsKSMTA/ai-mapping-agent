@@ -101,7 +101,7 @@ def main():
     # ---------------------------------------------------------------------------
 
     with st.sidebar:
-        st.subheader("Select Operation")
+        st.subheader("Select Operation Code")
         try:
             op_codes = fetch_operation_codes()
         except RuntimeError as err:
@@ -113,7 +113,7 @@ def main():
         op_idx = 0
         if st.session_state.get("operation_code") in op_codes:
             op_idx = op_codes.index(st.session_state["operation_code"])
-        st.selectbox("Operation", op_codes, index=op_idx, key="operation_code")
+        st.selectbox("Operation Code:", op_codes, index=op_idx, key="operation_code")
         st.session_state["operational_scac"] = get_operational_scac(
             st.session_state["operation_code"]
         )

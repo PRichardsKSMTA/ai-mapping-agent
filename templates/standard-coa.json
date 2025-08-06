@@ -1,0 +1,489 @@
+{
+  "template_name": "Standard COA",
+  "fields": [
+    {
+      "key": "GL_ID",
+      "type": "string"
+    },
+    {
+      "key": "DETAIL_LEVEL",
+      "type": "number"
+    },
+    {
+      "key": "GL_NAME",
+      "type": "string"
+    },
+    {
+      "key": "NET_CHANGE",
+      "type": "number"
+    }
+  ],
+  "layers": [
+    {
+      "type": "header",
+      "fields": [
+        {
+          "key": "GL_ID",
+          "required": true
+        },
+        {
+          "key": "DETAIL_LEVEL",
+          "required": true
+        },
+        {
+          "key": "GL_NAME",
+          "required": true
+        },
+        {
+          "key": "NET_CHANGE",
+          "required": false
+        }
+      ]
+    },
+    {
+      "type": "lookup",
+      "description": "Map each client GL name to the standard COA name.",
+      "source_field": "GL_NAME",
+      "target_field": "GL_NAME",
+      "dictionary_sheet": "accounts"
+    },
+    {
+      "type": "computed",
+      "description": "Derive NET_CHANGE if the client file does not provide it directly.",
+      "target_field": "NET_CHANGE",
+      "formula": {
+        "strategy": "first_available",
+        "candidates": [
+          {
+            "type": "direct",
+            "source_candidates": [
+              "NET_CHANGE",
+              "Net Change",
+              "Change",
+              "Monthly Change"
+            ]
+          },
+          {
+            "type": "derived",
+            "expression": "$END_BALANCE - $BEGIN_BALANCE",
+            "dependencies": {
+              "BEGIN_BALANCE": [
+                "Beginning Balance",
+                "Begin Balance",
+                "Beg Bal",
+                "Opening Balance"
+              ],
+              "END_BALANCE": [
+                "Ending Balance",
+                "End Balance",
+                "Closing Balance"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "GL_ID": 2990,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "OPERATING RATIO - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 2,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FREIGHT REVENUE LINEHAUL - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 3,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FREIGHT REVENUE LINEHAUL - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 296,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FREIGHT REVENUE LINEHAUL - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 102,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FREIGHT REVENUE LINEHAUL - BROKERAGE"
+    },
+    {
+      "GL_ID": 4,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "ACCESSORIAL REVENUE - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 5,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "ACCESSORIAL REVENUE - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 299,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "ACCESSORIAL REVENUE - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 105,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "ACCESSORIAL REVENUE - BROKERAGE"
+    },
+    {
+      "GL_ID": 6,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FUEL SURCHARGE REVENUE - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 7,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FUEL SURCHARGE REVENUE - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 302,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FUEL SURCHARGE REVENUE - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 108,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FUEL SURCHARGE REVENUE - BROKERAGE"
+    },
+    {
+      "GL_ID": 8,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "DRIVER WAGES - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 89,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "DRIVER BENEFITS, PAYROLL TAXES AND BONUS COMPENSATION - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 9,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "PURCHASED TRANSPORTATION - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 351,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "PURCHASED TRANSPORTATION - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 113,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "PURCHASED TRANSPORTATION - BROKERAGE"
+    },
+    {
+      "GL_ID": 90,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "BENEFITS AND INCENTIVES - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 354,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "BENEFITS AND INCENTIVES - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 10,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FUEL EXPENSE - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 11,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FUEL EXPENSE - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 907,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FUEL EXPENSE - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 381,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "REEFER FUEL EXPENSE - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 382,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "REEFER FUEL EXPENSE - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 901,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "REEFER FUEL EXPENSE - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 12,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "MAINTENANCE EXPENSE - TRACTOR - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 24,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "VARIABLE (OTHER) DRIVING EXPENSES - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 25,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "VARIABLE (OTHER) DRIVING EXPENSES - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 314,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "VARIABLE (OTHER) DRIVING EXPENSES - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 131,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "VARIABLE (OTHER) EXPENSES - BROKERAGE"
+    },
+    {
+      "GL_ID": 18,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TRACTOR FIXED EXPENSE - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 22,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "INSURANCE EXPENSE - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 23,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "INSURANCE EXPENSE - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 311,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "INSURANCE EXPENSE - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 128,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "INSURANCE EXPENSE - BROKERAGE"
+    },
+    {
+      "GL_ID": 14,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "MAINTENANCE EXPENSE - TRAILER - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 20,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TRAILER FIXED EXPENSE - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 16,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "MAINTENANCE EXPENSE - WAGES AND OVERHEAD - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 270,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "AGENT COMMISSIONS - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 91,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TOLLS - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 254,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "RECRUITING, SCREENING AND RETENTION EXPENSE - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 902,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "LUMPER / THIRD-PARTY LOAD/UNLOAD EXPENSE"
+    },
+    {
+      "GL_ID": 906,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "PERMITS AND ESCORT EXPENSE"
+    },
+    {
+      "GL_ID": 26,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "NON DRIVER WAGES & BENEFITS - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 136,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "NON DRIVER WAGES & BENEFITS - BROKERAGE"
+    },
+    {
+      "GL_ID": 28,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FIXED OVERHEAD EXPENSE - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 139,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "FIXED OVERHEAD EXPENSE - BROKERAGE"
+    },
+    {
+      "GL_ID": 30,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "OPERATING PROFIT - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 31,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "OPERATING PROFIT - BROKERAGE"
+    },
+    {
+      "GL_ID": 903,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "SUM - TOTAL VARIABLE EXPENSE (INCLUDING FUEL)"
+    },
+    {
+      "GL_ID": 904,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "SUM - TOTAL VARIABLE EXPENSE (EXCLUDING FUEL)"
+    },
+    {
+      "GL_ID": 908,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "SUM - TOTAL VARIABLE EXPENSE (EXCLUDING DRIVER COMPENSATION)"
+    },
+    {
+      "GL_ID": 909,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "SUM - TOTAL VARIABLE EXPENSE (EXCLUDING FUEL AND DRIVER COMPENSATION)"
+    },
+    {
+      "GL_ID": 905,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "SUM - TOTAL FIXED OVERHEAD EXPENSE"
+    },
+    {
+      "GL_ID": 32,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TOTAL MILES DRIVEN - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 33,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TOTAL MILES DRIVEN - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 358,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TOTAL MILES DRIVEN - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 34,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "NUMBER OF LOADS - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 35,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "NUMBER OF LOADS - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 363,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "NUMBER OF LOADS - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 147,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "NUMBER OF LOADS - BROKERAGE"
+    },
+    {
+      "GL_ID": 36,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TRACTOR COUNT  - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 37,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TRACTOR COUNT  - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 368,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TRACTOR COUNT  - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 38,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "TRAILER COUNT - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 304,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "DRIVER COUNT - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 305,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "DRIVER COUNT - OWNER OPERATOR"
+    },
+    {
+      "GL_ID": 378,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "DRIVER COUNT - LEASE PURCHASE"
+    },
+    {
+      "GL_ID": 310,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "NON-DRIVER COUNT - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 316,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "MECHANIC/TECHNICIAN COUNT - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 322,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "CARRIER COUNT - BROKERAGE"
+    },
+    {
+      "GL_ID": 323,
+      "DETAIL_LEVEL": 1,
+      "GL_NAME": "HEAD COUNT - BROKERAGE"
+    },
+    {
+      "GL_ID": 320,
+      "DETAIL_LEVEL": 2,
+      "GL_NAME": "TOTAL ASSET OPERATIONS - AUTO LIABILITY POLICY LIMITS - INCLUDING EXCESS"
+    },
+    {
+      "GL_ID": 278,
+      "DETAIL_LEVEL": 2,
+      "GL_NAME": "TOTAL ASSET OPERATIONS - MAINTENANCE EXPENSE - TRAILER - OUTSIDE VENDOR - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 256,
+      "DETAIL_LEVEL": 2,
+      "GL_NAME": "MAINTENANCE EXPENSE - TRACTOR - TIRES - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 290,
+      "DETAIL_LEVEL": 2,
+      "GL_NAME": "MAINTENANCE EXPENSE - TRAILER - TIRES - OUTSIDE VENDOR -TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 258,
+      "DETAIL_LEVEL": 2,
+      "GL_NAME": "MAINTENANCE EXPENSE - TRAILER - TIRES - TOTAL ASSET OPERATIONS"
+    },
+    {
+      "GL_ID": 272,
+      "DETAIL_LEVEL": 2,
+      "GL_NAME": "MAINTENANCE EXPENSE - TRACTOR - OUTSIDE VENDOR - COMPANY FLEET"
+    },
+    {
+      "GL_ID": 284,
+      "DETAIL_LEVEL": 2,
+      "GL_NAME": "MAINTENANCE EXPENSE - TRACTOR - TIRES - OUTSIDE VENDOR - COMPANY FLEET"
+    }
+  ]
+}
