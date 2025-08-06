@@ -1,5 +1,6 @@
 import types
 import pytest
+import pandas as pd
 
 from app_utils import azure_sql
 
@@ -139,3 +140,48 @@ def test_connect_requires_pyodbc(monkeypatch):
     monkeypatch.setenv("SQL_PASSWORD", "pwd")
     with pytest.raises(RuntimeError):
         azure_sql._connect()
+
+
+def test_insert_pit_bid_rows(monkeypatch):
+    captured = {}
+
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["query"] = query
+            captured["params"] = params
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    df = pd.DataFrame(
+        {
+            "Lane ID": ["L1"],
+            "Origin City": ["OC"],
+            "Orig State": ["OS"],
+            "Orig Zip (5 or 3)": ["11111"],
+            "Destination City": ["DC"],
+            "Dest State": ["DS"],
+            "Dest Zip (5 or 3)": ["22222"],
+            "Bid Volume": [5],
+            "LH Rate": [1.2],
+            "Bid Miles": [100],
+            "Tolls": [7],
+            "Foo": ["bar"],
+        }
+    )
+    azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
+    assert "RFP_OBJECT_DATA" in captured["query"]
+    assert captured["params"][0] == "OP"
+    assert captured["params"][1] == "Customer"
+    assert captured["params"][2] == "L1"
+    assert captured["params"][14] == "bar"  # ADHOC_INFO1
+    assert captured["params"][24] == 100  # FM_MILES
+    assert len(captured["params"]) == 29

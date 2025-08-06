@@ -45,3 +45,24 @@ def test_if_configured_helper(monkeypatch):
     logs = run_postprocess_if_configured(tpl, pd.DataFrame())
     assert called.get('run') is True
     assert isinstance(logs, list)
+
+
+def test_if_configured_runs_pit_bid_insert(monkeypatch):
+    called = {}
+    tpl = Template.model_validate({
+        'template_name': 'PIT BID',
+        'layers': [{'type': 'header', 'fields': [{'key': 'Lane ID'}]}]
+    })
+
+    def fake_insert(df, op, cust, guid):  # pragma: no cover - executed via call
+        called['hit'] = (op, cust, guid, len(df))
+
+    monkeypatch.setattr('app_utils.azure_sql.insert_pit_bid_rows', fake_insert)
+    df = pd.DataFrame({'Lane ID': ['L1']})
+    run_postprocess_if_configured(
+        tpl, df, process_guid='guid', operation_cd='OP', customer_name='Cust'
+    )
+    assert called['hit'][0] == 'OP'
+    assert called['hit'][1] == 'Cust'
+    assert called['hit'][2] == 'guid'
+

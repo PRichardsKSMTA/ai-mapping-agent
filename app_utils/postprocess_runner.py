@@ -6,6 +6,7 @@ from typing import List
 import os
 import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
+from app_utils.template_builder import slugify
 
 
 def run_postprocess(
@@ -34,10 +35,18 @@ def run_postprocess_if_configured(
     template: Template,
     df: pd.DataFrame,
     process_guid: str | None = None,
+    operation_cd: str | None = None,
+    customer_name: str | None = None,
 ) -> List[str]:
-    """Run ``run_postprocess`` if ``template.postprocess`` exists."""
-    _ = process_guid  # reserved for future use
+    """Run optional postprocess hooks and DB inserts based on ``template``."""
+
     logs: List[str] = []
+    slug = slugify(template.template_name)
+    if slug == "pit-bid" and operation_cd and customer_name:
+        from app_utils.azure_sql import insert_pit_bid_rows
+
+        insert_pit_bid_rows(df, operation_cd, customer_name, process_guid)
+        logs.append("Inserted rows into RFP_OBJECT_DATA")
     if template.postprocess:
         run_postprocess(template.postprocess, df, logs)
     return logs

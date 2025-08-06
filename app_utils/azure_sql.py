@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import Dict, List
 import os
 from pathlib import Path
+from datetime import datetime
+
+import pandas as pd
 
 try:  # pragma: no cover - optional dependency
     from dotenv import load_dotenv
@@ -105,3 +108,73 @@ def fetch_customers(operational_scac: str) -> List[Dict[str, str]]:
 def get_operational_scac(operation_cd: str) -> str:
     """Derive the operational SCAC from an operation code."""
     return operation_cd.split("_", 1)[0]
+
+
+def insert_pit_bid_rows(
+    df: pd.DataFrame,
+    operation_cd: str,
+    customer_name: str,
+    process_guid: str | None = None,
+) -> None:
+    """Insert mapped ``pit-bid`` rows into ``dbo.RFP_OBJECT_DATA``.
+
+    Unknown or unused columns are stored sequentially in ``ADHOC_INFO1`` …
+    ``ADHOC_INFO10``. Remaining optional fields are left ``NULL``.
+    """
+
+    col_map = {
+        "Lane ID": "LANE_ID",
+        "Origin City": "ORIG_CITY",
+        "Orig State": "ORIG_ST",
+        "Orig Zip (5 or 3)": "ORIG_POSTAL_CD",
+        "Destination City": "DEST_CITY",
+        "Dest State": "DEST_ST",
+        "Dest Zip (5 or 3)": "DEST_POSTAL_CD",
+        "Bid Volume": "BID_VOLUME",
+        "LH Rate": "LH_RATE",
+    }
+    known = set(col_map) | {"Bid Miles", "Tolls"}
+    extra_cols = [c for c in df.columns if c not in known]
+    columns = [
+        "OPERATION_CD",
+        "CUSTOMER_NAME",
+        "LANE_ID",
+        "ORIG_CITY",
+        "ORIG_ST",
+        "ORIG_POSTAL_CD",
+        "DEST_CITY",
+        "DEST_ST",
+        "DEST_POSTAL_CD",
+        "BID_VOLUME",
+        "LH_RATE",
+        "FREIGHT_TYPE",
+        "TEMP_CAT",
+        "BTF_FSC_PER_MILE",
+    ] + [f"ADHOC_INFO{i}" for i in range(1, 11)] + [
+        "FM_MILES",
+        "FM_TOLLS",
+        "PROCESS_GUID",
+        "INSERTED_DTTM",
+        "VOLUME_FREQUENCY",
+    ]
+    placeholders = ",".join(["?"] * len(columns))
+    now = datetime.utcnow()
+    conn = _connect()
+    with conn:
+        cur = conn.cursor()
+        for _, row in df.iterrows():
+            base_vals = [row.get(src) for src in col_map]
+            adhoc_vals = [row.get(col) for col in extra_cols][:10]
+            adhoc_vals.extend([None] * (10 - len(adhoc_vals)))
+            values = (
+                [operation_cd, customer_name]
+                + base_vals
+                + [None, None, None]
+                + adhoc_vals
+                + [row.get("Bid Miles"), row.get("Tolls"), process_guid, now, "UNKNOWN"]
+            )
+            cur.execute(
+                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
+                values,
+            )
+
