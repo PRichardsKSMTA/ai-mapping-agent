@@ -126,15 +126,23 @@ def insert_pit_bid_rows(
     """
 
     field_aliases: Dict[str, List[str]] = {
-        "LANE_ID": ["Lane ID", "LANE_ID"],
+        "LANE_ID": ["Lane ID", "Lane Code", "LANE_ID"],
         "ORIG_CITY": ["Origin City", "ORIG_CITY"],
-        "ORIG_ST": ["Orig State", "ORIG_ST"],
-        "ORIG_POSTAL_CD": ["Orig Zip (5 or 3)", "ORIG_POSTAL_CD"],
+        "ORIG_ST": ["Orig State", "Origin State", "ORIG_ST"],
+        "ORIG_POSTAL_CD": [
+            "Orig Zip (5 or 3)",
+            "Origin Zip",
+            "ORIG_POSTAL_CD",
+        ],
         "DEST_CITY": ["Destination City", "DEST_CITY"],
-        "DEST_ST": ["Dest State", "DEST_ST"],
-        "DEST_POSTAL_CD": ["Dest Zip (5 or 3)", "DEST_POSTAL_CD"],
+        "DEST_ST": ["Dest State", "Destination State", "DEST_ST"],
+        "DEST_POSTAL_CD": [
+            "Dest Zip (5 or 3)",
+            "Destination Zip",
+            "DEST_POSTAL_CD",
+        ],
         "BID_VOLUME": ["Bid Volume", "BID_VOLUME"],
-        "LH_RATE": ["LH Rate", "LH_RATE"],
+        "LH_RATE": ["LH Rate", "Linehaul Rate", "LH_RATE"],
         "RFP_MILES": ["Bid Miles", "Miles", "RFP Miles", "RFP_MILES"],
         "RFP_TOLLS": ["Tolls", "RFP Tolls", "RFP_TOLLS"],
         "CUSTOMER_NAME": [
