@@ -305,7 +305,6 @@ def test_insert_pit_bid_rows_new_aliases(monkeypatch):
     assert captured["params"][10] == 1.5
     assert captured["params"][24] == 321
 
-
 def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     captured = {}
 
@@ -342,7 +341,6 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     assert captured["params"][10] == 1.5
     assert captured["params"][24] == 1234.0
     assert captured["params"][25] == 2.25
-
 
 def test_insert_pit_bid_rows_customer_column(monkeypatch):
     captured = {}

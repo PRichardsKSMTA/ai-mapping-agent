@@ -141,6 +141,7 @@ def insert_pit_bid_rows(
             "Dest Zip (5 or 3)",
             "Destination Zip",
             "Dest Zip",
+
             "DEST_POSTAL_CD",
         ],
         "BID_VOLUME": ["Bid Volume", "BID_VOLUME"],
