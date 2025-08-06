@@ -236,8 +236,10 @@ def insert_pit_bid_rows(
                 values["CUSTOMER_NAME"] = customer_name
 
             unmapped = [c for c in df_db.columns if c not in columns]
-            for i, col in enumerate(unmapped[:10], start=1):
-                values[f"ADHOC_INFO{i}"] = _to_str(row[col])
+            adhoc_slots = [f"ADHOC_INFO{i}" for i in range(1, 11)]
+            available_slots = [slot for slot in adhoc_slots if values[slot] is None]
+            for slot, col in zip(available_slots, unmapped):
+                values[slot] = _to_str(row[col])
 
 
             cur.execute(
