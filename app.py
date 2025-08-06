@@ -31,7 +31,7 @@ from app_utils.azure_sql import (
 )
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
-from app_utils.excel_utils import list_sheets, read_tabular_file
+from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
 import uuid
@@ -283,11 +283,20 @@ def main():
                     final_json = build_output_template(
                         template_obj, st.session_state, guid
                     )
+
+                    # Prepare CSV for download using current mappings
+                    import tempfile
+                    tmp_csv = Path(tempfile.mkstemp(suffix=".csv")[1])
+                    save_mapped_csv(df, final_json, tmp_csv)
+                    csv_bytes = tmp_csv.read_bytes()
+                    tmp_csv.unlink()
+
                     st.session_state.update(
                         {
                             "export_complete": True,
                             "export_logs": logs,
                             "final_json": final_json,
+                            "mapped_csv": csv_bytes,
                         }
                     )
                     st.rerun()
@@ -296,6 +305,14 @@ def main():
             for line in st.session_state.get("export_logs", []):
                 st.write(line)
             st.json(st.session_state.get("final_json"))
+            csv_data = st.session_state.get("mapped_csv")
+            if csv_data:
+                st.download_button(
+                    "Download mapped CSV",
+                    data=csv_data,
+                    file_name="mapped.csv",
+                    mime="text/csv",
+                )
 
     else:
         if not template_obj:
