@@ -228,7 +228,7 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
     assert captured["params"][25] is None  # RFP_TOLLS
 
 
-def test_insert_pit_bid_rows_aliases(monkeypatch):
+def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
     captured = {}
 
     class FakeCursor:
@@ -263,9 +263,10 @@ def test_insert_pit_bid_rows_aliases(monkeypatch):
     azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert captured["params"][2] == "L1"
     assert captured["params"][24] == 123
+    assert captured["params"][14] is None  # no ADHOC columns
 
 
-def test_insert_pit_bid_rows_new_aliases(monkeypatch):
+def test_insert_pit_bid_rows_prefer_bid_miles(monkeypatch):
     captured = {}
 
     class FakeCursor:
@@ -285,25 +286,15 @@ def test_insert_pit_bid_rows_new_aliases(monkeypatch):
     monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
     df = pd.DataFrame(
         {
-            "Lane Code": ["L1"],
-            "Origin State": ["OS"],
-            "Origin Zip": ["11111"],
-            "Destination State": ["DS"],
-            "Destination Zip": ["22222"],
-            "Bid Volume": [7],
-            "Linehaul Rate": [1.5],
+            "Lane ID": ["L1"],
             "Bid Miles": [321],
+            "Miles": [999],
         }
     )
     azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert captured["params"][2] == "L1"
-    assert captured["params"][4] == "OS"
-    assert captured["params"][5] == "11111"
-    assert captured["params"][7] == "DS"
-    assert captured["params"][8] == "22222"
-    assert captured["params"][9] == 7
-    assert captured["params"][10] == 1.5
-    assert captured["params"][24] == 321
+    assert captured["params"][24] == 321  # from Bid Miles
+    assert captured["params"][14] is None  # Miles not treated as ADHOC
 
 def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     captured = {}
@@ -325,11 +316,11 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
     df = pd.DataFrame(
         {
-            "Lane Code": ["L1"],
-            "Orig Zip": ["01111"],
-            "Dest Zip": ["02222"],
+            "Lane ID": ["L1"],
+            "Orig Zip (5 or 3)": ["01111"],
+            "Dest Zip (5 or 3)": ["02222"],
             "Bid Volume": ["5,000"],
-            "Linehaul Rate": ["$1.50"],
+            "LH Rate": ["$1.50"],
             "Bid Miles": ["1,234"],
             "Tolls": ["$2.25"],
         }
@@ -372,7 +363,7 @@ def test_insert_pit_bid_rows_customer_column(monkeypatch):
     assert captured["params"][1] == "Cust1"
 
 
-def test_insert_pit_bid_rows_fuzzy_mapping(monkeypatch):
+def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
     captured = {}
 
     class FakeCursor:
@@ -398,7 +389,8 @@ def test_insert_pit_bid_rows_fuzzy_mapping(monkeypatch):
         }
     )
     azure_sql.insert_pit_bid_rows(df, "OP", None)
-    assert captured["params"][1] == "Acme"  # CUSTOMER_NAME
+    assert captured["params"][1] is None  # CUSTOMER_NAME
     assert captured["params"][11] == "TL"  # FREIGHT_TYPE
-    assert captured["params"][14] == "bar"  # ADHOC_INFO1
+    assert captured["params"][14] == "Acme"  # ADHOC_INFO1
+    assert captured["params"][15] == "bar"  # ADHOC_INFO2
 

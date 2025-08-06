@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 from datetime import datetime
 import re
-import difflib
 
 import pandas as pd
 
@@ -120,41 +119,30 @@ def insert_pit_bid_rows(
 ) -> None:
     """Insert mapped ``pit-bid`` rows into ``dbo.RFP_OBJECT_DATA``.
 
-    Columns in ``df`` that match (directly or loosely) existing database column
-    names are inserted into those columns. Remaining unmapped fields are stored
-    sequentially in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
+    The DataFrame ``df`` is expected to already use pit-bid template field names.
+    Each field is mapped explicitly to its target database column via
+    ``field_map``. Columns that remain unmapped are stored sequentially in
+    ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
     """
 
-    field_aliases: Dict[str, List[str]] = {
-        "LANE_ID": ["Lane ID", "Lane Code", "LANE_ID"],
-        "ORIG_CITY": ["Origin City", "ORIG_CITY"],
-        "ORIG_ST": ["Orig State", "Origin State", "ORIG_ST"],
-        "ORIG_POSTAL_CD": [
-            "Orig Zip (5 or 3)",
-            "Origin Zip",
-            "Orig Zip",
-            "ORIG_POSTAL_CD",
-        ],
-        "DEST_CITY": ["Destination City", "DEST_CITY"],
-        "DEST_ST": ["Dest State", "Destination State", "DEST_ST"],
-        "DEST_POSTAL_CD": [
-            "Dest Zip (5 or 3)",
-            "Destination Zip",
-            "Dest Zip",
-
-            "DEST_POSTAL_CD",
-        ],
-        "BID_VOLUME": ["Bid Volume", "BID_VOLUME"],
-        "LH_RATE": ["LH Rate", "Linehaul Rate", "LH_RATE"],
-        "RFP_MILES": ["Bid Miles", "Miles", "RFP Miles", "RFP_MILES"],
-        "FM_TOLLS": ["Tolls", "RFP Tolls", "FM Tolls", "RFP_TOLLS", "FM_TOLLS"],
-        "CUSTOMER_NAME": [
-            "Customer Name",
-            "Customer",
-            "customer",
-            "CUSTOMER",
-            "CUSTOMER_NAME",
-        ],
+    field_map: Dict[str, str] = {
+        "Lane ID": "LANE_ID",
+        "Origin City": "ORIG_CITY",
+        "Orig State": "ORIG_ST",
+        "Orig Zip (5 or 3)": "ORIG_POSTAL_CD",
+        "Destination City": "DEST_CITY",
+        "Dest State": "DEST_ST",
+        "Dest Zip (5 or 3)": "DEST_POSTAL_CD",
+        "Bid Volume": "BID_VOLUME",
+        "LH Rate": "LH_RATE",
+        "Bid Miles": "RFP_MILES",
+        "Miles": "RFP_MILES",
+        "Tolls": "FM_TOLLS",
+        "Customer Name": "CUSTOMER_NAME",
+        "Freight Type": "FREIGHT_TYPE",
+        "Temp Cat": "TEMP_CAT",
+        "BTF FSC Per Mile": "BTF_FSC_PER_MILE",
+        "Volume Frequency": "VOLUME_FREQUENCY",
     }
 
     columns = [
@@ -215,53 +203,9 @@ def insert_pit_bid_rows(
         text = str(val).strip()
         return text or None
 
-    def _norm(name: str) -> str:
-        return re.sub(r"[^A-Z0-9]", "", name.upper())
-
-    def _fuzzy_match(name: str, choices: List[str]) -> str | None:
-        norm_name = _norm(name)
-        best: tuple[str | None, float] = (None, 0.0)
-        for cand in choices:
-            ratio = difflib.SequenceMatcher(None, norm_name, _norm(cand)).ratio()
-            if ratio > best[1]:
-                best = (cand, ratio)
-        return best[0] if best[1] >= 0.8 else None
-
-    mapped_sources: Dict[str, str] = {}
-    known: set[str] = set()
-
-    for dest, aliases in field_aliases.items():
-        for alias in aliases:
-            if alias in df.columns:
-                mapped_sources[dest] = alias
-                known.add(alias)
-                break
-
-    # override customer_name if provided, otherwise try fuzzy match
-    if customer_name is not None:
-        mapped_sources.pop("CUSTOMER_NAME", None)
-    elif "CUSTOMER_NAME" not in mapped_sources:
-        if match := _fuzzy_match("CUSTOMER_NAME", list(df.columns)):
-            mapped_sources["CUSTOMER_NAME"] = match
-            known.add(match)
-
-    dest_candidates = [
-        c
-        for c in columns
-        if not c.startswith("ADHOC_INFO")
-        and c not in {"OPERATION_CD", "PROCESS_GUID", "INSERTED_DTTM"}
-        and c not in mapped_sources
-    ]
-
-    for col in df.columns:
-        if col in known:
-            continue
-        if match := _fuzzy_match(col, dest_candidates):
-            mapped_sources[match] = col
-            known.add(col)
-            dest_candidates.remove(match)
-
-    adhoc_cols = [c for c in df.columns if c not in known]
+    dest_sources: Dict[str, List[str]] = {}
+    for src, dest in field_map.items():
+        dest_sources.setdefault(dest, []).append(src)
 
     conn = _connect()
     with conn:
@@ -271,21 +215,43 @@ def insert_pit_bid_rows(
             values["OPERATION_CD"] = operation_cd
             values["PROCESS_GUID"] = process_guid
             values["INSERTED_DTTM"] = now
-            if customer_name is not None:
-                values["CUSTOMER_NAME"] = customer_name
 
-            for dest, src in mapped_sources.items():
-                if dest == "CUSTOMER_NAME" and customer_name is not None:
+            used: set[str] = set()
+
+            for dest in columns:
+                if dest.startswith("ADHOC_INFO") or dest in {"OPERATION_CD", "PROCESS_GUID", "INSERTED_DTTM"}:
                     continue
-                val = row.get(src)
+                if dest == "CUSTOMER_NAME" and customer_name is not None:
+                    if dest in row.index:
+                        used.add(dest)
+                    for src in dest_sources.get(dest, []):
+                        if src in row.index:
+                            used.add(src)
+                    continue
+
+                val = None
+                if dest in row.index:
+                    val = row.get(dest)
+                    used.add(dest)
+                    for src in dest_sources.get(dest, []):
+                        if src in row.index:
+                            used.add(src)
+                else:
+                    for src in dest_sources.get(dest, []):
+                        if src in row.index:
+                            used.add(src)
+                            candidate = row.get(src)
+                            if val is None and not pd.isna(candidate) and candidate != "":
+                                val = candidate
                 if dest in float_fields:
                     values[dest] = _to_float(val)
                 else:
                     values[dest] = _to_str(val)
 
-            if customer_name is None and "CUSTOMER_NAME" in mapped_sources:
-                values["CUSTOMER_NAME"] = _to_str(row.get(mapped_sources["CUSTOMER_NAME"]))
+            if customer_name is not None:
+                values["CUSTOMER_NAME"] = customer_name
 
+            adhoc_cols = [c for c in row.index if c not in used]
             for i, col in enumerate(adhoc_cols[:10], start=1):
                 values[f"ADHOC_INFO{i}"] = _to_str(row.get(col))
 
