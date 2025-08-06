@@ -265,6 +265,85 @@ def test_insert_pit_bid_rows_aliases(monkeypatch):
     assert captured["params"][24] == 123
 
 
+def test_insert_pit_bid_rows_new_aliases(monkeypatch):
+    captured = {}
+
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["params"] = params
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    df = pd.DataFrame(
+        {
+            "Lane Code": ["L1"],
+            "Origin State": ["OS"],
+            "Origin Zip": ["11111"],
+            "Destination State": ["DS"],
+            "Destination Zip": ["22222"],
+            "Bid Volume": [7],
+            "Linehaul Rate": [1.5],
+            "Bid Miles": [321],
+        }
+    )
+    azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert captured["params"][2] == "L1"
+    assert captured["params"][4] == "OS"
+    assert captured["params"][5] == "11111"
+    assert captured["params"][7] == "DS"
+    assert captured["params"][8] == "22222"
+    assert captured["params"][9] == 7
+    assert captured["params"][10] == 1.5
+    assert captured["params"][24] == 321
+
+
+def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
+    captured = {}
+
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["params"] = params
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    df = pd.DataFrame(
+        {
+            "Lane Code": ["L1"],
+            "Orig Zip": ["01111"],
+            "Dest Zip": ["02222"],
+            "Bid Volume": ["5,000"],
+            "Linehaul Rate": ["$1.50"],
+            "Bid Miles": ["1,234"],
+            "Tolls": ["$2.25"],
+        }
+    )
+    azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert captured["params"][5] == "01111"
+    assert captured["params"][8] == "02222"
+    assert captured["params"][9] == 5000.0
+    assert captured["params"][10] == 1.5
+    assert captured["params"][24] == 1234.0
+    assert captured["params"][25] == 2.25
+
+
 def test_insert_pit_bid_rows_customer_column(monkeypatch):
     captured = {}
 

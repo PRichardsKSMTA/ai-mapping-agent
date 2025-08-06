@@ -66,3 +66,26 @@ def test_if_configured_runs_pit_bid_insert(monkeypatch):
     assert called['hit'][1] is None
     assert called['hit'][2] == 'guid'
 
+
+def test_if_configured_applies_header_mappings(monkeypatch):
+    called = {}
+
+    def fake_insert(df, op, cust, guid):  # pragma: no cover - executed via call
+        called['cols'] = list(df.columns)
+        called['lane'] = df.at[0, 'LANE_ID']
+
+    monkeypatch.setattr('app_utils.azure_sql.insert_pit_bid_rows', fake_insert)
+
+    tpl = types.SimpleNamespace(
+        template_name='PIT BID',
+        layers=[types.SimpleNamespace(type='header', fields=[types.SimpleNamespace(key='LANE_ID', source='Lane Code')])],
+        postprocess=None,
+    )
+
+    df = pd.DataFrame({'Lane Code': ['L1']})
+
+    run_postprocess_if_configured(tpl, df, operation_cd='OP')
+
+    assert called['lane'] == 'L1'
+    assert called['cols'] == ['LANE_ID']
+

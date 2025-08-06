@@ -126,17 +126,27 @@ def insert_pit_bid_rows(
     """
 
     field_aliases: Dict[str, List[str]] = {
-        "LANE_ID": ["Lane ID", "LANE_ID"],
+        "LANE_ID": ["Lane ID", "Lane Code", "LANE_ID"],
         "ORIG_CITY": ["Origin City", "ORIG_CITY"],
-        "ORIG_ST": ["Orig State", "ORIG_ST"],
-        "ORIG_POSTAL_CD": ["Orig Zip (5 or 3)", "ORIG_POSTAL_CD"],
+        "ORIG_ST": ["Orig State", "Origin State", "ORIG_ST"],
+        "ORIG_POSTAL_CD": [
+            "Orig Zip (5 or 3)",
+            "Origin Zip",
+            "Orig Zip",
+            "ORIG_POSTAL_CD",
+        ],
         "DEST_CITY": ["Destination City", "DEST_CITY"],
-        "DEST_ST": ["Dest State", "DEST_ST"],
-        "DEST_POSTAL_CD": ["Dest Zip (5 or 3)", "DEST_POSTAL_CD"],
+        "DEST_ST": ["Dest State", "Destination State", "DEST_ST"],
+        "DEST_POSTAL_CD": [
+            "Dest Zip (5 or 3)",
+            "Destination Zip",
+            "Dest Zip",
+            "DEST_POSTAL_CD",
+        ],
         "BID_VOLUME": ["Bid Volume", "BID_VOLUME"],
-        "LH_RATE": ["LH Rate", "LH_RATE"],
+        "LH_RATE": ["LH Rate", "Linehaul Rate", "LH_RATE"],
         "RFP_MILES": ["Bid Miles", "Miles", "RFP Miles", "RFP_MILES"],
-        "RFP_TOLLS": ["Tolls", "RFP Tolls", "RFP_TOLLS"],
+        "FM_TOLLS": ["Tolls", "RFP Tolls", "FM Tolls", "RFP_TOLLS", "FM_TOLLS"],
         "CUSTOMER_NAME": [
             "Customer Name",
             "Customer",
@@ -171,11 +181,28 @@ def insert_pit_bid_rows(
     placeholders = ",".join(["?"] * len(columns))
     now = datetime.utcnow()
 
-    float_fields = {"BID_VOLUME", "LH_RATE", "BTF_FSC_PER_MILE", "RFP_MILES", "RFP_TOLLS"}
+    float_fields = {
+        "BID_VOLUME",
+        "LH_RATE",
+        "BTF_FSC_PER_MILE",
+        "RFP_MILES",
+        "FM_TOLLS",
+    }
 
     def _to_float(val: Any) -> float | None:
         if pd.isna(val) or val == "":
             return None
+        if isinstance(val, str):
+            txt = val.strip()
+            if txt.startswith("(") and txt.endswith(")"):
+                txt = "-" + txt[1:-1]
+            txt = re.sub(r"[^0-9.+-]", "", txt)
+            if txt in {"", ".", "+", "-", "+.", "-."}:
+                return None
+            try:
+                return float(txt)
+            except ValueError:
+                return None
         try:
             return float(val)
         except (TypeError, ValueError):
