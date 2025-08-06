@@ -169,9 +169,18 @@ def test_insert_pit_bid_rows(monkeypatch):
     captured = {}
 
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["query"] = query
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
@@ -220,8 +229,17 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
     captured = {}
 
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
@@ -261,8 +279,17 @@ def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
     captured = {}
 
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
@@ -300,8 +327,17 @@ def test_insert_pit_bid_rows_prefer_bid_miles(monkeypatch):
     captured = {}
 
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
@@ -331,8 +367,17 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     captured = {}
 
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
@@ -369,8 +414,17 @@ def test_insert_pit_bid_rows_customer_column(monkeypatch):
     captured = {}
 
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
@@ -400,8 +454,17 @@ def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
     captured = {}
 
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
@@ -427,4 +490,76 @@ def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
     assert captured["params"][11] == "TL"  # FREIGHT_TYPE
     assert captured["params"][14] == "Acme"  # ADHOC_INFO1
     assert captured["params"][15] == "bar"  # ADHOC_INFO2
+
+
+def test_insert_pit_bid_rows_extends_known_columns(monkeypatch):
+    captured = {}
+    table_cols = {"EXTRA_COL"}
+
+    class FakeCursor:
+        def __init__(self) -> None:
+            self.columns = table_cols
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
+            captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    monkeypatch.setitem(azure_sql.PIT_BID_FIELD_MAP, "Extra Field", "EXTRA_COL")
+    df = pd.DataFrame({"Lane ID": ["L1"], "Extra Field": ["val"]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
+    assert captured["params"][14] == "val"  # EXTRA_COL
+    assert captured["params"][15] is None  # ADHOC_INFO1 unused
+    assert len(captured["params"]) == 30
+
+
+def test_insert_pit_bid_rows_unknown_columns_to_adhoc(monkeypatch):
+    captured = {}
+
+    class FakeCursor:
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
+            captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    monkeypatch.setitem(azure_sql.PIT_BID_FIELD_MAP, "Extra Field", "MISSING_COL")
+    df = pd.DataFrame({"Lane ID": ["L1"], "Extra Field": ["val"]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
+    assert captured["params"][14] == "val"  # ADHOC_INFO1
+    assert len(captured["params"]) == 29
 

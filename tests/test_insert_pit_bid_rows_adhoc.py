@@ -4,8 +4,17 @@ from app_utils import azure_sql
 
 def _fake_conn(captured):
     class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
+        def __init__(self) -> None:
+            self.columns: list[str] = []
+
+        def execute(self, query, params=None):  # pragma: no cover - executed via call
+            if "INFORMATION_SCHEMA.COLUMNS" in query:
+                return self
             captured["params"] = params
+            return self
+
+        def fetchall(self):  # pragma: no cover - executed via call
+            return [(c,) for c in self.columns]
 
     class FakeConn:
         def cursor(self):
