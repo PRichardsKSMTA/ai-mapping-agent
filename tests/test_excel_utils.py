@@ -88,7 +88,7 @@ def test_list_sheets_closes_temp(monkeypatch, tmp_path):
 
 
 def test_save_mapped_csv(tmp_path):
-    df = pd.DataFrame({"A": [1], "B": [2]})
+    df = pd.DataFrame({"A": [1], "B": [2], "C": [3]})
     tpl = {
         "template_name": "t",
         "layers": [
@@ -107,3 +107,28 @@ def test_save_mapped_csv(tmp_path):
     assert text[0] == "X,Y"
     assert text[1] == "1,2"
     assert list(mapped_df.columns) == ["X", "Y"]
+    # Unmapped source column should be dropped
+    assert "C" not in mapped_df.columns
+
+
+def test_save_mapped_csv_extra_field(tmp_path):
+    df = pd.DataFrame({"A": [1], "B": [2]})
+    tpl = {
+        "template_name": "t",
+        "layers": [
+            {
+                "type": "header",
+                "fields": [
+                    {"key": "X", "source": "A"},
+                    {"key": "Z", "source": "B"},
+                ],
+            }
+        ],
+        "header_extra_fields_0": ["Z"],
+    }
+    out_path = tmp_path / "mapped_extra.csv"
+    mapped_df = save_mapped_csv(df, tpl, out_path)
+    text = out_path.read_text().strip().splitlines()
+    assert text[0] == "X,Z"
+    assert text[1] == "1,2"
+    assert list(mapped_df.columns) == ["X", "Z"]

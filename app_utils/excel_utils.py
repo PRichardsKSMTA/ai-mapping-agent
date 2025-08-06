@@ -179,6 +179,24 @@ def save_mapped_csv(
     """
 
     tpl_obj = _to_namespace(template) if isinstance(template, dict) else template
+
+    # Collect ordered header keys from template header layers including any
+    # user-added extras (``header_extra_fields_*``).
+    header_keys: list[str] = []
+    for idx, layer in enumerate(getattr(tpl_obj, "layers", [])):
+        if getattr(layer, "type", None) != "header":
+            continue
+        header_keys.extend(getattr(f, "key") for f in getattr(layer, "fields", []))
+        header_keys.extend(getattr(tpl_obj, f"header_extra_fields_{idx}", []))
+
+    # Ensure deterministic order while removing duplicates
+    if header_keys:
+        header_keys = list(dict.fromkeys(header_keys))
+
     mapped = apply_header_mappings(df, tpl_obj)
+
+    if header_keys:
+        mapped = mapped.reindex(columns=header_keys)
+
     mapped.to_csv(path, index=False)
     return mapped
