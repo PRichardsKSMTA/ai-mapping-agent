@@ -287,16 +287,21 @@ def main():
 
                     # Prepare CSV for download using current mappings
                     import tempfile
-                    tmp_csv = Path(tempfile.mkstemp(suffix=".csv")[1])
-                    mapped_df = save_mapped_csv(df, final_json, tmp_csv)
+
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".csv", delete=False
+                    ) as tmp:
+                        tmp_path = Path(tmp.name)
+                        mapped_df = save_mapped_csv(df, final_json, tmp_path)
+
                     rows = insert_pit_bid_rows(
                         mapped_df,
                         st.session_state["operation_code"],
                         st.session_state.get("customer_name"),
                         guid,
                     )
-                    csv_bytes = tmp_csv.read_bytes()
-                    tmp_csv.unlink()
+                    csv_bytes = tmp_path.read_bytes()
+                    tmp_path.unlink()
                     logs.append(
                         f"Inserted {rows} rows into RFP_OBJECT_DATA"
                     )
