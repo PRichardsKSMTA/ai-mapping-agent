@@ -47,45 +47,29 @@ def test_if_configured_helper(monkeypatch):
     assert isinstance(logs, list)
 
 
-def test_if_configured_runs_pit_bid_insert(monkeypatch):
-    called = {}
-    tpl = Template.model_validate({
-        'template_name': 'PIT BID',
-        'layers': [{'type': 'header', 'fields': [{'key': 'Lane ID'}]}]
-    })
-
-    def fake_insert(df, op, cust, guid):  # pragma: no cover - executed via call
-        called['hit'] = (op, cust, guid, len(df))
-
-    monkeypatch.setattr('app_utils.azure_sql.insert_pit_bid_rows', fake_insert)
-    df = pd.DataFrame({'Lane ID': ['L1']})
-    run_postprocess_if_configured(
-        tpl, df, process_guid='guid', operation_cd='OP', customer_name=None
-    )
-    assert called['hit'][0] == 'OP'
-    assert called['hit'][1] is None
-    assert called['hit'][2] == 'guid'
-
-
 def test_if_configured_applies_header_mappings(monkeypatch):
-    called = {}
+    captured = {}
 
-    def fake_insert(df, op, cust, guid):  # pragma: no cover - executed via call
-        called['cols'] = list(df.columns)
-        called['lane'] = df.at[0, 'LANE_ID']
+    def fake_postprocess(cfg, df, log=None):  # pragma: no cover - executed via call
+        captured['cols'] = list(df.columns)
+        captured['lane'] = df.at[0, 'LANE_ID']
 
-    monkeypatch.setattr('app_utils.azure_sql.insert_pit_bid_rows', fake_insert)
+    monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.run_postprocess',
+        fake_postprocess,
+    )
 
     tpl = types.SimpleNamespace(
         template_name='PIT BID',
         layers=[types.SimpleNamespace(type='header', fields=[types.SimpleNamespace(key='LANE_ID', source='Lane Code')])],
-        postprocess=None,
+        postprocess=types.SimpleNamespace(url='http://example.com'),
     )
 
     df = pd.DataFrame({'Lane Code': ['L1']})
 
-    run_postprocess_if_configured(tpl, df, operation_cd='OP')
+    run_postprocess_if_configured(tpl, df)
 
-    assert called['lane'] == 'L1'
-    assert called['cols'] == ['LANE_ID']
+    assert captured['lane'] == 'L1'
+    assert captured['cols'] == ['LANE_ID']
 

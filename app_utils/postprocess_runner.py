@@ -6,7 +6,6 @@ from typing import List
 import os
 import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
-from app_utils.template_builder import slugify
 from app_utils.dataframe_transform import apply_header_mappings
 
 
@@ -39,16 +38,10 @@ def run_postprocess_if_configured(
     operation_cd: str | None = None,
     customer_name: str | None = None,
 ) -> List[str]:
-    """Run optional postprocess hooks and DB inserts based on ``template``."""
+    """Run optional postprocess hooks based on ``template``."""
 
     logs: List[str] = []
     df = apply_header_mappings(df, template)
-    slug = slugify(template.template_name)
-    if slug == "pit-bid" and operation_cd:
-        from app_utils.azure_sql import insert_pit_bid_rows
-
-        insert_pit_bid_rows(df, operation_cd, customer_name, process_guid)
-        logs.append("Inserted rows into RFP_OBJECT_DATA")
     if template.postprocess:
         run_postprocess(template.postprocess, df, logs)
     return logs

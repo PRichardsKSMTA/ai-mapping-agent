@@ -10,6 +10,29 @@ def test_get_operational_scac():
     assert azure_sql.get_operational_scac("ABC12_FLT") == "ABC12"
 
 
+def test_pit_bid_field_map_alignment():
+    expected = {
+        "Lane ID": "LANE_ID",
+        "Origin City": "ORIG_CITY",
+        "Orig State": "ORIG_ST",
+        "Orig Zip (5 or 3)": "ORIG_POSTAL_CD",
+        "Destination City": "DEST_CITY",
+        "Dest State": "DEST_ST",
+        "Dest Zip (5 or 3)": "DEST_POSTAL_CD",
+        "Bid Volume": "BID_VOLUME",
+        "LH Rate": "LH_RATE",
+        "Bid Miles": "RFP_MILES",
+        "Miles": "RFP_MILES",
+        "Tolls": "FM_TOLLS",
+        "Customer Name": "CUSTOMER_NAME",
+        "Freight Type": "FREIGHT_TYPE",
+        "Temp Cat": "TEMP_CAT",
+        "BTF FSC Per Mile": "BTF_FSC_PER_MILE",
+        "Volume Frequency": "VOLUME_FREQUENCY",
+    }
+    assert azure_sql.PIT_BID_FIELD_MAP == expected
+
+
 def test_fetch_operation_codes(monkeypatch):
     class FakeCursor:
         def execute(self, query, email):  # pragma: no cover - exercised via call
@@ -177,7 +200,8 @@ def test_insert_pit_bid_rows(monkeypatch):
             "Foo": ["bar"],
         }
     )
-    azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
+    assert rows == 1
     assert "RFP_OBJECT_DATA" in captured["query"]
     assert captured["params"][0] == "OP"
     assert captured["params"][1] == "Customer"
@@ -225,7 +249,8 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
             "Tolls": [""],
         }
     )
-    azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
+    assert rows == 1
     assert captured["params"][9] is None  # BID_VOLUME
     assert captured["params"][10] is None  # LH_RATE
     assert captured["params"][24] is None  # RFP_MILES
@@ -264,7 +289,8 @@ def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
             "Miles": [123],
         }
     )
-    azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
     assert captured["params"][2] == "L1"
     assert captured["params"][24] == 123
     assert captured["params"][14] is None  # no ADHOC columns
@@ -295,7 +321,8 @@ def test_insert_pit_bid_rows_prefer_bid_miles(monkeypatch):
             "Miles": [999],
         }
     )
-    azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
     assert captured["params"][2] == "L1"
     assert captured["params"][24] == 321  # from Bid Miles
     assert captured["params"][14] is None  # Miles not treated as ADHOC
@@ -329,7 +356,8 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
             "Tolls": ["$2.25"],
         }
     )
-    azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
     assert captured["params"][5] == "01111"
     assert captured["params"][8] == "02222"
     assert captured["params"][9] == 5000.0
@@ -363,7 +391,8 @@ def test_insert_pit_bid_rows_customer_column(monkeypatch):
             "Orig State": ["OS"],
         }
     )
-    azure_sql.insert_pit_bid_rows(df, "OP", None)
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", None)
+    assert rows == 1
     assert captured["params"][1] == "Cust1"
 
 
@@ -392,7 +421,8 @@ def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
             "Foo": ["bar"],
         }
     )
-    azure_sql.insert_pit_bid_rows(df, "OP", None)
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", None)
+    assert rows == 1
     assert captured["params"][1] is None  # CUSTOMER_NAME
     assert captured["params"][11] == "TL"  # FREIGHT_TYPE
     assert captured["params"][14] == "Acme"  # ADHOC_INFO1

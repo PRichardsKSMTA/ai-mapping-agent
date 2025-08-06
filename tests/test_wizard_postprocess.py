@@ -89,6 +89,9 @@ def run_app(monkeypatch):
         "app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["ADSJ_VAN"]
     )
     monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
+    monkeypatch.setattr(
+        "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid=None: len(df)
+    )
     called: dict[str, object] = {}
 
     def fake_runner(tpl, df, guid=None, *args):
@@ -126,4 +129,6 @@ def test_postprocess_runner_called(monkeypatch):
     called, state = run_app(monkeypatch)
     assert called.get("run") is True
     assert called.get("guid") is not None
-    assert state.get("export_logs") == ["ok"]
+    logs = state.get("export_logs")
+    assert logs[0] == "ok"
+    assert "Inserted" in logs[1]

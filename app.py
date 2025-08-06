@@ -28,6 +28,7 @@ from app_utils.azure_sql import (
     fetch_operation_codes,
     fetch_customers,
     get_operational_scac,
+    insert_pit_bid_rows,
 )
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
@@ -287,9 +288,18 @@ def main():
                     # Prepare CSV for download using current mappings
                     import tempfile
                     tmp_csv = Path(tempfile.mkstemp(suffix=".csv")[1])
-                    save_mapped_csv(df, final_json, tmp_csv)
+                    mapped_df = save_mapped_csv(df, final_json, tmp_csv)
+                    rows = insert_pit_bid_rows(
+                        mapped_df,
+                        st.session_state["operation_code"],
+                        st.session_state.get("customer_name"),
+                        guid,
+                    )
                     csv_bytes = tmp_csv.read_bytes()
                     tmp_csv.unlink()
+                    logs.append(
+                        f"Inserted {rows} rows into RFP_OBJECT_DATA"
+                    )
 
                     st.session_state.update(
                         {

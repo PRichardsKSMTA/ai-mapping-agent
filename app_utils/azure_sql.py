@@ -10,6 +10,26 @@ import re
 
 import pandas as pd
 
+PIT_BID_FIELD_MAP: Dict[str, str] = {
+    "Lane ID": "LANE_ID",
+    "Origin City": "ORIG_CITY",
+    "Orig State": "ORIG_ST",
+    "Orig Zip (5 or 3)": "ORIG_POSTAL_CD",
+    "Destination City": "DEST_CITY",
+    "Dest State": "DEST_ST",
+    "Dest Zip (5 or 3)": "DEST_POSTAL_CD",
+    "Bid Volume": "BID_VOLUME",
+    "LH Rate": "LH_RATE",
+    "Bid Miles": "RFP_MILES",
+    "Miles": "RFP_MILES",
+    "Tolls": "FM_TOLLS",
+    "Customer Name": "CUSTOMER_NAME",
+    "Freight Type": "FREIGHT_TYPE",
+    "Temp Cat": "TEMP_CAT",
+    "BTF FSC Per Mile": "BTF_FSC_PER_MILE",
+    "Volume Frequency": "VOLUME_FREQUENCY",
+}
+
 try:  # pragma: no cover - optional dependency
     from dotenv import load_dotenv
 
@@ -116,34 +136,14 @@ def insert_pit_bid_rows(
     operation_cd: str,
     customer_name: str | None,
     process_guid: str | None = None,
-) -> None:
+    ) -> int:
     """Insert mapped ``pit-bid`` rows into ``dbo.RFP_OBJECT_DATA``.
 
     The DataFrame ``df`` is expected to already use pit-bid template field names.
     Each field is mapped explicitly to its target database column via
-    ``field_map``. Columns that remain unmapped are stored sequentially in
-    ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
+    ``PIT_BID_FIELD_MAP``. Columns that remain unmapped are stored sequentially
+    in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
     """
-
-    field_map: Dict[str, str] = {
-        "Lane ID": "LANE_ID",
-        "Origin City": "ORIG_CITY",
-        "Orig State": "ORIG_ST",
-        "Orig Zip (5 or 3)": "ORIG_POSTAL_CD",
-        "Destination City": "DEST_CITY",
-        "Dest State": "DEST_ST",
-        "Dest Zip (5 or 3)": "DEST_POSTAL_CD",
-        "Bid Volume": "BID_VOLUME",
-        "LH Rate": "LH_RATE",
-        "Bid Miles": "RFP_MILES",
-        "Miles": "RFP_MILES",
-        "Tolls": "FM_TOLLS",
-        "Customer Name": "CUSTOMER_NAME",
-        "Freight Type": "FREIGHT_TYPE",
-        "Temp Cat": "TEMP_CAT",
-        "BTF FSC Per Mile": "BTF_FSC_PER_MILE",
-        "Volume Frequency": "VOLUME_FREQUENCY",
-    }
 
     columns = [
         "OPERATION_CD",
@@ -205,7 +205,7 @@ def insert_pit_bid_rows(
 
 
     # Rename DataFrame columns to their target database names.
-    df_db = df.rename(columns=field_map).copy()
+    df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
     if df_db.columns.duplicated().any():
         for col in df_db.columns[df_db.columns.duplicated()].unique():
             cols = [c for c in df_db.columns if c == col]
@@ -215,6 +215,7 @@ def insert_pit_bid_rows(
     conn = _connect()
     with conn:
         cur = conn.cursor()
+        row_count = 0
         for _, row in df_db.iterrows():
             values = {c: None for c in columns}
             values["OPERATION_CD"] = operation_cd
@@ -243,4 +244,6 @@ def insert_pit_bid_rows(
                 f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
                 [values[c] for c in columns],
             )
+            row_count += 1
 
+    return row_count
