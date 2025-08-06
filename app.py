@@ -267,7 +267,13 @@ def main():
                         st.session_state["uploaded_file"], sheet_name=sheet
                     )
                     guid = str(uuid.uuid4())
-                    logs = run_postprocess_if_configured(template_obj, df, guid)
+                    logs = run_postprocess_if_configured(
+                        template_obj,
+                        df,
+                        guid,
+                        st.session_state.get("operation_code"),
+                        st.session_state.get("customer_name"),
+                    )
                     final_json = build_output_template(
                         template_obj, st.session_state, guid
                     )
