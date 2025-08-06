@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Helpers for Azure SQL queries."""
 
-from typing import Dict, List
+from typing import Any, Dict, List
 import os
 from pathlib import Path
 from datetime import datetime
@@ -159,19 +159,46 @@ def insert_pit_bid_rows(
     ]
     placeholders = ",".join(["?"] * len(columns))
     now = datetime.utcnow()
+
+    def _to_float(val: Any) -> float | None:
+        if pd.isna(val) or val == "":
+            return None
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return None
+
+    def _to_str(val: Any) -> str | None:
+        if pd.isna(val):
+            return None
+        text = str(val).strip()
+        return text or None
+
     conn = _connect()
     with conn:
         cur = conn.cursor()
         for _, row in df.iterrows():
-            base_vals = [row.get(src) for src in col_map]
-            adhoc_vals = [row.get(col) for col in extra_cols][:10]
+            base_vals: List[Any] = []
+            for src in col_map:
+                val = row.get(src)
+                if src in {"Bid Volume", "LH Rate"}:
+                    base_vals.append(_to_float(val))
+                else:
+                    base_vals.append(_to_str(val))
+            adhoc_vals = [_to_str(row.get(col)) for col in extra_cols][:10]
             adhoc_vals.extend([None] * (10 - len(adhoc_vals)))
             values = (
                 [operation_cd, customer_name]
                 + base_vals
                 + [None, None, None]
                 + adhoc_vals
-                + [row.get("Bid Miles"), row.get("Tolls"), process_guid, now, "UNKNOWN"]
+                + [
+                    _to_float(row.get("Bid Miles")),
+                    _to_float(row.get("Tolls")),
+                    process_guid,
+                    now,
+                    "UNKNOWN",
+                ]
             )
             cur.execute(
                 f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
