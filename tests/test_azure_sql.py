@@ -183,7 +183,8 @@ def test_insert_pit_bid_rows(monkeypatch):
     assert captured["params"][1] == "Customer"
     assert captured["params"][2] == "L1"
     assert captured["params"][14] == "bar"  # ADHOC_INFO1
-    assert captured["params"][24] == 100  # FM_MILES
+    assert captured["params"][24] == 100  # RFP_MILES
+    assert captured["params"][28] is None  # VOLUME_FREQUENCY
     assert len(captured["params"]) == 29
 
 
@@ -223,5 +224,72 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
     azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
     assert captured["params"][9] is None  # BID_VOLUME
     assert captured["params"][10] is None  # LH_RATE
-    assert captured["params"][24] is None  # FM_MILES
-    assert captured["params"][25] is None  # FM_TOLLS
+    assert captured["params"][24] is None  # RFP_MILES
+    assert captured["params"][25] is None  # RFP_TOLLS
+
+
+def test_insert_pit_bid_rows_aliases(monkeypatch):
+    captured = {}
+
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["params"] = params
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    df = pd.DataFrame(
+        {
+            "LANE_ID": ["L1"],
+            "ORIG_CITY": ["OC"],
+            "ORIG_ST": ["OS"],
+            "ORIG_POSTAL_CD": ["11111"],
+            "DEST_CITY": ["DC"],
+            "DEST_ST": ["DS"],
+            "DEST_POSTAL_CD": ["22222"],
+            "BID_VOLUME": [5],
+            "LH_RATE": [1.2],
+            "Miles": [123],
+        }
+    )
+    azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert captured["params"][2] == "L1"
+    assert captured["params"][24] == 123
+
+
+def test_insert_pit_bid_rows_customer_column(monkeypatch):
+    captured = {}
+
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["params"] = params
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    df = pd.DataFrame(
+        {
+            "Customer Name": ["Cust1"],
+            "Lane ID": ["L1"],
+            "Origin City": ["OC"],
+            "Orig State": ["OS"],
+        }
+    )
+    azure_sql.insert_pit_bid_rows(df, "OP", None)
+    assert captured["params"][1] == "Cust1"

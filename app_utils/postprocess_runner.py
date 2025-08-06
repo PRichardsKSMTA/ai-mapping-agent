@@ -42,7 +42,7 @@ def run_postprocess_if_configured(
 
     logs: List[str] = []
     slug = slugify(template.template_name)
-    if slug == "pit-bid" and operation_cd and customer_name:
+    if slug == "pit-bid" and operation_cd:
         from app_utils.azure_sql import insert_pit_bid_rows
 
         insert_pit_bid_rows(df, operation_cd, customer_name, process_guid)

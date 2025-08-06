@@ -60,9 +60,9 @@ def test_if_configured_runs_pit_bid_insert(monkeypatch):
     monkeypatch.setattr('app_utils.azure_sql.insert_pit_bid_rows', fake_insert)
     df = pd.DataFrame({'Lane ID': ['L1']})
     run_postprocess_if_configured(
-        tpl, df, process_guid='guid', operation_cd='OP', customer_name='Cust'
+        tpl, df, process_guid='guid', operation_cd='OP', customer_name=None
     )
     assert called['hit'][0] == 'OP'
-    assert called['hit'][1] == 'Cust'
+    assert called['hit'][1] is None
     assert called['hit'][2] == 'guid'
 
