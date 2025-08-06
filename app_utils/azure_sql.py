@@ -203,6 +203,7 @@ def insert_pit_bid_rows(
         text = str(val).strip()
         return text or None
 
+
     # Rename DataFrame columns to their target database names.
     df_db = df.rename(columns=field_map).copy()
     if df_db.columns.duplicated().any():
@@ -229,12 +230,14 @@ def insert_pit_bid_rows(
                     else:
                         values[col] = _to_str(row[col])
 
+
             if customer_name is not None:
                 values["CUSTOMER_NAME"] = customer_name
 
             unmapped = [c for c in df_db.columns if c not in columns]
             for i, col in enumerate(unmapped[:10], start=1):
                 values[f"ADHOC_INFO{i}"] = _to_str(row[col])
+
 
             cur.execute(
                 f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
