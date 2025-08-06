@@ -250,8 +250,12 @@ def render(layer, idx: int) -> None:
             tpl_json = build_output_template(tpl_obj, st.session_state)
             import tempfile
 
-            tmp_path = Path(tempfile.mkstemp(suffix=".csv")[1])
-            save_mapped_csv(df, tpl_json, tmp_path)
+            with tempfile.NamedTemporaryFile(
+                suffix=".csv", delete=False
+            ) as tmp:
+                tmp_path = Path(tmp.name)
+                save_mapped_csv(df, tpl_json, tmp_path)
+
             csv_bytes = tmp_path.read_bytes()
             tmp_path.unlink()
             st.download_button(
