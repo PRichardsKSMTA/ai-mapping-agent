@@ -173,7 +173,7 @@ def test_pit_bid_logs_payload_when_disabled(monkeypatch):
     logged_payload = json.loads(payload_logs[-1].split('Payload: ')[1])
     assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert logged_payload['BID-Payload'] == 'guid'
-    assert logs[-1] == 'Postprocess disabled'
+    assert logs[-1] == 'Postprocess disabled (ENABLE_POSTPROCESS=0)'
     assert 'url' not in called
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'

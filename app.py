@@ -48,7 +48,7 @@ try:
     secret_flag = st.secrets.get("ENABLE_POSTPROCESS", "0")
 except Exception:  # pragma: no cover - secrets file absent
     secret_flag = "0"
-os.environ.setdefault("ENABLE_POSTPROCESS", secret_flag)
+os.environ["ENABLE_POSTPROCESS"] = os.getenv("ENABLE_POSTPROCESS", secret_flag)
 
 
 def warn_if_postprocess_missing() -> None:
