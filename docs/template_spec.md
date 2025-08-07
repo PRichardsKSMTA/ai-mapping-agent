@@ -157,8 +157,9 @@ At run-time the user builds an expression; the engine stores its resolution:
 ```
 
 When present, the mapped rows are sent as a JSON array via HTTP `POST` to the
-specified URL. Set the environment variable `ENABLE_POSTPROCESS=1` to allow
-the request during execution.
+specified URL. Set the environment variable `ENABLE_POSTPROCESS=1` to allow the
+request during execution. Without this flag the Power Automate flow will not
+be invoked.
 
 After all layers are confirmed the wizard enters a **Run Export** step. If a
 `postprocess` block exists, `run_postprocess_if_configured` posts the mapped

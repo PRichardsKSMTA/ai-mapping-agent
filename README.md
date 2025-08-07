@@ -40,4 +40,6 @@ new template JSON with those mappings and any resolved formulas.
 
 Templates may include an optional `postprocess` block. When present and
 `ENABLE_POSTPROCESS=1` is set, the mapped rows are sent as a POST request to the
-configured URL. See `docs/template_spec.md` for details.
+configured URL. Set this flag in environments where a Power Automate flow
+should run (e.g., `export ENABLE_POSTPROCESS=1` or launch via
+`start_postprocess.py`). See `docs/template_spec.md` for details.
