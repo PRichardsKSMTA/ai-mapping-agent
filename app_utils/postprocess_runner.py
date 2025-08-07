@@ -52,19 +52,21 @@ def run_postprocess_if_configured(
                 raise ValueError("operation_cd required for PIT BID postprocess")
             if not process_guid:
                 raise ValueError("process_guid required for PIT BID postprocess")
-            payload = get_pit_url_payload(operation_cd)
-            now = datetime.utcnow()
-            stamp = customer_name or now.strftime("%H%M%S")
-            fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"
-            item = payload.setdefault("item", {})
-            in_data = item.setdefault("In_dtInputData", [{}])
-            if not in_data:
-                in_data.append({})
-            in_data[0]["NEW_EXCEL_FILENAME"] = fname
-            payload["BID-Payload"] = process_guid
             logs.append(f"POST {template.postprocess.url}")
             logs.append(f"Payload: {json.dumps(payload)}")
             if os.getenv("ENABLE_POSTPROCESS") == "1":
+                payload = get_pit_url_payload(operation_cd)
+                now = datetime.utcnow()
+                stamp = customer_name or now.strftime("%H%M%S")
+                fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"
+                item = payload.setdefault("item", {})
+                in_data = item.setdefault("In_dtInputData", [{}])
+                if not in_data:
+                    in_data.append({})
+                in_data[0]["NEW_EXCEL_FILENAME"] = fname
+                payload["BID-Payload"] = process_guid
+                logs.append(f"Payload: {json.dumps(payload)}")
+
                 try:
                     import requests  # type: ignore
 

@@ -42,7 +42,7 @@ def build_output_template(
     process_guid: str | None = None,
 ) -> Dict[str, Any]:
     """Return template JSON enriched with user expressions."""
-    tpl = deepcopy(template.model_dump())
+    tpl = deepcopy(template.model_dump(mode="json"))
     layers = []
     for idx, layer in enumerate(tpl.get("layers", [])):
         if layer.get("type") == "header":
