@@ -181,13 +181,11 @@ def test_pit_bid_null_payload_logged(monkeypatch):
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
         'postprocess': {'url': 'https://example.com/post'},
     })
-    logs, payload = run_postprocess_if_configured(
-        tpl,
-        pd.DataFrame({'A': [1]}),
-        'guid',
-        operation_cd='OP',
-    )
-    assert payload is None
-    assert any(line == 'Payload error: null payload' for line in logs)
-    assert logs[-1] == 'Postprocess disabled'
+    with pytest.raises(RuntimeError, match='null payload'):
+        run_postprocess_if_configured(
+            tpl,
+            pd.DataFrame({'A': [1]}),
+            'guid',
+            operation_cd='OP',
+        )
 
