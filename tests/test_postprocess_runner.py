@@ -79,7 +79,7 @@ def test_if_configured_applies_header_mappings(load_env, monkeypatch):
 
 
 def test_pit_bid_posts_payload(load_env, monkeypatch):
-    payload = {"item": {"In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}}
+    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
@@ -109,7 +109,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         operation_cd='OP',
         customer_name='Cust',
     )
-    assert returned['item']['In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
+    assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
         'OP - 20240102 PIT12wk - Cust BID.xlsm'
     )
     assert returned['BID-Payload'] == "guid"
@@ -120,7 +120,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
 
 
 def test_pit_bid_logs_payload_when_disabled(monkeypatch):
-    payload = {"item": {"In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}}
+    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
@@ -153,7 +153,7 @@ def test_pit_bid_logs_payload_when_disabled(monkeypatch):
     assert any(line.startswith('Payload:') for line in logs)
     assert logs[-1] == 'Postprocess disabled'
     assert 'url' not in called
-    assert returned['item']['In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
+    assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
         'OP - 20240102 PIT12wk - Cust BID.xlsm'
     )
     assert returned['BID-Payload'] == 'guid'

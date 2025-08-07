@@ -47,6 +47,7 @@ class DummyStreamlit:
         self.session_state = {}
         self.sidebar = DummySidebar(self)
         self.json_calls: list[object] = []
+        self.secrets = {}
     def set_page_config(self, *a, **k):
         pass
     def title(self, *a, **k):
