@@ -72,7 +72,8 @@ def run_postprocess_if_configured(
         else:
             logs.append("Missing BID-Payload in payload")
         logs.append(f"Payload: {json.dumps(payload)}")
-        if os.getenv("ENABLE_POSTPROCESS") == "1":
+        flag = os.getenv("ENABLE_POSTPROCESS", "0")
+        if flag == "1":
             try:
                 import requests  # type: ignore
 
@@ -91,7 +92,7 @@ def run_postprocess_if_configured(
             else:
                 logs.append("Done")
         else:
-            logs.append("Postprocess disabled")
+            logs.append(f"Postprocess disabled (ENABLE_POSTPROCESS={flag})")
     else:
         run_postprocess(template.postprocess, df, logs)
     return logs, payload

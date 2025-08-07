@@ -6,6 +6,19 @@ from typing import Any, Dict
 import uuid
 
 import pandas as pd
+import streamlit as st
+try:
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency
+    def load_dotenv() -> None:
+        return None
+
+load_dotenv()
+try:
+    secret_flag = st.secrets.get("ENABLE_POSTPROCESS", "0")
+except Exception:  # pragma: no cover - secrets file absent
+    secret_flag = "0"
+os.environ["ENABLE_POSTPROCESS"] = os.getenv("ENABLE_POSTPROCESS", secret_flag)
 
 from schemas.template_v2 import Template
 from app_utils.excel_utils import excel_to_json, save_mapped_csv
