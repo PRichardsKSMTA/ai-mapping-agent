@@ -67,7 +67,10 @@ def run_postprocess_if_configured(
         if not payload["item/In_dtInputData"]:
             payload["item/In_dtInputData"].append({})
         payload["item/In_dtInputData"][0]["NEW_EXCEL_FILENAME"] = fname
-        payload["BID-Payload"] = process_guid
+        if "BID-Payload" in payload:
+            payload["BID-Payload"] = process_guid
+        else:
+            logs.append("Missing BID-Payload in payload")
         logs.append(f"Payload: {json.dumps(payload)}")
         if os.getenv("ENABLE_POSTPROCESS") == "1":
             try:

@@ -80,7 +80,10 @@ def test_if_configured_applies_header_mappings(load_env, monkeypatch):
 
 
 def test_pit_bid_posts_payload(load_env, monkeypatch):
-    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}
+    payload = {
+        "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
+        "BID-Payload": "",
+    }
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
@@ -125,7 +128,10 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
 
 
 def test_pit_bid_logs_payload_when_disabled(monkeypatch):
-    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}
+    payload = {
+        "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
+        "BID-Payload": "",
+    }
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
