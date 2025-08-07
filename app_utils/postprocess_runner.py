@@ -46,50 +46,51 @@ def run_postprocess_if_configured(
     logs: List[str] = []
     payload: Dict[str, Any] | None = None
     df = apply_header_mappings(df, template)
-    if template.postprocess:
-        if template.template_name == "PIT BID":
-            if not operation_cd:
-                raise ValueError("operation_cd required for PIT BID postprocess")
-            if not process_guid:
-                raise ValueError("process_guid required for PIT BID postprocess")
-            logs.append(f"POST {template.postprocess.url}")
-            try:
-                payload = get_pit_url_payload(operation_cd)
-            except RuntimeError as err:  # pragma: no cover - exercised in integration
-                logs.append(f"Payload error: {err}")
-                raise
+    if not template.postprocess:
+        return logs, payload
+    if template.template_name == "PIT BID":
+        if not operation_cd:
+            raise ValueError("operation_cd required for PIT BID postprocess")
+        if not process_guid:
+            raise ValueError("process_guid required for PIT BID postprocess")
+        logs.append(f"POST {template.postprocess.url}")
+        try:
+            payload = get_pit_url_payload(operation_cd)
+        except RuntimeError as err:  # pragma: no cover - exercised in integration
+            logs.append(f"Payload error: {err}")
+            raise
+        logs.append(f"Payload: {json.dumps(payload)}")
+        if os.getenv("ENABLE_POSTPROCESS") == "1":
+            now = datetime.utcnow()
+            stamp = customer_name or now.strftime("%H%M%S")
+            fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"
+            item = payload.setdefault("item", {})
+            in_data = item.setdefault("In_dtInputData", [{}])
+            if not in_data:
+                in_data.append({})
+            in_data[0]["NEW_EXCEL_FILENAME"] = fname
+            payload["BID-Payload"] = process_guid
             logs.append(f"Payload: {json.dumps(payload)}")
-            if os.getenv("ENABLE_POSTPROCESS") == "1":
-                now = datetime.utcnow()
-                stamp = customer_name or now.strftime("%H%M%S")
-                fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"
-                item = payload.setdefault("item", {})
-                in_data = item.setdefault("In_dtInputData", [{}])
-                if not in_data:
-                    in_data.append({})
-                in_data[0]["NEW_EXCEL_FILENAME"] = fname
-                payload["BID-Payload"] = process_guid
-                logs.append(f"Payload: {json.dumps(payload)}")
-            if payload is not None and os.getenv("ENABLE_POSTPROCESS") == "1":
-                try:
-                    import requests  # type: ignore
+        if payload is not None and os.getenv("ENABLE_POSTPROCESS") == "1":
+            try:
+                import requests  # type: ignore
 
-                    resp: requests.Response | None = requests.post(
-                        template.postprocess.url, json=payload, timeout=10
-                    )
-                    if resp is not None:
-                        logs.append(f"Status: {resp.status_code}")
-                        logs.append(f"Body: {resp.text[:200]}")
-                        resp.raise_for_status()
-                    else:
-                        logs.append("Status: no response")
-                except Exception as exc:  # noqa: BLE001
-                    logs.append(f"Error: {exc}")
-                    raise
+                resp: requests.Response | None = requests.post(
+                    template.postprocess.url, json=payload, timeout=10
+                )
+                if resp is not None:
+                    logs.append(f"Status: {resp.status_code}")
+                    logs.append(f"Body: {resp.text[:200]}")
+                    resp.raise_for_status()
                 else:
-                    logs.append("Done")
+                    logs.append("Status: no response")
+            except Exception as exc:  # noqa: BLE001
+                logs.append(f"Error: {exc}")
+                raise
             else:
-                logs.append("Postprocess disabled")
+                logs.append("Done")
         else:
-            run_postprocess(template.postprocess, df, logs)
+            logs.append("Postprocess disabled")
+    else:
+        run_postprocess(template.postprocess, df, logs)
     return logs, payload

@@ -330,9 +330,11 @@ def main():
                 )
             for line in st.session_state.get("export_logs", []):
                 st.write(line)
-            if st.session_state.get("postprocess_payload") is not None:
+            if template_obj.postprocess:
                 st.write(template_obj.postprocess.url)
-                st.json(st.session_state.get("postprocess_payload"))
+            payload = st.session_state.get("postprocess_payload")
+            if payload is not None:
+                st.json(payload)
             st.json(st.session_state.get("final_json"))
             csv_data = st.session_state.get("mapped_csv")
             if csv_data:
