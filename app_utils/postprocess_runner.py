@@ -40,11 +40,11 @@ def run_postprocess_if_configured(
     process_guid: str,
     operation_cd: str | None = None,
     customer_name: str | None = None,
-) -> Tuple[List[str], Dict[str, Any] | None]:
+) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None]:
     """Run optional postprocess hooks based on ``template``."""
 
     logs: List[str] = []
-    payload: Dict[str, Any] | None = None
+    payload: Dict[str, Any] | List[Dict[str, Any]] | None = None
     df = apply_header_mappings(df, template)
     if not template.postprocess:
         return logs, payload
@@ -94,5 +94,6 @@ def run_postprocess_if_configured(
         else:
             logs.append(f"Postprocess disabled (ENABLE_POSTPROCESS={flag})")
     else:
+        payload = df.to_dict(orient="records")
         run_postprocess(template.postprocess, df, logs)
     return logs, payload
