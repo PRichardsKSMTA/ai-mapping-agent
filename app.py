@@ -44,19 +44,6 @@ from app_utils.mapping.exporter import build_output_template
 import uuid
 
 load_dotenv()
-try:
-    secret_flag = st.secrets.get("ENABLE_POSTPROCESS", "0")
-except Exception:  # pragma: no cover - secrets file absent
-    secret_flag = "0"
-os.environ["ENABLE_POSTPROCESS"] = os.getenv("ENABLE_POSTPROCESS", secret_flag)
-
-
-def warn_if_postprocess_missing() -> None:
-    """Warn if post-processing flag is not enabled."""
-    if os.environ.get("ENABLE_POSTPROCESS") != "1":
-        st.info(
-            "Post-processing disabled. Set ENABLE_POSTPROCESS=1 to trigger the Power Automate flow."
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +53,6 @@ def warn_if_postprocess_missing() -> None:
 def main():
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
     st.title("AI Mapping Agent")
-    warn_if_postprocess_missing()
 
     if st.session_state.get("unsaved_changes"):
         st.warning(
