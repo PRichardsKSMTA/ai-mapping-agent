@@ -63,8 +63,7 @@ def run_postprocess_if_configured(
         now = datetime.utcnow()
         stamp = customer_name or now.strftime("%H%M%S")
         fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"
-        item = payload.setdefault("item", {})
-        in_data = item.setdefault("In_dtInputData", [{}])
+        in_data = payload.setdefault("item/In_dtInputData", [{}])
         if not in_data:
             in_data.append({})
         in_data[0]["NEW_EXCEL_FILENAME"] = fname
