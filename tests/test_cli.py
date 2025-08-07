@@ -51,10 +51,11 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
 
     captured: dict[str, object] = {}
 
-    def fake_insert(df, op, cust):
+    def fake_insert(df, op, cust, guid):
         captured['cols'] = list(df.columns)
         captured['op'] = op
         captured['cust'] = cust
+        captured['guid'] = guid
         return len(df)
 
     monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
@@ -77,6 +78,7 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     assert captured['op'] == 'OP'
     assert captured['cust'] == 'Cust'
     assert 'Lane ID' in captured['cols']
+    assert captured['guid']
 
 
 def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
@@ -86,14 +88,15 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
     out_json = tmp_path / 'out.json'
     out_csv = tmp_path / 'out.csv'
 
-    def fake_insert(df, op, cust):
+    def fake_insert(df, op, cust, guid):
         return len(df)
 
     captured: dict[str, object] = {}
 
-    def fake_postprocess(tpl_obj, df, guid, op_cd, cust_name):
+    def fake_postprocess(tpl_obj, df, process_guid, op_cd, cust_name):
         captured['op'] = op_cd
         captured['cust'] = cust_name
+        captured['guid'] = process_guid
         return [], None
 
     monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
@@ -114,4 +117,5 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
     cli.main()
     assert captured['op'] == 'OP'
     assert captured['cust'] == 'Cust'
+    assert captured['guid']
 

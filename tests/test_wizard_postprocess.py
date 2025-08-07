@@ -90,13 +90,13 @@ def run_app(monkeypatch):
     )
     monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
     monkeypatch.setattr(
-        "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid=None: len(df)
+        "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid: len(df)
     )
     called: dict[str, object] = {}
 
-    def fake_runner(tpl, df, guid=None, *args):
+    def fake_runner(tpl, df, process_guid, *args):
         called["run"] = True
-        called["guid"] = guid
+        called["guid"] = process_guid
         return ["ok"], {"p": 1}
 
     monkeypatch.setattr(
