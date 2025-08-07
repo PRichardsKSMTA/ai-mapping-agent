@@ -62,11 +62,11 @@ def run_postprocess_if_configured(
         logs.append(f"Payload: {json.dumps(payload)}")
         now = datetime.utcnow()
         stamp = customer_name or now.strftime("%H%M%S")
-        fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"
-        in_data = payload.setdefault("item/In_dtInputData", [{}])
-        if not in_data:
-            in_data.append({})
-        in_data[0]["NEW_EXCEL_FILENAME"] = fname
+        fname = f"{operation_cd} - BID - {stamp} BID.xlsm"
+        payload.setdefault("item/In_dtInputData", [{}])
+        if not payload["item/In_dtInputData"]:
+            payload["item/In_dtInputData"].append({})
+        payload["item/In_dtInputData"][0]["NEW_EXCEL_FILENAME"] = fname
         payload["BID-Payload"] = process_guid
         logs.append(f"Payload: {json.dumps(payload)}")
         if os.getenv("ENABLE_POSTPROCESS") == "1":
