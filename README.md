@@ -40,7 +40,7 @@ new template JSON with those mappings and any resolved formulas.
 
 Templates may include an optional `postprocess` block. When present and
 `ENABLE_POSTPROCESS=1` is set, the mapped rows are sent as a POST request to the
-configured URL.
+configured URL. Set this flag in a `.env` file or add it to `.streamlit/secrets.toml`.
 
 ```bash
 export ENABLE_POSTPROCESS=1
