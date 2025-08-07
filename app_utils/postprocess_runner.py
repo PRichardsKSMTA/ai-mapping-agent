@@ -63,8 +63,8 @@ def run_postprocess_if_configured(
             in_data[0]["NEW_EXCEL_FILENAME"] = fname
             payload["BID-Payload"] = process_guid
             logs.append(f"POST {template.postprocess.url}")
+            logs.append(f"Payload: {json.dumps(payload)}")
             if os.getenv("ENABLE_POSTPROCESS") == "1":
-                logs.append(f"Payload: {json.dumps(payload)}")
                 try:
                     import requests  # type: ignore
 
