@@ -22,7 +22,11 @@ from pathlib import Path
 
 import streamlit as st
 from pydantic import ValidationError
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency
+    def load_dotenv() -> None:
+        return None
 
 from auth import require_login, logout_button, get_user_email
 from app_utils.user_prefs import get_last_template, set_last_template
@@ -40,7 +44,19 @@ from app_utils.mapping.exporter import build_output_template
 import uuid
 
 load_dotenv()
-os.environ.setdefault("ENABLE_POSTPROCESS", st.secrets.get("ENABLE_POSTPROCESS", "0"))
+try:
+    secret_flag = st.secrets.get("ENABLE_POSTPROCESS", "0")
+except Exception:  # pragma: no cover - secrets file absent
+    secret_flag = "0"
+os.environ.setdefault("ENABLE_POSTPROCESS", secret_flag)
+
+
+def warn_if_postprocess_missing() -> None:
+    """Warn if post-processing flag is not enabled."""
+    if os.environ.get("ENABLE_POSTPROCESS") != "1":
+        st.info(
+            "Post-processing disabled. Set ENABLE_POSTPROCESS=1 to trigger the Power Automate flow."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +66,7 @@ os.environ.setdefault("ENABLE_POSTPROCESS", st.secrets.get("ENABLE_POSTPROCESS",
 def main():
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
     st.title("AI Mapping Agent")
+    warn_if_postprocess_missing()
 
     if st.session_state.get("unsaved_changes"):
         st.warning(
