@@ -1151,5 +1151,16 @@
     ],
     "display": "Origin Company",
     "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Customer",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin Company"
+    ],
+    "display": "Origin Company",
+    "header_id": "bcf296cb"
   }
 ]
