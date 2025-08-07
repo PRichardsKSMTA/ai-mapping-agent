@@ -46,6 +46,7 @@ class DummyStreamlit:
     def __init__(self):
         self.session_state = {}
         self.sidebar = DummySidebar(self)
+        self.json_calls: list[object] = []
     def set_page_config(self, *a, **k):
         pass
     def title(self, *a, **k):
@@ -59,7 +60,7 @@ class DummyStreamlit:
     def file_uploader(self, *a, **k):
         return None
     def button(self, label, *a, **k):
-        return label == "Run Export"
+        return label == "Run Export" and not self.session_state.get("export_complete")
     def spinner(self, *a, **k):
         return DummyContainer()
     def empty(self):
@@ -68,6 +69,10 @@ class DummyStreamlit:
         pass
     def markdown(self, *a, **k):
         pass
+    def download_button(self, *a, **k):
+        pass
+    def json(self, obj, *a, **k):  # type: ignore[override]
+        self.json_calls.append(obj)
     def cache_data(self, *a, **k):
         def wrap(func):
             return func
@@ -122,14 +127,21 @@ def run_app(monkeypatch):
     })
     sys.modules.pop("app", None)
     importlib.import_module("app")
-    return called, st.session_state
+    if st.session_state.get("export_complete"):
+        importlib.reload(sys.modules["app"])
+    return called, st.session_state, st
 
 
 def test_postprocess_runner_called(monkeypatch):
-    called, state = run_app(monkeypatch)
+    called, state, _st = run_app(monkeypatch)
     assert called.get("run") is True
     assert called.get("guid") is not None
     logs = state.get("export_logs")
     assert "Inserted" in logs[0]
     assert logs[1] == "ok"
     assert state.get("postprocess_payload") == {"p": 1}
+
+
+def test_postprocess_payload_displayed(monkeypatch):
+    _, _, st = run_app(monkeypatch)
+    assert st.json_calls and st.json_calls[0] == {"p": 1}
