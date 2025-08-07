@@ -22,6 +22,7 @@ from pathlib import Path
 
 import streamlit as st
 from pydantic import ValidationError
+from dotenv import load_dotenv
 
 from auth import require_login, logout_button, get_user_email
 from app_utils.user_prefs import get_last_template, set_last_template
@@ -37,6 +38,9 @@ from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_cs
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
 import uuid
+
+load_dotenv()
+os.environ.setdefault("ENABLE_POSTPROCESS", st.secrets.get("ENABLE_POSTPROCESS", "0"))
 
 
 # ---------------------------------------------------------------------------
