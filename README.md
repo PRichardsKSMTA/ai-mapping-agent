@@ -38,9 +38,10 @@ new template JSON with those mappings and any resolved formulas.
 
 ## Post-processing
 
-Templates may include an optional `postprocess` block. When present and
-`ENABLE_POSTPROCESS=1` is set, the mapped rows are sent as a POST request to the
-configured URL. Set this flag in a `.env` file or add it to `.streamlit/secrets.toml`.
+Templates may include an optional `postprocess` block. To trigger the Power
+Automate flow for those templates, set `ENABLE_POSTPROCESS=1`; otherwise the
+mapped rows are never sent to the configured URL. Set this flag in a `.env`
+file or add it to `.streamlit/secrets.toml`.
 
 ```bash
 export ENABLE_POSTPROCESS=1
