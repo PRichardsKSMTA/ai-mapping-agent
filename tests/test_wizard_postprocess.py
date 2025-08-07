@@ -97,7 +97,7 @@ def run_app(monkeypatch):
     def fake_runner(tpl, df, guid=None, *args):
         called["run"] = True
         called["guid"] = guid
-        return ["ok"], None
+        return ["ok"], {"p": 1}
 
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",
@@ -130,5 +130,6 @@ def test_postprocess_runner_called(monkeypatch):
     assert called.get("run") is True
     assert called.get("guid") is not None
     logs = state.get("export_logs")
-    assert logs[0] == "ok"
-    assert "Inserted" in logs[1]
+    assert "Inserted" in logs[0]
+    assert logs[1] == "ok"
+    assert state.get("postprocess_payload") == {"p": 1}
