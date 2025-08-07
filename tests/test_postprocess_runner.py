@@ -1,6 +1,7 @@
 import types
 import sys
 import datetime
+from typing import Any, Dict
 import pandas as pd
 import pytest
 from schemas.template_v2 import PostprocessSpec, Template
@@ -163,4 +164,30 @@ def test_pit_bid_requires_process_guid():
     })
     with pytest.raises(ValueError):
         run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), '', operation_cd='OP')
+
+
+def test_pit_bid_null_payload_logged(monkeypatch):
+    def fake_get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
+        raise RuntimeError("null payload")
+
+    monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.get_pit_url_payload',
+        fake_get_pit_url_payload,
+    )
+
+    tpl = Template.model_validate({
+        'template_name': 'PIT BID',
+        'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
+        'postprocess': {'url': 'https://example.com/post'},
+    })
+    logs, payload = run_postprocess_if_configured(
+        tpl,
+        pd.DataFrame({'A': [1]}),
+        'guid',
+        operation_cd='OP',
+    )
+    assert payload is None
+    assert any(line == 'Payload error: null payload' for line in logs)
+    assert logs[-1] == 'Postprocess disabled'
 
