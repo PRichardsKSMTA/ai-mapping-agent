@@ -8,6 +8,7 @@ from pathlib import Path
 from datetime import datetime
 import re
 import json
+import logging
 
 import pandas as pd
 
@@ -135,9 +136,13 @@ def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
         raise RuntimeError(f"PIT URL payload lookup failed: {err}") from err
     with conn:
         cur = conn.cursor()
-        cur.execute("EXEC dbo.GetPITURLPayload @OpCd=?, @WeekCt=?", op_cd, week_ct)
+        cur.execute("SELECT dbo.GetPITURLPayload(?, ?)", op_cd, week_ct)
         row = cur.fetchone()
-    raw = row[0] if row else "{}"
+    if not row or row[0] == "null":
+        msg = f"PIT URL payload missing for {op_cd}"
+        logging.error(msg)
+        raise RuntimeError(msg)
+    raw = row[0]
     return json.loads(raw)
 
 
