@@ -17,6 +17,7 @@ Key features
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -274,13 +275,6 @@ def main():
                         st.session_state["uploaded_file"], sheet_name=sheet
                     )
                     guid = str(uuid.uuid4())
-                    logs, payload = run_postprocess_if_configured(
-                        template_obj,
-                        df,
-                        guid,
-                        st.session_state.get("operation_code"),
-                        st.session_state.get("customer_name"),
-                    )
                     final_json = build_output_template(
                         template_obj, st.session_state, guid
                     )
@@ -300,11 +294,19 @@ def main():
                         st.session_state.get("customer_name"),
                         guid,
                     )
+                    logs = [
+                        f"Inserted {rows} rows into RFP_OBJECT_DATA"
+                    ]
+                    logs_post, payload = run_postprocess_if_configured(
+                        template_obj,
+                        df,
+                        guid,
+                        st.session_state.get("operation_code"),
+                        st.session_state.get("customer_name"),
+                    )
+                    logs.extend(logs_post)
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
-                    logs.append(
-                        f"Inserted {rows} rows into RFP_OBJECT_DATA"
-                    )
 
                     state_updates = {
                         "export_complete": True,
@@ -317,7 +319,15 @@ def main():
                     st.session_state.update(state_updates)
                     st.rerun()
         else:
-            st.success("Postprocess complete")
+            st.success(
+                "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
+            )
+            dest_site = os.getenv("CLIENT_DEST_SITE")
+            if dest_site:
+                st.markdown(
+                    f'<a href="{dest_site}" target="_blank">Open SharePoint site</a>',
+                    unsafe_allow_html=True,
+                )
             for line in st.session_state.get("export_logs", []):
                 st.write(line)
             st.json(st.session_state.get("final_json"))
