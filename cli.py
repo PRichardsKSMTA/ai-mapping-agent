@@ -76,21 +76,27 @@ def main() -> None:
     template = load_template(args.template)
     df = load_data(args.input_file)
     state = auto_map(template, df)
-    mapped = build_output_template(template, state)
+    process_guid: str | None = None
+    if args.operation_code and template.template_name == "PIT BID":
+        process_guid = str(uuid.uuid4())
+    mapped = build_output_template(template, state, process_guid)
 
     with args.output.open("w") as f:
         json.dump(mapped, f, indent=2)
 
     if args.csv_output:
         mapped_df = save_mapped_csv(df, mapped, args.csv_output)
-        if args.operation_code and template.template_name == "PIT BID":
-            guid = str(uuid.uuid4())
+        if (
+            args.operation_code
+            and template.template_name == "PIT BID"
+            and process_guid is not None
+        ):
             rows = azure_sql.insert_pit_bid_rows(
-                mapped_df, args.operation_code, args.customer_name, guid
+                mapped_df, args.operation_code, args.customer_name, process_guid
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
             run_postprocess_if_configured(
-                template, df, guid, args.operation_code, args.customer_name
+                template, df, process_guid, args.operation_code, args.customer_name
             )
 
 

@@ -164,6 +164,9 @@ After all layers are confirmed the wizard enters a **Run Export** step. If a
 `postprocess` block exists, `run_postprocess_if_configured` posts the mapped
 rows to the configured URL. A fresh `process_guid` (UUID) is stored in the final
 JSON together with any log messages from that run.
+For PIT BID templates, the CLI generates a new `process_guid` for each
+invocation and propagates it to the SQL insert and any postprocess hook,
+ensuring per-run uniqueness.
 
 ---
 
