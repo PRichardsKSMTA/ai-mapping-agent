@@ -102,6 +102,7 @@ def main() -> None:
             for line in logs_post:
                 print(line)
             if payload is not None:
+                # Always show the post-process payload for visibility
                 print(json.dumps(payload, indent=2))
 
 
