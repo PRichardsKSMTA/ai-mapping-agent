@@ -1,6 +1,7 @@
 import types
 import sys
 import datetime
+import json
 from typing import Any, Dict
 import pandas as pd
 import pytest
@@ -109,13 +110,17 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         operation_cd='OP',
         customer_name='Cust',
     )
-    assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
-        'OP - 20240102 PIT12wk - Cust BID.xlsm'
-    )
+    expected = 'OP - BID - Cust BID.xlsm'
+    assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
     assert called['url'] == tpl.postprocess.url
     assert called['json'] == returned
-    assert any(line.startswith('Payload:') for line in logs)
+    payload_logs = [l for l in logs if l.startswith('Payload:')]
+    assert len(payload_logs) == 2
+    assert 'old.xlsm' in payload_logs[0]
+    logged_payload = json.loads(payload_logs[1].split('Payload: ')[1])
+    assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
+    assert list(logged_payload['item/In_dtInputData'][0].keys()).count('NEW_EXCEL_FILENAME') == 1
     assert logs[-1] == 'Done'
 
 
@@ -150,12 +155,14 @@ def test_pit_bid_logs_payload_when_disabled(monkeypatch):
         operation_cd='OP',
         customer_name='Cust',
     )
-    assert any(line.startswith('Payload:') for line in logs)
+    payload_logs = [l for l in logs if l.startswith('Payload:')]
+    assert payload_logs
+    expected = 'OP - BID - Cust BID.xlsm'
+    logged_payload = json.loads(payload_logs[-1].split('Payload: ')[1])
+    assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert logs[-1] == 'Postprocess disabled'
     assert 'url' not in called
-    assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
-        'OP - 20240102 PIT12wk - Cust BID.xlsm'
-    )
+    assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
 
 
