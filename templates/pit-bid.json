@@ -54,5 +54,8 @@
         }
       ]
     }
-  ]
+  ],
+  "postprocess": {
+    "url": "https://prod-00.westeurope.logic.azure.com/workflows/12345678-90ab-cdef-1234-567890abcdef/triggers/manual/paths/invoke"
+  }
 }
