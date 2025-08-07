@@ -53,6 +53,7 @@ def run_postprocess_if_configured(
             if not process_guid:
                 raise ValueError("process_guid required for PIT BID postprocess")
             logs.append(f"POST {template.postprocess.url}")
+            logs.append(f"Payload: {json.dumps(payload)}")
             if os.getenv("ENABLE_POSTPROCESS") == "1":
                 payload = get_pit_url_payload(operation_cd)
                 now = datetime.utcnow()
@@ -65,6 +66,7 @@ def run_postprocess_if_configured(
                 in_data[0]["NEW_EXCEL_FILENAME"] = fname
                 payload["BID-Payload"] = process_guid
                 logs.append(f"Payload: {json.dumps(payload)}")
+
                 try:
                     import requests  # type: ignore
 
