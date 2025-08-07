@@ -56,6 +56,6 @@
     }
   ],
   "postprocess": {
-    "url": "https://prod-00.westeurope.logic.azure.com/workflows/12345678-90ab-cdef-1234-567890abcdef/triggers/manual/paths/invoke"
+    "url": "https://prod-86.westus.logic.azure.com:443/workflows/786216f8e2b943b49779b6ea8b60fdce/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ZtOry28StthG9xZbYaeW-MxvQFd3lieSRPPzwZdwDLs"
   }
 }
