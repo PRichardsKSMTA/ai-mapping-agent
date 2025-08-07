@@ -17,7 +17,6 @@ def test_run_postprocess_calls_requests(load_env, monkeypatch):
         called['json'] = json
         return types.SimpleNamespace(status_code=200)
 
-    monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=fake_post))
     cfg = PostprocessSpec(url="https://example.com/hook")
     run_postprocess(cfg, pd.DataFrame({"A": [1]}))
@@ -25,17 +24,20 @@ def test_run_postprocess_calls_requests(load_env, monkeypatch):
     assert called['json'] == [{"A": 1}]
 
 
-def test_run_postprocess_disabled(monkeypatch):
+def test_run_postprocess_always_runs(monkeypatch):
     monkeypatch.delenv("ENABLE_POSTPROCESS", raising=False)
-    called = {}
-    monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=lambda *a, **k: called.setdefault('hit', True)))
+    called: dict[str, bool] = {}
+    monkeypatch.setitem(
+        sys.modules,
+        "requests",
+        types.SimpleNamespace(post=lambda *a, **k: called.setdefault('hit', True)),
+    )
     cfg = PostprocessSpec(url="https://example.com/hook")
     run_postprocess(cfg, pd.DataFrame({"A": [1]}))
-    assert 'hit' not in called
+    assert called.get('hit') is True
 
 
 def test_if_configured_helper(load_env, monkeypatch):
-    monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
     called = {}
     monkeypatch.setattr(
         'app_utils.postprocess_runner.run_postprocess',
@@ -59,7 +61,6 @@ def test_if_configured_applies_header_mappings(load_env, monkeypatch):
         captured['cols'] = list(df.columns)
         captured['lane'] = df.at[0, 'LANE_ID']
 
-    monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
     monkeypatch.setattr(
         'app_utils.postprocess_runner.run_postprocess',
         fake_postprocess,
@@ -95,7 +96,6 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         called['url'] = url
         called['json'] = json
 
-    monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=fake_post))
     fixed_now = datetime.datetime(2024, 1, 2, 3, 4, 5)
     monkeypatch.setattr(
@@ -131,7 +131,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     assert logs[-1] == 'Done'
 
 
-def test_pit_bid_logs_payload_when_disabled(monkeypatch):
+def test_pit_bid_posts_without_flag(monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
@@ -140,7 +140,7 @@ def test_pit_bid_logs_payload_when_disabled(monkeypatch):
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
     )
-    called = {}
+    called: dict[str, Any] = {}
 
     def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
         called['url'] = url
@@ -173,8 +173,8 @@ def test_pit_bid_logs_payload_when_disabled(monkeypatch):
     logged_payload = json.loads(payload_logs[-1].split('Payload: ')[1])
     assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert logged_payload['BID-Payload'] == 'guid'
-    assert logs[-1] == 'Postprocess disabled (ENABLE_POSTPROCESS=0)'
-    assert 'url' not in called
+    assert logs[-1] == 'Done'
+    assert called['url'] == tpl.postprocess.url
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
 
@@ -193,7 +193,6 @@ def test_pit_bid_null_payload_logged(load_env, monkeypatch):
     def fake_get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
         raise RuntimeError("null payload")
 
-    monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
         fake_get_pit_url_payload,

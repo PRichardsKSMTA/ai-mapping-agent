@@ -61,6 +61,11 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload', lambda op_cd: {}
     )
+    monkeypatch.setattr(
+        cli,
+        'run_postprocess_if_configured',
+        lambda tpl_obj, df, guid, operation_code=None, customer_name=None: ([], None),
+    )
     monkeypatch.setattr(sys, 'argv', [
         'cli.py',
         str(tpl),
