@@ -80,7 +80,7 @@ def test_if_configured_applies_header_mappings(load_env, monkeypatch):
 
 
 def test_pit_bid_posts_payload(load_env, monkeypatch):
-    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}
+    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}], "BID-Payload": ""}
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
@@ -117,15 +117,18 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     assert called['json'] == returned
     payload_logs = [l for l in logs if l.startswith('Payload:')]
     assert len(payload_logs) == 2
+    original_payload = json.loads(payload_logs[0].split('Payload: ')[1])
+    assert original_payload['BID-Payload'] == ''
     assert 'old.xlsm' in payload_logs[0]
     logged_payload = json.loads(payload_logs[1].split('Payload: ')[1])
     assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
+    assert logged_payload['BID-Payload'] == 'guid'
     assert list(logged_payload['item/In_dtInputData'][0].keys()).count('NEW_EXCEL_FILENAME') == 1
     assert logs[-1] == 'Done'
 
 
 def test_pit_bid_logs_payload_when_disabled(monkeypatch):
-    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}
+    payload = {"item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}], "BID-Payload": ""}
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
@@ -158,8 +161,11 @@ def test_pit_bid_logs_payload_when_disabled(monkeypatch):
     payload_logs = [l for l in logs if l.startswith('Payload:')]
     assert payload_logs
     expected = 'OP - BID - Cust BID.xlsm'
+    original_payload = json.loads(payload_logs[0].split('Payload: ')[1])
+    assert original_payload['BID-Payload'] == ''
     logged_payload = json.loads(payload_logs[-1].split('Payload: ')[1])
     assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
+    assert logged_payload['BID-Payload'] == 'guid'
     assert logs[-1] == 'Postprocess disabled'
     assert 'url' not in called
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
