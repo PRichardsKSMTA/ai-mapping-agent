@@ -87,9 +87,9 @@ def main() -> None:
                 mapped_df, args.operation_code, args.customer_name
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
-
-    # Trigger optional post-process actions
-    run_postprocess_if_configured(template, df)
+            run_postprocess_if_configured(
+                template, df, None, args.operation_code, args.customer_name
+            )
 
 
 if __name__ == "__main__":

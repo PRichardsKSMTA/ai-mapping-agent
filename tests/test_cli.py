@@ -78,3 +78,40 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     assert captured['cust'] == 'Cust'
     assert 'Lane ID' in captured['cols']
 
+
+def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
+    tpl = Path('templates/pit-bid.json')
+    src = tmp_path / 'src.csv'
+    src.write_text('Lane ID,Bid Volume\nL1,5\n')
+    out_json = tmp_path / 'out.json'
+    out_csv = tmp_path / 'out.csv'
+
+    def fake_insert(df, op, cust):
+        return len(df)
+
+    captured: dict[str, object] = {}
+
+    def fake_postprocess(tpl_obj, df, guid, op_cd, cust_name):
+        captured['op'] = op_cd
+        captured['cust'] = cust_name
+        return [], None
+
+    monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
+    monkeypatch.setattr(cli, 'run_postprocess_if_configured', fake_postprocess)
+    monkeypatch.setattr(sys, 'argv', [
+        'cli.py',
+        str(tpl),
+        str(src),
+        str(out_json),
+        '--csv-output',
+        str(out_csv),
+        '--operation-code',
+        'OP',
+        '--customer-name',
+        'Cust',
+    ])
+
+    cli.main()
+    assert captured['op'] == 'OP'
+    assert captured['cust'] == 'Cust'
+
