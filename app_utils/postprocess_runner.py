@@ -2,11 +2,13 @@ from __future__ import annotations
 
 """Minimal post-process utility."""
 
-from typing import List
+from typing import Any, Dict, List, Tuple
 import os
+from datetime import datetime
 import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
+from app_utils.azure_sql import get_pit_url_payload
 
 
 def run_postprocess(
@@ -37,11 +39,40 @@ def run_postprocess_if_configured(
     process_guid: str | None = None,
     operation_cd: str | None = None,
     customer_name: str | None = None,
-) -> List[str]:
+) -> Tuple[List[str], Dict[str, Any] | None]:
     """Run optional postprocess hooks based on ``template``."""
 
     logs: List[str] = []
+    payload: Dict[str, Any] | None = None
     df = apply_header_mappings(df, template)
     if template.postprocess:
-        run_postprocess(template.postprocess, df, logs)
-    return logs
+        if template.template_name == "PIT BID":
+            if not operation_cd:
+                raise ValueError("operation_cd required for PIT BID postprocess")
+            payload = get_pit_url_payload(operation_cd)
+            now = datetime.utcnow()
+            stamp = customer_name or now.strftime("%H%M%S")
+            fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"
+            item = payload.setdefault("item", {})
+            in_data = item.setdefault("In_dtInputData", [{}])
+            if not in_data:
+                in_data.append({})
+            in_data[0]["NEW_EXCEL_FILENAME"] = fname
+            payload["BID-Payload"] = True
+            logs.append(f"POST {template.postprocess.url}")
+            if os.getenv("ENABLE_POSTPROCESS") == "1":
+                try:
+                    import requests  # type: ignore
+                    requests.post(
+                        template.postprocess.url, json=payload, timeout=10
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logs.append(f"Error: {exc}")
+                    raise
+                else:
+                    logs.append("Done")
+            else:
+                logs.append("Postprocess disabled")
+        else:
+            run_postprocess(template.postprocess, df, logs)
+    return logs, payload

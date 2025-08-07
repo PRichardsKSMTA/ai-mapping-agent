@@ -274,7 +274,7 @@ def main():
                         st.session_state["uploaded_file"], sheet_name=sheet
                     )
                     guid = str(uuid.uuid4())
-                    logs = run_postprocess_if_configured(
+                    logs, payload = run_postprocess_if_configured(
                         template_obj,
                         df,
                         guid,
@@ -306,14 +306,15 @@ def main():
                         f"Inserted {rows} rows into RFP_OBJECT_DATA"
                     )
 
-                    st.session_state.update(
-                        {
-                            "export_complete": True,
-                            "export_logs": logs,
-                            "final_json": final_json,
-                            "mapped_csv": csv_bytes,
-                        }
-                    )
+                    state_updates = {
+                        "export_complete": True,
+                        "export_logs": logs,
+                        "final_json": final_json,
+                        "mapped_csv": csv_bytes,
+                    }
+                    if payload is not None:
+                        state_updates["postprocess_payload"] = payload
+                    st.session_state.update(state_updates)
                     st.rerun()
         else:
             st.success("Postprocess complete")

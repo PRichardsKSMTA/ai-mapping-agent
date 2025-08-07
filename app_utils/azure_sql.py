@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 import re
+import json
 
 import pandas as pd
 
@@ -124,6 +125,20 @@ def fetch_customers(operational_scac: str) -> List[Dict[str, str]]:
         cols = [c[0] for c in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
     return sorted(rows, key=lambda r: r["BILLTO_NAME"])
+
+
+def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
+    """Return the PIT URL JSON payload for an operation code."""
+    try:
+        conn = _connect()
+    except RuntimeError as err:  # pragma: no cover - exercised in integration
+        raise RuntimeError(f"PIT URL payload lookup failed: {err}") from err
+    with conn:
+        cur = conn.cursor()
+        cur.execute("EXEC dbo.GetPITURLPayload @OpCd=?, @WeekCt=?", op_cd, week_ct)
+        row = cur.fetchone()
+    raw = row[0] if row else "{}"
+    return json.loads(raw)
 
 
 def get_operational_scac(operation_cd: str) -> str:

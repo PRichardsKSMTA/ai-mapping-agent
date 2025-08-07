@@ -97,7 +97,7 @@ def run_app(monkeypatch):
     def fake_runner(tpl, df, guid=None, *args):
         called["run"] = True
         called["guid"] = guid
-        return ["ok"]
+        return ["ok"], None
 
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",
