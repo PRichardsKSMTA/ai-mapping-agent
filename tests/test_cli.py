@@ -1,5 +1,4 @@
 import json
-import json
 import subprocess
 from pathlib import Path
 import sys
@@ -58,8 +57,10 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
         captured['cust'] = cust
         captured['guid'] = guid
         return len(df)
-
     monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.get_pit_url_payload', lambda op_cd: {}
+    )
     monkeypatch.setattr(sys, 'argv', [
         'cli.py',
         str(tpl),
@@ -84,7 +85,7 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     assert data['process_guid'] == captured['guid']
 
 
-def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
+def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     tpl = Path('templates/pit-bid.json')
     src = tmp_path / 'src.csv'
     src.write_text('Lane ID,Bid Volume\nL1,5\n')
@@ -96,11 +97,13 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
 
     captured: dict[str, object] = {}
 
-    def fake_postprocess(tpl_obj, df, process_guid, op_cd, cust_name):
+    def fake_postprocess(
+        tpl_obj, df, process_guid, op_cd, cust_name
+    ):
         captured['op'] = op_cd
         captured['cust'] = cust_name
         captured['guid'] = process_guid
-        return [], None
+        return ['POST https://example.com/hook', 'Done'], {'foo': 'bar'}
 
     monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
     monkeypatch.setattr(cli, 'run_postprocess_if_configured', fake_postprocess)
@@ -118,6 +121,9 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
     ])
 
     cli.main()
+    out = capsys.readouterr().out
+    assert 'POST https://example.com/hook' in out
+    assert json.dumps({'foo': 'bar'}, indent=2) in out
     data = json.loads(out_json.read_text())
     assert captured['op'] == 'OP'
     assert captured['cust'] == 'Cust'

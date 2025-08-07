@@ -53,9 +53,10 @@ def run_postprocess_if_configured(
             if not process_guid:
                 raise ValueError("process_guid required for PIT BID postprocess")
             logs.append(f"POST {template.postprocess.url}")
-            payload = None
-            try:
-                payload = get_pit_url_payload(operation_cd)
+            payload = get_pit_url_payload(operation_cd)
+            logs.append(f"Payload: {json.dumps(payload)}")
+            if os.getenv("ENABLE_POSTPROCESS") == "1":
+
                 now = datetime.utcnow()
                 stamp = customer_name or now.strftime("%H%M%S")
                 fname = f"{operation_cd} - {now.strftime('%Y%m%d')} PIT12wk - {stamp} BID.xlsm"

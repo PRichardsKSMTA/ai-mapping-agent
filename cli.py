@@ -101,7 +101,7 @@ def main() -> None:
             )
             for line in logs_post:
                 print(line)
-            if payload and os.getenv("DEBUG_POSTPROCESS") == "1":
+            if payload is not None:
                 print(json.dumps(payload, indent=2))
 
 
