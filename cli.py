@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any, Dict
+import uuid
 
 import pandas as pd
 
@@ -83,12 +84,13 @@ def main() -> None:
     if args.csv_output:
         mapped_df = save_mapped_csv(df, mapped, args.csv_output)
         if args.operation_code and template.template_name == "PIT BID":
+            guid = str(uuid.uuid4())
             rows = azure_sql.insert_pit_bid_rows(
-                mapped_df, args.operation_code, args.customer_name
+                mapped_df, args.operation_code, args.customer_name, guid
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
             run_postprocess_if_configured(
-                template, df, None, args.operation_code, args.customer_name
+                template, df, guid, args.operation_code, args.customer_name
             )
 
 

@@ -36,7 +36,7 @@ def run_postprocess(
 def run_postprocess_if_configured(
     template: Template,
     df: pd.DataFrame,
-    process_guid: str | None = None,
+    process_guid: str,
     operation_cd: str | None = None,
     customer_name: str | None = None,
 ) -> Tuple[List[str], Dict[str, Any] | None]:
@@ -49,6 +49,8 @@ def run_postprocess_if_configured(
         if template.template_name == "PIT BID":
             if not operation_cd:
                 raise ValueError("operation_cd required for PIT BID postprocess")
+            if not process_guid:
+                raise ValueError("process_guid required for PIT BID postprocess")
             payload = get_pit_url_payload(operation_cd)
             now = datetime.utcnow()
             stamp = customer_name or now.strftime("%H%M%S")
@@ -58,7 +60,7 @@ def run_postprocess_if_configured(
             if not in_data:
                 in_data.append({})
             in_data[0]["NEW_EXCEL_FILENAME"] = fname
-            payload["BID-Payload"] = True
+            payload["BID-Payload"] = process_guid
             logs.append(f"POST {template.postprocess.url}")
             if os.getenv("ENABLE_POSTPROCESS") == "1":
                 try:

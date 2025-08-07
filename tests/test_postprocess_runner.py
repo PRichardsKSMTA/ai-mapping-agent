@@ -2,6 +2,7 @@ import types
 import sys
 import datetime
 import pandas as pd
+import pytest
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.postprocess_runner import run_postprocess, run_postprocess_if_configured
 
@@ -43,7 +44,7 @@ def test_if_configured_helper(monkeypatch):
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
         'postprocess': {'url': 'https://example.com'}
     })
-    logs, payload = run_postprocess_if_configured(tpl, pd.DataFrame())
+    logs, payload = run_postprocess_if_configured(tpl, pd.DataFrame(), "guid")
     assert called.get('run') is True
     assert isinstance(logs, list)
     assert payload is None
@@ -70,7 +71,7 @@ def test_if_configured_applies_header_mappings(monkeypatch):
 
     df = pd.DataFrame({'Lane Code': ['L1']})
 
-    run_postprocess_if_configured(tpl, df)
+    run_postprocess_if_configured(tpl, df, "guid")
 
     assert captured['lane'] == 'L1'
     assert captured['cols'] == ['LANE_ID']
@@ -103,14 +104,25 @@ def test_pit_bid_posts_payload(monkeypatch):
     logs, returned = run_postprocess_if_configured(
         tpl,
         pd.DataFrame({'A': [1]}),
+        "guid",
         operation_cd='OP',
         customer_name='Cust',
     )
     assert returned['item']['In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
         'OP - 20240102 PIT12wk - Cust BID.xlsm'
     )
-    assert returned['BID-Payload'] is True
+    assert returned['BID-Payload'] == "guid"
     assert called['url'] == tpl.postprocess.url
     assert called['json'] == returned
     assert logs[-1] == 'Done'
+
+
+def test_pit_bid_requires_process_guid():
+    tpl = Template.model_validate({
+        'template_name': 'PIT BID',
+        'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
+        'postprocess': {'url': 'https://example.com/post'},
+    })
+    with pytest.raises(ValueError):
+        run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), '', operation_cd='OP')
 
