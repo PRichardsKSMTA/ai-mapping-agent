@@ -38,15 +38,20 @@ new template JSON with those mappings and any resolved formulas.
 
 ## Post-processing
 
-Templates may include an optional `postprocess` block. To trigger the Power
-Automate flow for those templates, set `ENABLE_POSTPROCESS=1`; otherwise the
-mapped rows are never sent to the configured URL. Set this flag in a `.env`
-file or add it to `.streamlit/secrets.toml`.
+Set `ENABLE_POSTPROCESS=1` (via `.env`, `secrets.toml`, or shell) to activate
+PIT BID's Power Automate trigger.
+
+Templates may include an optional `postprocess` block; without the flag, mapped
+rows are never sent to the configured URL.
+
+Example launch:
 
 ```bash
-export ENABLE_POSTPROCESS=1
+ENABLE_POSTPROCESS=1 streamlit run app.py
+# or
+python start_postprocess.py
 ```
 
 Add this variable to your production hosting configuration so Power Automate
-flows run; without it, post-processing is skipped. Alternatively, launch via
-`start_postprocess.py`. See `docs/template_spec.md` for details.
+flows run; without it, post-processing is skipped. See `docs/template_spec.md`
+for details.
