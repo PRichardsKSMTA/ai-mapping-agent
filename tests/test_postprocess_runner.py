@@ -114,7 +114,45 @@ def test_pit_bid_posts_payload(monkeypatch):
     assert returned['BID-Payload'] == "guid"
     assert called['url'] == tpl.postprocess.url
     assert called['json'] == returned
+    assert any(line.startswith('Payload:') for line in logs)
     assert logs[-1] == 'Done'
+
+
+def test_pit_bid_logs_payload_when_disabled(monkeypatch):
+    payload = {"item": {"In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}}
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.get_pit_url_payload',
+        lambda op_cd, week_ct=12: payload,
+    )
+    called = {}
+
+    def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
+        called['url'] = url
+        called['json'] = json
+
+    monkeypatch.delenv("ENABLE_POSTPROCESS", raising=False)
+    monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=fake_post))
+    fixed_now = datetime.datetime(2024, 1, 2, 3, 4, 5)
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.datetime',
+        types.SimpleNamespace(utcnow=lambda: fixed_now),
+    )
+    tpl = Template.model_validate({
+        'template_name': 'PIT BID',
+        'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
+        'postprocess': {'url': 'https://example.com/post'},
+    })
+    logs, returned = run_postprocess_if_configured(
+        tpl,
+        pd.DataFrame({'A': [1]}),
+        "guid",
+        operation_cd='OP',
+        customer_name='Cust',
+    )
+    assert any(line.startswith('Payload:') for line in logs)
+    assert logs[-1] == 'Postprocess disabled'
+    assert 'url' not in called
+    assert returned == payload
 
 
 def test_pit_bid_requires_process_guid():
