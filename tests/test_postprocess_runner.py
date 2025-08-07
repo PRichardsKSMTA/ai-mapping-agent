@@ -49,7 +49,7 @@ def test_if_configured_helper(load_env, monkeypatch):
     logs, payload = run_postprocess_if_configured(tpl, pd.DataFrame(), "guid")
     assert called.get('run') is True
     assert isinstance(logs, list)
-    assert payload is None
+    assert payload == []
 
 
 def test_if_configured_applies_header_mappings(load_env, monkeypatch):
