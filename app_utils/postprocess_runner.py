@@ -3,6 +3,7 @@ from __future__ import annotations
 """Minimal post-process utility."""
 
 from typing import Any, Dict, List, Tuple
+import json
 import os
 from datetime import datetime
 import pandas as pd
@@ -63,11 +64,19 @@ def run_postprocess_if_configured(
             payload["BID-Payload"] = process_guid
             logs.append(f"POST {template.postprocess.url}")
             if os.getenv("ENABLE_POSTPROCESS") == "1":
+                logs.append(f"Payload: {json.dumps(payload)}")
                 try:
                     import requests  # type: ignore
-                    requests.post(
+
+                    resp: requests.Response | None = requests.post(
                         template.postprocess.url, json=payload, timeout=10
                     )
+                    if resp is not None:
+                        logs.append(f"Status: {resp.status_code}")
+                        logs.append(f"Body: {resp.text[:200]}")
+                        resp.raise_for_status()
+                    else:
+                        logs.append("Status: no response")
                 except Exception as exc:  # noqa: BLE001
                     logs.append(f"Error: {exc}")
                     raise
