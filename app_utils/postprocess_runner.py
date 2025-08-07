@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 import json
-import os
 from datetime import datetime
 import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
@@ -18,10 +17,6 @@ def run_postprocess(
     """Send mapped data to ``cfg.url`` via HTTP POST."""
     if log is not None:
         log.append(f"POST {cfg.url}")
-    if os.getenv("ENABLE_POSTPROCESS") != "1":
-        if log is not None:
-            log.append("Postprocess disabled")
-        return
     try:
         import requests  # type: ignore
         requests.post(cfg.url, json=df.to_dict(orient="records"), timeout=10)
@@ -72,27 +67,23 @@ def run_postprocess_if_configured(
         else:
             logs.append("Missing BID-Payload in payload")
         logs.append(f"Payload: {json.dumps(payload)}")
-        flag = os.getenv("ENABLE_POSTPROCESS", "0")
-        if flag == "1":
-            try:
-                import requests  # type: ignore
+        try:
+            import requests  # type: ignore
 
-                resp: requests.Response | None = requests.post(
-                    template.postprocess.url, json=payload, timeout=10
-                )
-                if resp is not None:
-                    logs.append(f"Status: {resp.status_code}")
-                    logs.append(f"Body: {resp.text[:200]}")
-                    resp.raise_for_status()
-                else:
-                    logs.append("Status: no response")
-            except Exception as exc:  # noqa: BLE001
-                logs.append(f"Error: {exc}")
-                raise
+            resp: requests.Response | None = requests.post(
+                template.postprocess.url, json=payload, timeout=10
+            )
+            if resp is not None:
+                logs.append(f"Status: {resp.status_code}")
+                logs.append(f"Body: {resp.text[:200]}")
+                resp.raise_for_status()
             else:
-                logs.append("Done")
+                logs.append("Status: no response")
+        except Exception as exc:  # noqa: BLE001
+            logs.append(f"Error: {exc}")
+            raise
         else:
-            logs.append(f"Postprocess disabled (ENABLE_POSTPROCESS={flag})")
+            logs.append("Done")
     else:
         payload = df.to_dict(orient="records")
         run_postprocess(template.postprocess, df, logs)
