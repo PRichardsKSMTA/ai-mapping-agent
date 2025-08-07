@@ -6,11 +6,16 @@ def _fake_conn(captured):
     class FakeCursor:
         def __init__(self) -> None:
             self.columns: list[str] = []
+            self.fast_executemany = False
 
         def execute(self, query, params=None):  # pragma: no cover - executed via call
             if "INFORMATION_SCHEMA.COLUMNS" in query:
                 return self
             captured["params"] = params
+            return self
+
+        def executemany(self, query, params):  # pragma: no cover - executed via call
+            captured["params"] = params[0] if params else None
             return self
 
         def fetchall(self):  # pragma: no cover - executed via call

@@ -230,7 +230,7 @@ def insert_pit_bid_rows(
         columns = base_columns + extra_columns + adhoc_slots + tail_columns
         placeholders = ",".join(["?"] * len(columns))
         now = datetime.utcnow()
-        row_count = 0
+        rows: list[list[Any]] = []
         for _, row in df_db.iterrows():
             values = {c: None for c in columns}
             values["OPERATION_CD"] = operation_cd
@@ -250,9 +250,11 @@ def insert_pit_bid_rows(
             available_slots = [slot for slot in adhoc_slots if values[slot] is None]
             for slot, col in zip(available_slots, unmapped):
                 values[slot] = _to_str(row[col])
-            cur.execute(
+            rows.append([values[c] for c in columns])
+        if rows:
+            cur.fast_executemany = True  # type: ignore[attr-defined]
+            cur.executemany(
                 f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
-                [values[c] for c in columns],
+                rows,
             )
-            row_count += 1
-    return row_count
+    return len(rows)
