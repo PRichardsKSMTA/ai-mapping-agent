@@ -1,4 +1,5 @@
 import json
+import json
 import subprocess
 from pathlib import Path
 import sys
@@ -74,11 +75,13 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
 
     cli.main()
     out = capsys.readouterr().out
+    data = json.loads(out_json.read_text())
     assert 'Inserted 1 rows into RFP_OBJECT_DATA' in out
     assert captured['op'] == 'OP'
     assert captured['cust'] == 'Cust'
     assert 'Lane ID' in captured['cols']
     assert captured['guid']
+    assert data['process_guid'] == captured['guid']
 
 
 def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
@@ -115,7 +118,9 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path):
     ])
 
     cli.main()
+    data = json.loads(out_json.read_text())
     assert captured['op'] == 'OP'
     assert captured['cust'] == 'Cust'
     assert captured['guid']
+    assert data['process_guid'] == captured['guid']
 
