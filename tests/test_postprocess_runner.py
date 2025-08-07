@@ -8,7 +8,7 @@ from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.postprocess_runner import run_postprocess, run_postprocess_if_configured
 
 
-def test_run_postprocess_calls_requests(monkeypatch):
+def test_run_postprocess_calls_requests(load_env, monkeypatch):
     called = {}
 
     def fake_post(url, json=None, timeout=10):
@@ -33,7 +33,7 @@ def test_run_postprocess_disabled(monkeypatch):
     assert 'hit' not in called
 
 
-def test_if_configured_helper(monkeypatch):
+def test_if_configured_helper(load_env, monkeypatch):
     monkeypatch.setenv("ENABLE_POSTPROCESS", "1")
     called = {}
     monkeypatch.setattr(
@@ -51,7 +51,7 @@ def test_if_configured_helper(monkeypatch):
     assert payload is None
 
 
-def test_if_configured_applies_header_mappings(monkeypatch):
+def test_if_configured_applies_header_mappings(load_env, monkeypatch):
     captured = {}
 
     def fake_postprocess(cfg, df, log=None):  # pragma: no cover - executed via call
@@ -78,7 +78,7 @@ def test_if_configured_applies_header_mappings(monkeypatch):
     assert captured['cols'] == ['LANE_ID']
 
 
-def test_pit_bid_posts_payload(monkeypatch):
+def test_pit_bid_posts_payload(load_env, monkeypatch):
     payload = {"item": {"In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}]}}
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
@@ -169,7 +169,7 @@ def test_pit_bid_requires_process_guid():
         run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), '', operation_cd='OP')
 
 
-def test_pit_bid_null_payload_logged(monkeypatch):
+def test_pit_bid_null_payload_logged(load_env, monkeypatch):
     def fake_get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
         raise RuntimeError("null payload")
 
