@@ -334,10 +334,12 @@ def main():
                 )
             for line in st.session_state.get("export_logs", []):
                 st.write(line)
-            if template_obj.postprocess:
-                st.write(template_obj.postprocess.url)
-            payload = st.session_state.get("postprocess_payload")
+            payload: dict[str, object] | None = st.session_state.get(
+                "postprocess_payload"
+            )
             if payload is not None:
+                if template_obj.postprocess:
+                    st.write(template_obj.postprocess.url)
                 st.json(payload)
             st.json(st.session_state.get("final_json"))
             csv_data = st.session_state.get("mapped_csv")
