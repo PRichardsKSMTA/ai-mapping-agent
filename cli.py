@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict
 import uuid
@@ -95,9 +96,13 @@ def main() -> None:
                 mapped_df, args.operation_code, args.customer_name, process_guid
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
-            run_postprocess_if_configured(
+            logs_post, payload = run_postprocess_if_configured(
                 template, df, process_guid, args.operation_code, args.customer_name
             )
+            for line in logs_post:
+                print(line)
+            if payload and os.getenv("DEBUG_POSTPROCESS") == "1":
+                print(json.dumps(payload, indent=2))
 
 
 if __name__ == "__main__":
