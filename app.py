@@ -325,6 +325,7 @@ def main():
                         st.session_state.get("operation_code"),
                         st.session_state.get("customer_name"),
                     )
+                    st.session_state["postprocess_payload"] = payload
                     logs.extend(logs_post)
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
@@ -335,8 +336,6 @@ def main():
                         "final_json": final_json,
                         "mapped_csv": csv_bytes,
                     }
-                    if payload is not None:
-                        state_updates["postprocess_payload"] = payload
                     st.session_state.update(state_updates)
                     st.rerun()
         else:
@@ -351,13 +350,10 @@ def main():
                 )
             for line in st.session_state.get("export_logs", []):
                 st.write(line)
-            payload: dict[str, object] | None = st.session_state.get(
-                "postprocess_payload"
-            )
-            if payload is not None:
+            if st.session_state.get("postprocess_payload"):
                 if template_obj.postprocess:
                     st.write(template_obj.postprocess.url)
-                st.json(payload)
+                st.json(st.session_state["postprocess_payload"])
             st.json(st.session_state.get("final_json"))
             csv_data = st.session_state.get("mapped_csv")
             if csv_data:
