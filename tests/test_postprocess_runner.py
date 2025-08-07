@@ -153,7 +153,10 @@ def test_pit_bid_logs_payload_when_disabled(monkeypatch):
     assert any(line.startswith('Payload:') for line in logs)
     assert logs[-1] == 'Postprocess disabled'
     assert 'url' not in called
-    assert returned == payload
+    assert returned['item']['In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == (
+        'OP - 20240102 PIT12wk - Cust BID.xlsm'
+    )
+    assert returned['BID-Payload'] == 'guid'
 
 
 def test_pit_bid_requires_process_guid():
