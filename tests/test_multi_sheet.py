@@ -244,6 +244,8 @@ def test_multiple_computed_layers_need_confirmation(monkeypatch):
             "upload_sheet": 0,
             "current_template": "demo",
             "header_ai_done_0": True,
+            "header_mapping_0": {"A": {}},
+            "header_sheet_0": 0,
         }
     )
     header_layer = HeaderLayer(type="header", fields=[FieldSpec(key="A")])

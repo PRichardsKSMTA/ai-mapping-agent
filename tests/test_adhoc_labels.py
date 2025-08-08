@@ -68,6 +68,8 @@ def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Di
             "current_template": "PIT BID",
             "layer_confirmed_0": True,
             "header_adhoc_headers": {"ADHOC_INFO1": "Foo"},
+            "customer_name": "Demo",
+            "operation_code": "ADSJ_VAN",
         }
     )
     sys.modules.pop("app", None)

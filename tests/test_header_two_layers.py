@@ -26,6 +26,9 @@ class DummyStreamlit:
     def spinner(self, *a, **k):
         return self.Spinner()
 
+    def rerun(self):
+        pass
+
 
 def patch_streamlit(monkeypatch):
     st = DummyStreamlit()
@@ -41,7 +44,9 @@ def test_two_header_layers(monkeypatch):
         return pd.DataFrame({"A": [1]}), ["A"]
 
     monkeypatch.setattr(header_step, "read_tabular_file", fake_read)
-    monkeypatch.setattr(header_step, "apply_gpt_header_fallback", lambda m, c: m)
+    monkeypatch.setattr(
+        header_step, "apply_gpt_header_fallback", lambda m, c, targets=None: m
+    )
     st.caption = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("stop"))
 
     st.session_state.update({
@@ -59,5 +64,5 @@ def test_two_header_layers(monkeypatch):
         with pytest.raises(RuntimeError):
             header_step.render(layer, idx)
 
-    assert st.session_state["header_mapping_0"]["A"]["src"] == "A"
-    assert st.session_state["header_mapping_1"]["A"]["src"] == "A"
+    assert st.session_state["header_mapping_0"]["A"] == {}
+    assert st.session_state["header_mapping_1"]["A"] == {}

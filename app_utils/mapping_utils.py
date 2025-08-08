@@ -167,12 +167,15 @@ def suggest_header_mapping(template_fields: list[str], source_columns: list[str]
     lower_list = list(lower_map.keys())
 
     for tf in template_fields:
+        if tf.startswith("ADHOC"):
+            out[tf] = {}
+            continue
         matches = get_close_matches(tf.lower(), lower_list, n=1, cutoff=0)
         if matches:
             best_lower = matches[0]
             best_src = lower_map[best_lower]
             ratio = SequenceMatcher(None, tf.lower(), best_lower).ratio()
-            if ratio >= 0.5:
+            if ratio >= 0.8:
                 out[tf] = {"src": best_src, "confidence": ratio}
                 continue
         out[tf] = {}

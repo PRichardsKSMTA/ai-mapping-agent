@@ -26,6 +26,9 @@ class DummyStreamlit:
     def spinner(self, *a, **k):
         return self.Spinner()
 
+    def rerun(self):
+        pass
+
     def columns(self, spec):
         if isinstance(spec, int):
             spec = range(spec)
@@ -64,7 +67,9 @@ def test_auto_switch_sheet(monkeypatch):
         return pd.DataFrame({"B": [2]}), ["B"]
 
     monkeypatch.setattr(header_step, "read_tabular_file", fake_read)
-    monkeypatch.setattr(header_step, "apply_gpt_header_fallback", lambda m, c: m)
+    monkeypatch.setattr(
+        header_step, "apply_gpt_header_fallback", lambda m, c, targets=None: m
+    )
 
     st.session_state.update({
         "uploaded_file": object(),
@@ -78,7 +83,7 @@ def test_auto_switch_sheet(monkeypatch):
         header_step.render(layer, 0)
 
     assert st.session_state["upload_sheet"] == "Second"
-    assert st.session_state["header_mapping_0"]["B"]["src"] == "B"
+    assert st.session_state["header_mapping_0"]["B"] == {}
 
 
 def test_sheet_change_recomputes_mapping(monkeypatch):
@@ -90,7 +95,9 @@ def test_sheet_change_recomputes_mapping(monkeypatch):
         return pd.DataFrame({"B": [1]}), ["B"]
 
     monkeypatch.setattr(header_step, "read_tabular_file", fake_read)
-    monkeypatch.setattr(header_step, "apply_gpt_header_fallback", lambda m, c: m)
+    monkeypatch.setattr(
+        header_step, "apply_gpt_header_fallback", lambda m, c, targets=None: m
+    )
 
     st.session_state.update({
         "uploaded_file": object(),
@@ -109,4 +116,5 @@ def test_sheet_change_recomputes_mapping(monkeypatch):
     with pytest.raises(RuntimeError):
         header_step.render(layer, 0)
 
-    assert st.session_state["header_mapping_0"]["B"]["src"] == "B"
+    assert st.session_state["header_sheet_0"] == "Second"
+    assert st.session_state["header_mapping_0"]["B"] == {}

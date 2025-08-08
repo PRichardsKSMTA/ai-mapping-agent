@@ -34,5 +34,5 @@ def test_apply_gpt_header_fallback(monkeypatch):
     )
 
     mapping = {"FieldA": {"src": "ColA"}, "FieldB": {}}
-    out = apply_gpt_header_fallback(mapping, ["ColA", "ColB"])
+    out = apply_gpt_header_fallback(mapping, ["ColA", "ColB"], targets=["FieldB"])
     assert out["FieldB"]["src"] == "ColB"

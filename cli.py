@@ -43,7 +43,8 @@ def auto_map(template: Template, df: pd.DataFrame) -> Dict[str, Any]:
         if layer.type == "header":
             fields = [f.key for f in layer.fields]  # type: ignore[attr-defined]
             mapping = suggest_header_mapping(fields, columns)
-            mapping = apply_gpt_header_fallback(mapping, columns)
+            required = [f.key for f in layer.fields if f.required]  # type: ignore[attr-defined]
+            mapping = apply_gpt_header_fallback(mapping, columns, targets=required)
             state[f"header_mapping_{idx}"] = mapping
         elif layer.type == "lookup":
             src = layer.source_field

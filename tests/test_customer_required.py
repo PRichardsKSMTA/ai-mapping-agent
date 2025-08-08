@@ -64,6 +64,9 @@ class DummyStreamlit:
 
     header = subheader = success = warning = info = caption = title
 
+    def markdown(self, *a, **k):
+        pass
+
     def selectbox(self, label, options, index=0, key=None, **k):
         if label == "Customer":
             choice = None
@@ -105,7 +108,7 @@ def run_app(monkeypatch):
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: [])
     monkeypatch.setattr("app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["OP"])
-    monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [{"BILLTO_NAME": "Cust"}])
+    monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
     monkeypatch.setattr("app_utils.azure_sql.get_operational_scac", lambda op: "SCAC")
     st.session_state.update({"template_name": "PIT BID"})
     sys.modules.pop("app", None)

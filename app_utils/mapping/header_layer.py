@@ -1,7 +1,7 @@
 from __future__ import annotations
 """Header mapping helpers including GPT fallback."""
 
-from typing import Dict, List
+from typing import Dict, List, Iterable
 import os
 import json
 from openai import OpenAI
@@ -33,10 +33,15 @@ def gpt_header_completion(unmapped: List[str], source_columns: List[str]) -> Dic
 
 
 def apply_gpt_header_fallback(
-    mapping: Dict[str, Dict[str, str]], source_columns: List[str]
+    mapping: Dict[str, Dict[str, str]],
+    source_columns: List[str],
+    targets: Iterable[str] | None = None,
 ) -> Dict[str, Dict[str, str]]:
     """Fill unmapped header fields using GPT suggestions."""
     unmapped = [k for k, v in mapping.items() if not v.get("src") and not v.get("expr")]
+    if targets is not None:
+        target_set = set(targets)
+        unmapped = [k for k in unmapped if k in target_set]
     if not unmapped:
         return mapping
     try:
