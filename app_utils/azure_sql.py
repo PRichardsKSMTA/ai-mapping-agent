@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 import os
 from pathlib import Path
 from datetime import datetime
+import time
 import re
 import json
 import logging
@@ -308,6 +309,17 @@ def insert_pit_bid_rows(
         text = str(val).strip()
         return text or None
 
+    def _prep_state(val: Any, field: str) -> str | None:
+        if pd.isna(val) or val == "":
+            return None
+        text = str(val).strip()
+        abbr = abbreviate_state(text)
+        if abbr:
+            return abbr
+        if len(text) >= 2:
+            return text[:2].upper()
+        raise ValueError(f"{field} value '{val}' cannot be abbreviated")
+
     df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
     if df_db.columns.duplicated().any():
         for col in df_db.columns[df_db.columns.duplicated()].unique():
@@ -341,6 +353,7 @@ def insert_pit_bid_rows(
         ]
         columns = base_columns + extra_columns + adhoc_slots + tail_columns
 
+        transform_start = time.perf_counter()
         unmapped = [
             c
             for c in df_db.columns
@@ -369,11 +382,16 @@ def insert_pit_bid_rows(
             df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
 
         rows = list(df_db.itertuples(index=False, name=None))
+        transform_time = time.perf_counter() - transform_start
         if not rows:
+            logging.info(
+                "insert_pit_bid_rows transform=%.3fs db=0.000s", transform_time
+            )
             return 0
 
         cur.fast_executemany = True  # type: ignore[attr-defined]
         placeholders = ",".join(["?"] * len(columns))
+        db_start = time.perf_counter()
         if tvp_name and pyodbc and hasattr(pyodbc, "TableValuedParam"):
             tvp = pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
             cur.execute(
@@ -400,6 +418,10 @@ def insert_pit_bid_rows(
             for start in range(0, len(rows), batch_size):
                 batch = rows[start : start + batch_size]
                 cur.executemany(query, batch)
+        db_time = time.perf_counter() - db_start
+    logging.info(
+        "insert_pit_bid_rows transform=%.3fs db=%.3fs", transform_time, db_time
+    )
     return len(rows)
 
 
