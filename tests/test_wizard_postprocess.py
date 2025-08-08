@@ -98,6 +98,13 @@ def run_app(monkeypatch):
     monkeypatch.setattr(
         "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid: len(df)
     )
+    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid):
+        called["log_guid"] = process_guid
+        called["log_template"] = template_name
+        called["log_friendly"] = friendly_name
+        called["log_email"] = user_email
+        called["log_file"] = file_name_string
+    monkeypatch.setattr("app_utils.azure_sql.log_mapping_process", fake_log)
     called: dict[str, object] = {}
 
     def fake_runner(tpl, df, process_guid, *args):
@@ -137,6 +144,11 @@ def test_postprocess_runner_called(monkeypatch):
     called, state, _st = run_app(monkeypatch)
     assert called.get("run") is True
     assert called.get("guid") is not None
+    assert called.get("log_guid") == called.get("guid")
+    assert called.get("log_template") == "pit-bid"
+    assert called.get("log_friendly") == "PIT BID"
+    assert called.get("log_file") == "pit-bid.json"
+    assert state["final_json"].get("process_guid") == called.get("guid")
     logs = state.get("export_logs")
     assert "Inserted" in logs[0]
     assert logs[1] == "ok"
