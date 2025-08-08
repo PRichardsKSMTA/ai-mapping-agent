@@ -22,8 +22,6 @@ def test_pit_bid_field_map_alignment():
         "Bid Volume": "BID_VOLUME",
         "LH Rate": "LH_RATE",
         "Bid Miles": "RFP_MILES",
-        "Miles": "RFP_MILES",
-        "Tolls": "FM_TOLLS",
         "Customer Name": "CUSTOMER_NAME",
         "Freight Type": "FREIGHT_TYPE",
         "Temp Cat": "TEMP_CAT",
@@ -214,7 +212,6 @@ def test_insert_pit_bid_rows(monkeypatch):
             "Bid Volume": [5],
             "LH Rate": [1.2],
             "Bid Miles": [100],
-            "Tolls": [7],
             "Foo": ["bar"],
         }
     )
@@ -230,6 +227,7 @@ def test_insert_pit_bid_rows(monkeypatch):
     assert captured["params"][10] == 1.2  # LH_RATE
     assert captured["params"][14] == "bar"  # ADHOC_INFO1
     assert captured["params"][24] == 100  # RFP_MILES
+    assert captured["params"][25] is None  # FM_TOLLS
     assert captured["params"][28] is None  # VOLUME_FREQUENCY
     assert len(captured["params"]) == 29
 
@@ -249,7 +247,6 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
             "Bid Volume": [""],
             "LH Rate": [""],
             "Bid Miles": [""],
-            "Tolls": [""],
         }
     )
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
@@ -257,7 +254,7 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
     assert captured["params"][9] is None  # BID_VOLUME
     assert captured["params"][10] is None  # LH_RATE
     assert captured["params"][24] is None  # RFP_MILES
-    assert captured["params"][25] is None  # RFP_TOLLS
+    assert captured["params"][25] is None  # FM_TOLLS
 
 
 def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
@@ -274,7 +271,7 @@ def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
             "DEST_POSTAL_CD": ["22222"],
             "BID_VOLUME": [5],
             "LH_RATE": [1.2],
-            "Miles": [123],
+            "RFP_MILES": [123],
         }
     )
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
@@ -284,7 +281,7 @@ def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
     assert captured["params"][14] is None  # no ADHOC columns
 
 
-def test_insert_pit_bid_rows_prefer_bid_miles(monkeypatch):
+def test_insert_pit_bid_rows_unmapped_miles(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     df = pd.DataFrame(
@@ -298,7 +295,7 @@ def test_insert_pit_bid_rows_prefer_bid_miles(monkeypatch):
     assert rows == 1
     assert captured["params"][2] == "L1"
     assert captured["params"][24] == 321  # from Bid Miles
-    assert captured["params"][14] is None  # Miles not treated as ADHOC
+    assert captured["params"][14] == "999"  # Miles becomes ADHOC_INFO1
 
 def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     captured = {}
@@ -311,7 +308,6 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
             "Bid Volume": ["5,000"],
             "LH Rate": ["$1.50"],
             "Bid Miles": ["1,234"],
-            "Tolls": ["$2.25"],
         }
     )
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
@@ -321,7 +317,7 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     assert captured["params"][9] == 5000.0
     assert captured["params"][10] == 1.5
     assert captured["params"][24] == 1234.0
-    assert captured["params"][25] == 2.25
+    assert captured["params"][25] is None
 
 def test_insert_pit_bid_rows_customer_column(monkeypatch):
     captured = {}
