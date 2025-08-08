@@ -60,9 +60,11 @@ def test_cli_csv_output(monkeypatch, tmp_path: Path):
     ])
     cli.main()
 
+    data = json.loads(out_json.read_text())
     content = out_csv.read_text().strip().splitlines()
     assert content[0] == 'Name,Value'
     assert content[1] == 'Alice,1'
+    assert data['process_guid']
 
 
 def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
