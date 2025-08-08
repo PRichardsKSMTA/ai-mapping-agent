@@ -123,14 +123,14 @@ def test_add_remove_field_without_template():
     assert st.session_state["unsaved_changes"] is True
 
 
-def test_set_field_mapping_marks_unsaved():
+def test_set_field_mapping_does_not_mark_unsaved():
     idx = 0
     key = f"header_mapping_{idx}"
     st.session_state.clear()
     st.session_state[key] = {"Name": {}}
 
     set_field_mapping("Name", idx, {"src": "Col"})
-    assert st.session_state["unsaved_changes"] is True
+    assert "unsaved_changes" not in st.session_state
     assert st.session_state[key]["Name"]["src"] == "Col"
 
 
