@@ -120,6 +120,7 @@ def render(layer, idx: int) -> None:
     st.caption("• ✅ mapped  • 🛈 suggested  • ❌ required & missing")
 
     all_fields = list(layer.fields) + [FieldSpec(key=f) for f in extra_fields]
+    adhoc_labels = st.session_state.setdefault("header_adhoc_headers", {})
     for field in all_fields:  # type: ignore
         key, required = field.key, field.required
         # Source | ⚙ | Expr | Template | Status | 🗑️
@@ -189,8 +190,21 @@ def render(layer, idx: int) -> None:
         else:
             row[2].markdown("")
 
-        # ── Template label & status icon ────────────────────────────────
-        row[3].markdown(f"**{key}**")
+        # ── Template label & optional display name ──────────────────────
+        if key.startswith("ADHOC_INFO"):
+            sub = row[3].columns([1, 1])
+            sub[0].markdown(f"**{key}**")
+            match = re.findall(r"\d+", key)
+            default = adhoc_labels.get(key) or f"AdHoc{match[0] if match else ''}"
+            val = sub[1].text_input(
+                f"adhoc_label_{key}",
+                value=default,
+                label_visibility="collapsed",
+            )
+            adhoc_labels[key] = val or default
+        else:
+            row[3].markdown(f"**{key}**")
+
         status = (
             "✅"
             if "src" in mapping.get(key, {})
