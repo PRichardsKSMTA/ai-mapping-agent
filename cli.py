@@ -76,7 +76,7 @@ def main() -> None:
     parser.add_argument(
         "--customer-name",
         type=str,
-        help="Optional customer name for SQL insert",
+        help="Customer name for SQL insert",
     )
     parser.add_argument(
         "--user-email",
@@ -84,8 +84,9 @@ def main() -> None:
         help="User email for process logging",
     )
     args = parser.parse_args()
-
     template = load_template(args.template)
+    if template.template_name == "PIT BID" and not args.customer_name:
+        parser.error("--customer-name is required for PIT BID templates")
     df = load_data(args.input_file)
     state = auto_map(template, df)
     process_guid = str(uuid.uuid4())
@@ -102,6 +103,8 @@ def main() -> None:
             and args.customer_name
             and template.template_name == "PIT BID"
         ):
+            if not args.customer_name:
+                parser.error("--customer-name is required when --operation-code is provided")
             rows = azure_sql.insert_pit_bid_rows(
                 mapped_df,
                 args.operation_code,
