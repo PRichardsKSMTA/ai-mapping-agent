@@ -21,6 +21,7 @@ from app_utils.ui.header_utils import (
     persist_suggestions_from_mapping,
 )
 from app_utils.ui_utils import set_steps_from_template
+import uuid
 
 # ─── CSS tweaks ───────────────────────────────────────────────────────
 st.markdown(
@@ -247,7 +248,9 @@ def render(layer, idx: int) -> None:
         tpl_raw = st.session_state.get("template")
         if tpl_raw is not None:
             tpl_obj = Template.model_validate(tpl_raw)
-            tpl_json = build_output_template(tpl_obj, st.session_state)
+            tpl_json = build_output_template(
+                tpl_obj, st.session_state, str(uuid.uuid4())
+            )
             import tempfile
 
             with tempfile.NamedTemporaryFile(

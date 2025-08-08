@@ -19,6 +19,7 @@ def test_cli_basic(tmp_path: Path):
     fields = {f['key']: f.get('source') for f in header_layer['fields']}
     assert fields['Name'] == 'Name'
     assert fields['Value'] == 'Value'
+    assert data['process_guid']
 
 
 def test_cli_csv_output(tmp_path: Path):
@@ -37,9 +38,11 @@ def test_cli_csv_output(tmp_path: Path):
         str(out_csv),
     ])
 
+    data = json.loads(out_json.read_text())
     content = out_csv.read_text().strip().splitlines()
     assert content[0] == 'Name,Value'
     assert content[1] == 'Alice,1'
+    assert data['process_guid']
 
 
 def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
