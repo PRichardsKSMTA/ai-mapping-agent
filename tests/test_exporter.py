@@ -7,7 +7,9 @@ from app_utils.mapping.exporter import build_output_template
 
 def load_sample(name: str) -> Template:
     txt = Path("templates") / f"{name}.json"
-    return Template.model_validate(json.loads(txt.read_text()))
+    tpl = Template.model_validate(json.loads(txt.read_text()))
+    assert tpl.template_guid
+    return tpl
 
 
 def test_expressions_in_output():

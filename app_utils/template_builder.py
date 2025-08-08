@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import json
 import os
 import re
+import uuid
 import pandas as pd
 from schemas.template_v2 import Template, LookupLayer, ComputedLayer
 
@@ -21,11 +22,13 @@ def build_template(
     template_name: str,
     layers: List[Dict],
     postprocess: Dict | None = None,
+    template_guid: str | None = None,
 ) -> Dict:
     """Return a validated template structure with arbitrary layers."""
     tpl = {"template_name": template_name, "layers": layers}
     if postprocess:
         tpl["postprocess"] = postprocess
+    tpl["template_guid"] = template_guid or str(uuid.uuid4())
     Template.model_validate(tpl)
     return tpl
 
@@ -56,6 +59,7 @@ def save_template_file(tpl: Dict, directory: str = "templates") -> str:
     safe = slugify(tpl["template_name"])
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, f"{safe}.json")
+    tpl.setdefault("template_guid", str(uuid.uuid4()))
     with open(path, "w") as f:
         json.dump(tpl, f, indent=2)
     return safe

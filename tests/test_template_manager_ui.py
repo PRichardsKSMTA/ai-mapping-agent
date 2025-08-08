@@ -192,9 +192,13 @@ def test_postprocess_passed_to_builder(monkeypatch):
 
     captured = {}
 
-    def fake_builder(name, layers, post=None):
+    def fake_builder(name, layers, post=None, template_guid=None):
         captured["post"] = post
-        return {"template_name": name, "layers": layers}
+        return {
+            "template_name": name,
+            "layers": layers,
+            "template_guid": template_guid or "guid",
+        }
 
     dummy = run_manager(
         monkeypatch,
