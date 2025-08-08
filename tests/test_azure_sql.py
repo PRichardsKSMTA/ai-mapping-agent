@@ -228,6 +228,7 @@ def test_insert_pit_bid_rows(monkeypatch):
     assert captured["params"][10] == 1.2  # LH_RATE
     assert captured["params"][14] == "bar"  # ADHOC_INFO1
     assert captured["params"][24] == 100  # RFP_MILES
+    assert captured["params"][25] is None  # FM_TOLLS
     assert captured["params"][28] is None  # VOLUME_FREQUENCY
     assert len(captured["params"]) == 29
 

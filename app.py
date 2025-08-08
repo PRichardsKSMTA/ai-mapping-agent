@@ -22,6 +22,7 @@ from pathlib import Path
 
 import streamlit as st
 from pydantic import ValidationError
+import auth
 try:
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - optional dependency
@@ -36,6 +37,8 @@ from app_utils.azure_sql import (
     get_operational_scac,
     insert_pit_bid_rows,
 )
+from app_utils import azure_sql
+from app_utils.template_builder import slugify
 from schemas.template_v2 import Template
 from app_utils.ui_utils import render_progress, set_steps_from_template
 from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
@@ -319,6 +322,15 @@ def main():
                         guid,
                         st.session_state.get("operation_code"),
                         st.session_state.get("customer_name"),
+                    )
+                    azure_sql.log_mapping_process(
+                        guid,
+                        slugify(template_obj.template_name),
+                        template_obj.template_name,
+                        auth.get_user_email(),
+                        selected_file,
+                        json.dumps(final_json),
+                        template_obj.template_guid,
                     )
                     st.session_state["postprocess_payload"] = payload
                     logs.extend(logs_post)
