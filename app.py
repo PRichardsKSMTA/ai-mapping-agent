@@ -17,8 +17,8 @@ Key features
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
+import os
 
 import streamlit as st
 from pydantic import ValidationError
@@ -356,9 +356,13 @@ def main():
                 "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
             dest_site = os.getenv("CLIENT_DEST_SITE")
+            dest_folder = os.getenv("CLIENT_DEST_FOLDER_PATH")
             if dest_site:
+                href = dest_site.rstrip("/")
+                if dest_folder:
+                    href = f"{href}/{dest_folder.lstrip('/')}"
                 st.markdown(
-                    f'<a href="{dest_site}" target="_blank">Open SharePoint site</a>',
+                    f'<a href="{href}" target="_blank">Open SharePoint site</a>',
                     unsafe_allow_html=True,
                 )
             for line in st.session_state.get("export_logs", []):
@@ -368,6 +372,7 @@ def main():
             st.json(st.session_state.get("postprocess_payload"))
             st.json(st.session_state.get("final_json"))
             csv_data = st.session_state.get("mapped_csv")
+
             if csv_data:
                 st.download_button(
                     "Download mapped CSV",

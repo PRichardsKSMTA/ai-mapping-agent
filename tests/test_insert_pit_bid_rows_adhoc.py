@@ -15,7 +15,9 @@ def _fake_conn(captured):
             return self
 
         def executemany(self, query, params):  # pragma: no cover - executed via call
+            captured.setdefault("batches", []).append(list(params))
             captured["params"] = params[0] if params else None
+            captured["fast_executemany"] = self.fast_executemany
             return self
 
         def fetchall(self):  # pragma: no cover - executed via call
@@ -75,3 +77,18 @@ def test_insert_pit_bid_rows_preserves_existing_adhoc(monkeypatch):
     assert params[15] == "new"  # ADHOC_INFO2 filled with extra column
     assert params[16] is None  # ADHOC_INFO3 remains None
     assert params[23] is None  # ADHOC_INFO10 remains None
+
+
+def test_insert_pit_bid_rows_batches(monkeypatch):
+    captured: dict = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({
+        "Lane ID": [f"L{i}" for i in range(1500)],
+        "Foo": [i for i in range(1500)],
+    })
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", batch_size=1000)
+    assert rows == 1500
+    assert len(captured["batches"]) == 2
+    assert len(captured["batches"][0]) == 1000
+    assert len(captured["batches"][1]) == 500

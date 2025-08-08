@@ -1,4 +1,5 @@
 import types
+import logging
 import pytest
 import pandas as pd
 
@@ -178,7 +179,9 @@ def _fake_conn(captured: dict, columns: set[str] | None = None):
 
         def executemany(self, query, params):  # pragma: no cover - executed via call
             captured["query"] = query
+            captured.setdefault("batches", []).append(list(params))
             captured["params"] = params[0] if params else None
+            captured["fast_executemany"] = self.fast_executemany
             return self
 
         def fetchall(self):  # pragma: no cover - executed via call
@@ -376,4 +379,54 @@ def test_insert_pit_bid_rows_unknown_columns_to_adhoc(monkeypatch):
     assert rows == 1
     assert captured["params"][14] == "val"  # ADHOC_INFO1
     assert len(captured["params"]) == 29
+
+
+def test_insert_pit_bid_rows_batches(monkeypatch):
+    captured: dict = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({"Lane ID": [f"L{i}" for i in range(1500)]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", batch_size=1000)
+    assert rows == 1500
+    assert len(captured["batches"]) == 2
+    assert len(captured["batches"][0]) == 1000
+    assert len(captured["batches"][1]) == 500
+
+
+def test_insert_pit_bid_rows_tvp(monkeypatch):
+    captured: dict = {}
+
+    class FakeTVP:
+        def __init__(self, name, rows):
+            self.name = name
+            self.rows = rows
+
+    fake_pyodbc = types.SimpleNamespace(TableValuedParam=FakeTVP)
+    monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({"Lane ID": ["L1", "L2"]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", tvp_name="dbo.TVP")
+    assert rows == 2
+    assert isinstance(captured["params"], FakeTVP)
+    assert captured["params"].name == "dbo.TVP"
+
+
+def test_insert_pit_bid_rows_logs(monkeypatch, caplog):
+    captured: dict = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({"Lane ID": ["L1"]})
+
+    class FakeTime:
+        def __init__(self) -> None:
+            self.times = iter([0.0, 1.0, 1.0, 3.0])
+
+        def perf_counter(self) -> float:
+            return next(self.times)
+
+    monkeypatch.setattr(azure_sql, "time", FakeTime())
+    with caplog.at_level(logging.INFO):
+        azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert any("transform=1.000s" in m and "db=2.000s" in m for m in caplog.messages)
 

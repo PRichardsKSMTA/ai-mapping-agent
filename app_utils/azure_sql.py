@@ -6,11 +6,13 @@ from typing import Any, Dict, List
 import os
 from pathlib import Path
 from datetime import datetime
+import time
 import re
 import json
 import logging
 
 import pandas as pd
+from .state_abbrev import abbreviate_state
 
 PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Lane ID": "LANE_ID",
@@ -232,6 +234,10 @@ def insert_pit_bid_rows(
     customer_name: str,
     process_guid: str | None = None,
     adhoc_headers: Dict[str, str] | None = None,
+    *,
+    batch_size: int = 1000,
+    tvp_name: str | None = None,
+    use_bulk_insert: bool = False,
 ) -> int:
     """Insert mapped ``pit-bid`` rows into ``dbo.RFP_OBJECT_DATA``.
 
@@ -303,14 +309,27 @@ def insert_pit_bid_rows(
         text = str(val).strip()
         return text or None
 
+    def _prep_state(val: Any, field: str) -> str | None:
+        if pd.isna(val) or val == "":
+            return None
+        text = str(val).strip()
+        abbr = abbreviate_state(text)
+        if abbr:
+            return abbr
+        if len(text) >= 2:
+            return text[:2].upper()
+        raise ValueError(f"{field} value '{val}' cannot be abbreviated")
 
-    # Rename DataFrame columns to their target database names.
     df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
     if df_db.columns.duplicated().any():
         for col in df_db.columns[df_db.columns.duplicated()].unique():
             cols = [c for c in df_db.columns if c == col]
             df_db[col] = df_db[cols].bfill(axis=1).iloc[:, 0]
         df_db = df_db.loc[:, ~df_db.columns.duplicated()]
+
+    for col in ["ORIG_ST", "DEST_ST"]:
+        if col in df_db.columns:
+            df_db[col] = df_db[col].apply(lambda v, c=col: _prep_state(v, c))
 
     default_freight = None
     if "FREIGHT_TYPE" not in df_db.columns or df_db["FREIGHT_TYPE"].isna().all():
@@ -321,7 +340,7 @@ def insert_pit_bid_rows(
         cur = conn.cursor()
         cur.execute(
             "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' "
-            "AND TABLE_NAME = 'RFP_OBJECT_DATA'"
+            "AND TABLE_NAME = 'RFP_OBJECT_DATA'",
         )
         db_columns = {row[0] for row in cur.fetchall()}
         extra_columns = [
@@ -333,36 +352,76 @@ def insert_pit_bid_rows(
             and col not in adhoc_slots
         ]
         columns = base_columns + extra_columns + adhoc_slots + tail_columns
-        placeholders = ",".join(["?"] * len(columns))
+
+        transform_start = time.perf_counter()
+        unmapped = [
+            c
+            for c in df_db.columns
+            if c not in base_columns
+            and c not in extra_columns
+            and c not in adhoc_slots
+            and c not in tail_columns
+        ]
+        available_slots = [slot for slot in adhoc_slots if slot not in df_db.columns]
+        for slot, col in zip(available_slots, unmapped):
+            df_db[slot] = df_db[col]
+
+        for col in df_db.columns.intersection(float_fields):
+            df_db[col] = df_db[col].map(_to_float)
+        for col in df_db.columns.difference(float_fields):
+            df_db[col] = df_db[col].map(_to_str)
+
         now = datetime.utcnow()
-        rows: list[list[Any]] = []
-        for _, row in df_db.iterrows():
-            values = {c: None for c in columns}
-            values["OPERATION_CD"] = operation_cd
-            values["PROCESS_GUID"] = process_guid
-            values["INSERTED_DTTM"] = now
-            for col in df_db.columns:
-                if col in values:
-                    if col == "CUSTOMER_NAME":
-                        continue
-                    if col in float_fields:
-                        values[col] = _to_float(row[col])
-                    else:
-                        values[col] = _to_str(row[col])
-            values["CUSTOMER_NAME"] = customer_name
-            if values["FREIGHT_TYPE"] is None:
-                values["FREIGHT_TYPE"] = default_freight
-            unmapped = [c for c in df_db.columns if c not in values]
-            available_slots = [slot for slot in adhoc_slots if values[slot] is None]
-            for slot, col in zip(available_slots, unmapped):
-                values[slot] = _to_str(row[col])
-            rows.append([values[c] for c in columns])
-        if rows:
-            cur.fast_executemany = True  # type: ignore[attr-defined]
-            cur.executemany(
-                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})",
-                rows,
+        df_db = df_db.reindex(columns=columns).astype(object)
+        df_db = df_db.where(pd.notna(df_db), None)
+        df_db["OPERATION_CD"] = operation_cd
+        df_db["CUSTOMER_NAME"] = customer_name
+        df_db["PROCESS_GUID"] = process_guid
+        df_db["INSERTED_DTTM"] = now
+        if default_freight is not None:
+            df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
+
+        rows = list(df_db.itertuples(index=False, name=None))
+        transform_time = time.perf_counter() - transform_start
+        if not rows:
+            logging.info(
+                "insert_pit_bid_rows transform=%.3fs db=0.000s", transform_time
             )
+            return 0
+
+        cur.fast_executemany = True  # type: ignore[attr-defined]
+        placeholders = ",".join(["?"] * len(columns))
+        db_start = time.perf_counter()
+        if tvp_name and pyodbc and hasattr(pyodbc, "TableValuedParam"):
+            tvp = pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
+            cur.execute(
+                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
+                tvp,
+            )
+        elif use_bulk_insert:
+            import csv
+            import tempfile
+
+            with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
+                csv.writer(tmp).writerows(rows)
+                tmp_path = tmp.name
+            try:
+                cur.execute(
+                    f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{tmp_path}' WITH (FORMAT = 'CSV')"
+                )
+            finally:
+                os.unlink(tmp_path)
+        else:
+            query = (
+                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
+            )
+            for start in range(0, len(rows), batch_size):
+                batch = rows[start : start + batch_size]
+                cur.executemany(query, batch)
+        db_time = time.perf_counter() - db_start
+    logging.info(
+        "insert_pit_bid_rows transform=%.3fs db=%.3fs", transform_time, db_time
+    )
     return len(rows)
 
 
