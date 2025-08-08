@@ -211,12 +211,17 @@ def main():
         cust_records = st.session_state["customer_options"]
         cust_names = [c["BILLTO_NAME"] for c in cust_records]
         if cust_names:
-            options = [""] + cust_names
-            idx = 0
-            if st.session_state.get("customer_name") in cust_names:
-                idx = cust_names.index(st.session_state["customer_name"]) + 1
+            idx = (
+                cust_names.index(st.session_state["customer_name"])
+                if st.session_state.get("customer_name") in cust_names
+                else None
+            )
             selected_name = st.selectbox(
-                "Customer (optional)", options, index=idx, key="customer_name_select"
+                "Customer",
+                cust_names,
+                index=idx,
+                key="customer_name_select",
+                placeholder="Select a customer",
             )
             if selected_name:
                 st.session_state["customer_name"] = selected_name
@@ -228,6 +233,9 @@ def main():
                 st.session_state["selected_customer"] = None
         else:
             st.warning("No customers found for selected operation.")
+        if not st.session_state.get("customer_name"):
+            st.error("Please select a customer to proceed.")
+            return
 
     # ---------------------------------------------------------------------------
     # 4. Upload client data file
