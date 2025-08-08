@@ -110,6 +110,8 @@ def main():
             "export_complete",
             "export_logs",
             "final_json",
+            "customer_name",
+            "selected_customer",
         ]:
             st.session_state.pop(k, None)
         st.session_state["current_step"] = 0
@@ -211,21 +213,16 @@ def main():
         cust_records = st.session_state["customer_options"]
         cust_names = [c["BILLTO_NAME"] for c in cust_records]
         if cust_names:
-            options = [""] + cust_names
             idx = 0
             if st.session_state.get("customer_name") in cust_names:
-                idx = cust_names.index(st.session_state["customer_name"]) + 1
+                idx = cust_names.index(st.session_state["customer_name"])
             selected_name = st.selectbox(
-                "Customer (optional)", options, index=idx, key="customer_name_select"
+                "Customer", cust_names, index=idx, key="customer_name_select"
             )
-            if selected_name:
-                st.session_state["customer_name"] = selected_name
-                st.session_state["selected_customer"] = next(
-                    c for c in cust_records if c["BILLTO_NAME"] == selected_name
-                )
-            else:
-                st.session_state["customer_name"] = None
-                st.session_state["selected_customer"] = None
+            st.session_state["customer_name"] = selected_name
+            st.session_state["selected_customer"] = next(
+                c for c in cust_records if c["BILLTO_NAME"] == selected_name
+            )
         else:
             st.warning("No customers found for selected operation.")
 
@@ -311,7 +308,7 @@ def main():
                     rows = insert_pit_bid_rows(
                         mapped_df,
                         st.session_state["operation_code"],
-                        st.session_state.get("customer_name"),
+                        st.session_state["customer_name"],
                         guid,
                         adhoc_headers,
                     )
@@ -322,8 +319,8 @@ def main():
                         template_obj,
                         df,
                         guid,
-                        st.session_state.get("operation_code"),
-                        st.session_state.get("customer_name"),
+                        st.session_state["operation_code"],
+                        st.session_state["customer_name"],
                     )
                     azure_sql.log_mapping_process(
                         guid,
