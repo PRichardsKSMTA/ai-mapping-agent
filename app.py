@@ -17,7 +17,6 @@ Key features
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import streamlit as st
@@ -355,19 +354,19 @@ def main():
             st.success(
                 "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
-            dest_site = os.getenv("CLIENT_DEST_SITE")
-            if dest_site:
-                st.markdown(
-                    f'<a href="{dest_site}" target="_blank">Open SharePoint site</a>',
-                    unsafe_allow_html=True,
-                )
-            for line in st.session_state.get("export_logs", []):
-                st.write(line)
-            if template_obj.postprocess:
-                st.write(template_obj.postprocess.url)
-            st.json(st.session_state.get("postprocess_payload"))
-            st.json(st.session_state.get("final_json"))
-            csv_data = st.session_state.get("mapped_csv")
+            payload: dict[str, str] | None = st.session_state.get(
+                "postprocess_payload"
+            )
+            if payload:
+                site: str = payload.get("CLIENT_DEST_SITE", "")
+                folder: str = payload.get("CLIENT_DEST_FOLDER_PATH", "")
+                if site and folder:
+                    dest_url: str = f"{site.rstrip('/')}/{folder.lstrip('/')}"
+                    st.markdown(
+                        f'<a href="{dest_url}" target="_blank">Open SharePoint destination folder</a>',
+                        unsafe_allow_html=True,
+                    )
+            csv_data: bytes | None = st.session_state.get("mapped_csv")
             if csv_data:
                 st.download_button(
                     "Download mapped CSV",
