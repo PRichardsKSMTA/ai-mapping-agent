@@ -377,3 +377,27 @@ def test_insert_pit_bid_rows_unknown_columns_to_adhoc(monkeypatch):
     assert captured["params"][14] == "val"  # ADHOC_INFO1
     assert len(captured["params"]) == 29
 
+
+def test_insert_pit_bid_rows_state_preprocess(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame(
+        {
+            "Lane ID": ["L1"],
+            "Orig State": ["Indiana"],
+            "Dest State": ["Atlantis"],
+        }
+    )
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
+    assert captured["params"][4] == "IN"  # ORIG_ST
+    assert captured["params"][7] == "AT"  # DEST_ST
+
+
+def test_insert_pit_bid_rows_state_error(monkeypatch):
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn({}))
+    df = pd.DataFrame({"Lane ID": ["L1"], "Orig State": ["A"]})
+    with pytest.raises(ValueError, match="ORIG_ST value 'A' cannot be abbreviated"):
+        azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+
