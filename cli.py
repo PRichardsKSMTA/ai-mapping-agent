@@ -76,7 +76,7 @@ def main() -> None:
     parser.add_argument(
         "--customer-name",
         type=str,
-        help="Optional customer name for SQL insert",
+        help="Customer name for SQL insert",
     )
     parser.add_argument(
         "--user-email",
@@ -101,6 +101,8 @@ def main() -> None:
             args.operation_code
             and template.template_name == "PIT BID"
         ):
+            if not args.customer_name:
+                parser.error("--customer-name is required when --operation-code is provided")
             rows = azure_sql.insert_pit_bid_rows(
                 mapped_df,
                 args.operation_code,

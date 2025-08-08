@@ -132,6 +132,7 @@ def run_app(monkeypatch):
         "template": tpl_data,
         "template_name": "PIT BID",
         "current_template": "PIT BID",
+        "customer_name": "Customer",
         "layer_confirmed_0": True,
         "customer_name": "Cust",
     })

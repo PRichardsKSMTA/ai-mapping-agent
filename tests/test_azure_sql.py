@@ -317,8 +317,8 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     assert captured["params"][10] == 1.5
     assert captured["params"][24] == 1234.0
 
-def test_insert_pit_bid_rows_customer_column(monkeypatch):
-    captured = {}
+def test_insert_pit_bid_rows_customer_column_ignored(monkeypatch):
+    captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
@@ -329,13 +329,13 @@ def test_insert_pit_bid_rows_customer_column(monkeypatch):
             "Orig State": ["OS"],
         }
     )
-    rows = azure_sql.insert_pit_bid_rows(df, "OP", None)
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert rows == 1
-    assert captured["params"][1] == "Cust1"
+    assert captured["params"][1] == "Customer"
 
 
 def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
-    captured = {}
+    captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     df = pd.DataFrame(
         {
@@ -344,9 +344,9 @@ def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
             "Foo": ["bar"],
         }
     )
-    rows = azure_sql.insert_pit_bid_rows(df, "OP", None)
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert rows == 1
-    assert captured["params"][1] is None  # CUSTOMER_NAME
+    assert captured["params"][1] == "Customer"  # CUSTOMER_NAME
     assert captured["params"][11] == "TL"  # FREIGHT_TYPE
     assert captured["params"][14] == "Acme"  # ADHOC_INFO1
     assert captured["params"][15] == "bar"  # ADHOC_INFO2

@@ -229,7 +229,7 @@ def derive_adhoc_headers(df: pd.DataFrame) -> Dict[str, str]:
 def insert_pit_bid_rows(
     df: pd.DataFrame,
     operation_cd: str,
-    customer_name: str | None,
+    customer_name: str,
     process_guid: str | None = None,
     adhoc_headers: Dict[str, str] | None = None,
 ) -> int:
@@ -239,9 +239,11 @@ def insert_pit_bid_rows(
     Each field is mapped explicitly to its target database column via
     ``PIT_BID_FIELD_MAP``. Columns that remain unmapped are stored sequentially
     in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
-    ``adhoc_headers`` maps ``ADHOC_INFO`` slot names to their source column
-    headers. It is currently unused but accepted so callers can persist the
-    mapping via :func:`log_mapping_process`.
+    ``customer_name`` is required and applied to every inserted row regardless
+    of any ``CUSTOMER_NAME`` column in ``df``. ``adhoc_headers`` maps
+    ``ADHOC_INFO`` slot names to their source column headers. It is currently
+    unused but accepted so callers can persist the mapping via
+    :func:`log_mapping_process`.
     """
 
     base_columns = [
@@ -341,14 +343,13 @@ def insert_pit_bid_rows(
             values["INSERTED_DTTM"] = now
             for col in df_db.columns:
                 if col in values:
-                    if col == "CUSTOMER_NAME" and customer_name is not None:
+                    if col == "CUSTOMER_NAME":
                         continue
                     if col in float_fields:
                         values[col] = _to_float(row[col])
                     else:
                         values[col] = _to_str(row[col])
-            if customer_name is not None:
-                values["CUSTOMER_NAME"] = customer_name
+            values["CUSTOMER_NAME"] = customer_name
             if values["FREIGHT_TYPE"] is None:
                 values["FREIGHT_TYPE"] = default_freight
             unmapped = [c for c in df_db.columns if c not in values]
