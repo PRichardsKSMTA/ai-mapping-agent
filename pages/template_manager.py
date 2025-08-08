@@ -16,7 +16,6 @@ from app_utils.template_builder import (
     build_template,
     load_template_json,
     save_template_file,
-    slugify,
     apply_field_choices,
     gpt_field_suggestions,
 )
@@ -213,9 +212,7 @@ def edit_template(filename: str, data: dict) -> None:
                     else:
                         obj["postprocess"] = post_obj
                     Template.model_validate(obj)
-                    safe = slugify(obj["template_name"])
-                    with open(os.path.join("templates", f"{safe}.json"), "w") as f:
-                        json.dump(obj, f, indent=2)
+                    safe = save_template_file(obj)
                     if safe + ".json" != filename:
                         os.remove(os.path.join("templates", filename))
                     st.success("Template saved")

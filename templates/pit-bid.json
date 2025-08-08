@@ -1,5 +1,6 @@
 {
   "template_name": "PIT BID",
+  "template_guid": "26432804-560c-4b52-9040-529689e83375",
   "layers": [
     {
       "type": "header",

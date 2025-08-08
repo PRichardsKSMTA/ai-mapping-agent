@@ -1,5 +1,6 @@
 {
   "template_name": "Standard COA",
+  "template_guid": "ce70c208-8b05-4485-b05c-848a3dc938d4",
   "fields": [
     {
       "key": "GL_ID",
