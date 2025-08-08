@@ -164,10 +164,10 @@ def test_connect_requires_pyodbc(monkeypatch):
         azure_sql._connect()
 
 
-def _fake_conn(captured: dict, columns: set[str] | None = None):
+def _fake_conn(captured: dict, columns: dict[str, int | None] | None = None):
     class FakeCursor:
         def __init__(self) -> None:
-            self.columns = list(columns or [])
+            self.columns = dict(columns or {})
             self.fast_executemany = False
 
         def execute(self, query, params=None):  # pragma: no cover - executed via call
@@ -185,7 +185,7 @@ def _fake_conn(captured: dict, columns: set[str] | None = None):
             return self
 
         def fetchall(self):  # pragma: no cover - executed via call
-            return [(c,) for c in self.columns]
+            return list(self.columns.items())
 
     class FakeConn:
         def cursor(self):
@@ -320,6 +320,17 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     assert captured["params"][10] == 1.5
     assert captured["params"][24] == 1234.0
 
+
+def test_insert_pit_bid_rows_length_error(monkeypatch):
+    captured = {}
+    cols = {"LANE_ID": 5}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured, cols))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({"Lane ID": ["123456"]})
+    with pytest.raises(ValueError) as exc:
+        azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert "LANE_ID" in str(exc.value)
+
 def test_insert_pit_bid_rows_customer_column_ignored(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
@@ -357,7 +368,7 @@ def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
 
 def test_insert_pit_bid_rows_extends_known_columns(monkeypatch):
     captured = {}
-    table_cols = {"EXTRA_COL"}
+    table_cols = {"EXTRA_COL": None}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured, table_cols))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     monkeypatch.setitem(azure_sql.PIT_BID_FIELD_MAP, "Extra Field", "EXTRA_COL")
