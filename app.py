@@ -225,6 +225,9 @@ def main():
             )
         else:
             st.warning("No customers found for selected operation.")
+        if not st.session_state.get("customer_name"):
+            st.error("Please select a customer to proceed.")
+            return
 
     # ---------------------------------------------------------------------------
     # 4. Upload client data file

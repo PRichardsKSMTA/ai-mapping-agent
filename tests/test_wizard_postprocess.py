@@ -94,7 +94,7 @@ def run_app(monkeypatch):
     monkeypatch.setattr(
         "app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["ADSJ_VAN"]
     )
-    monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
+    monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [{"BILLTO_NAME": "Cust"}])
     monkeypatch.setattr(
         "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid, adhoc: len(df)
     )
@@ -134,6 +134,7 @@ def run_app(monkeypatch):
         "current_template": "PIT BID",
         "customer_name": "Customer",
         "layer_confirmed_0": True,
+        "customer_name": "Cust",
     })
     sys.modules.pop("app", None)
     importlib.import_module("app")
