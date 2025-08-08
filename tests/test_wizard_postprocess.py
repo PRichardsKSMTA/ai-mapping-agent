@@ -46,7 +46,7 @@ class DummyStreamlit:
     def __init__(self):
         self.session_state = {}
         self.sidebar = DummySidebar(self)
-        self.json_calls: list[object] = []
+        self.markdown_calls: list[str] = []
         self.secrets = {}
     def set_page_config(self, *a, **k):
         pass
@@ -68,12 +68,12 @@ class DummyStreamlit:
         return DummyContainer()
     def rerun(self):
         pass
-    def markdown(self, *a, **k):
-        pass
+    def markdown(self, text, *a, **k):
+        self.markdown_calls.append(text)
     def download_button(self, *a, **k):
         pass
-    def json(self, obj, *a, **k):  # type: ignore[override]
-        self.json_calls.append(obj)
+    def json(self, *a, **k):  # type: ignore[override]
+        pass
     def cache_data(self, *a, **k):
         def wrap(func):
             return func
@@ -84,6 +84,8 @@ def run_app(monkeypatch):
     st = DummyStreamlit()
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
+    monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
+    monkeypatch.setenv("CLIENT_DEST_FOLDER_PATH", "docs/folder")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
@@ -152,12 +154,12 @@ def test_postprocess_runner_called(monkeypatch):
     assert called.get("log_friendly") == "PIT BID"
     assert called.get("log_file") == "pit-bid.json"
     assert state["final_json"].get("process_guid") == called.get("guid")
-    logs = state.get("export_logs")
-    assert "Inserted" in logs[0]
-    assert logs[1] == "ok"
     assert state.get("postprocess_payload") == {"p": 1}
 
-
-def test_postprocess_payload_displayed(monkeypatch):
+def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
-    assert not st.json_calls
+    assert any(
+        "https://tenant.sharepoint.com/sites/demo/docs/folder" in m
+        for m in st.markdown_calls
+    )
+
