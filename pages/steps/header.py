@@ -69,6 +69,10 @@ def render(layer, idx: int) -> None:
     if sheet_name != st.session_state.get("upload_sheet"):
         st.session_state["upload_sheet"] = sheet_name
 
+    required_keys = [f.key for f in layer.fields if f.required]
+    adhoc_keys = [f.key for f in layer.fields if f.key.startswith("ADHOC_INFO")]
+    optional_keys = [f.key for f in layer.fields if not f.required]
+
     map_key = f"header_mapping_{idx}"
     sheet_key = f"header_sheet_{idx}"
     if (
@@ -76,6 +80,8 @@ def render(layer, idx: int) -> None:
         or st.session_state.get(sheet_key) != sheet_name
     ):
         auto = suggest_header_mapping([f.key for f in layer.fields], source_cols)
+        for k in adhoc_keys:
+            auto[k] = {}
         st.session_state[map_key] = auto
         st.session_state[sheet_key] = sheet_name
         st.session_state.pop(f"header_ai_done_{idx}", None)
@@ -111,7 +117,9 @@ def render(layer, idx: int) -> None:
     if not st.session_state.get(ai_flag):
         before = mapping.copy()
         with st.spinner("Querying GPT..."):
-            mapping = apply_gpt_header_fallback(mapping, source_cols)
+            mapping = apply_gpt_header_fallback(mapping, source_cols, targets=required_keys)
+        for k in optional_keys + adhoc_keys:
+            mapping[k] = {}
         st.session_state[map_key] = mapping
         st.session_state[ai_flag] = True
         if mapping != before:

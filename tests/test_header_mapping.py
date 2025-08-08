@@ -29,6 +29,14 @@ def test_header_mapping_no_match():
     assert res["Date"] == {}
 
 
+def test_adhoc_and_optional_unmapped():
+    cols = ["ID"]
+    fields = ["Temp Cat", "ADHOC_INFO1"]
+    res = suggest_header_mapping(fields, cols)
+    assert res["Temp Cat"] == {}
+    assert res["ADHOC_INFO1"] == {}
+
+
 def test_remove_field_updates_state():
     idx = 0
     map_key = f"header_mapping_{idx}"
