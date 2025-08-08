@@ -198,16 +198,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "\nMiles",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Distance (mi)"
-    ],
-    "display": "Distance (mi)"
-  },
-  {
-    "template": "PIT BID",
     "field": "\nLane ID",
     "type": "direct",
     "formula": null,
@@ -235,16 +225,6 @@
       "Rate ID"
     ],
     "display": "Rate ID"
-  },
-  {
-    "template": "PIT BID",
-    "field": "\nTolls",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Total Fuel"
-    ],
-    "display": "Total Fuel"
   },
   {
     "template": "PIT BID",
@@ -338,26 +318,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "Miles",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Distance (mi)"
-    ],
-    "display": "Distance (mi)"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Tolls",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Total Fuel"
-    ],
-    "display": "Total Fuel"
-  },
-  {
-    "template": "PIT BID",
     "field": "Lane ID",
     "type": "direct",
     "formula": null,
@@ -385,16 +345,6 @@
       "Distance (mi)"
     ],
     "display": "Distance (mi)"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Tolls",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "ID"
-    ],
-    "display": "ID"
   },
   {
     "template": "BiD_PIt",
@@ -628,16 +578,6 @@
   {
     "template": "PIT BID",
     "field": "Bid Miles",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Distance (Miles)"
-    ],
-    "display": "Distance (Miles)"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Miles",
     "type": "direct",
     "formula": null,
     "columns": [
@@ -925,17 +865,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "Miles",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Distance (Miles)"
-    ],
-    "display": "Distance (Miles)",
-    "header_id": "bcf296cb"
-  },
-  {
-    "template": "PIT BID",
     "field": "Bid Miles",
     "type": "direct",
     "formula": null,
@@ -943,17 +872,6 @@
       "Unnamed: 1"
     ],
     "display": "Unnamed: 1",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Miles",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 2"
-    ],
-    "display": "Unnamed: 2",
     "header_id": "6f036dfb"
   },
   {
@@ -1121,28 +1039,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "Miles",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Distance (mi)"
-    ],
-    "display": "Distance (mi)",
-    "header_id": "ed64196f"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Tolls",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Breakthrough Fuel Estimate"
-    ],
-    "display": "Breakthrough Fuel Estimate",
-    "header_id": "ed64196f"
-  },
-  {
-    "template": "PIT BID",
     "field": "CUSTOMER_NAME",
     "type": "direct",
     "formula": null,
@@ -1162,17 +1058,6 @@
     ],
     "display": "Origin Company",
     "header_id": "bcf296cb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Tolls",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 1"
-    ],
-    "display": "Unnamed: 1",
-    "header_id": "6f036dfb"
   },
   {
     "template": "PIT BID",
@@ -1228,5 +1113,16 @@
     ],
     "display": "Lane Name",
     "header_id": "bcf296cb"
+  },
+  {
+    "template": "demo",
+    "field": "A",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "A"
+    ],
+    "display": "A",
+    "header_id": "86f7e437"
   }
 ]
