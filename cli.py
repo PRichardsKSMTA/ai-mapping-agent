@@ -78,6 +78,11 @@ def main() -> None:
         type=str,
         help="Optional customer name for SQL insert",
     )
+    parser.add_argument(
+        "--user-email",
+        type=str,
+        help="User email for process logging",
+    )
     args = parser.parse_args()
 
     template = load_template(args.template)
@@ -91,7 +96,10 @@ def main() -> None:
 
     if args.csv_output:
         mapped_df = save_mapped_csv(df, mapped, args.csv_output)
-        if args.operation_code and template.template_name == "PIT BID":
+        if (
+            args.operation_code
+            and template.template_name == "PIT BID"
+        ):
             rows = azure_sql.insert_pit_bid_rows(
                 mapped_df, args.operation_code, args.customer_name, process_guid
             )
@@ -103,6 +111,16 @@ def main() -> None:
                 print(line)
             if payload is not None:
                 print(json.dumps(payload, indent=2))
+
+    azure_sql.log_mapping_process(
+        process_guid,
+        args.template.stem,
+        template.template_name,
+        args.user_email,
+        args.template.name,
+        json.dumps(mapped),
+        template.template_guid,
+    )
 
 
 if __name__ == "__main__":
