@@ -156,6 +156,12 @@ def render(layer, idx: int) -> None:
                 },
                 headers=source_cols,
             )
+            if key.startswith("ADHOC_INFO"):
+                match = re.findall(r"\d+", key)
+                default = f"AdHoc{match[0] if match else ''}"
+                label = adhoc_labels.get(key, default)
+                if label == default:
+                    adhoc_labels[key] = new_src
         elif "src" in mapping.get(key, {}):
             set_field_mapping(key, idx, {})
 

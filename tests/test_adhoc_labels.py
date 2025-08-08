@@ -9,6 +9,96 @@ import pandas as pd
 from pytest import MonkeyPatch
 
 from tests.test_wizard_postprocess import DummyStreamlit
+from schemas.template_v2 import FieldSpec, HeaderLayer
+from pages.steps import header as header_step
+
+
+class HeaderDummyCol:
+    def __init__(self, st: "HeaderDummyStreamlit") -> None:
+        self.st = st
+
+    def selectbox(self, label, options, index=0, key=None, **k):
+        if key and key in self.st.session_state:
+            return self.st.session_state[key]
+        choice = options[index]
+        if key:
+            self.st.session_state[key] = choice
+        return choice
+
+    def button(self, *a, **k):
+        return False
+
+    def markdown(self, *a, **k):
+        pass
+
+    def text_input(self, label, value="", key=None, **k):
+        key = key or label
+        if key in self.st.session_state:
+            return self.st.session_state[key]
+        self.st.session_state[key] = value
+        return value
+
+    def columns(self, spec):
+        n = len(spec) if isinstance(spec, (list, tuple)) else spec
+        return [HeaderDummyCol(self.st) for _ in range(n)]
+
+
+class HeaderDummyStreamlit:
+    def __init__(self) -> None:
+        self.session_state: dict[str, object] = {}
+
+    def header(self, *a, **k):
+        pass
+
+    subheader = success = error = info = warning = header
+
+    class Spinner:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            pass
+
+    def spinner(self, *a, **k):
+        return self.Spinner()
+
+    def columns(self, spec):
+        n = len(spec) if isinstance(spec, (list, tuple)) else spec
+        return [HeaderDummyCol(self) for _ in range(n)]
+
+    def rerun(self):
+        pass
+
+    def markdown(self, *a, **k):
+        pass
+
+    def button(self, *a, **k):
+        return False
+
+    def download_button(self, *a, **k):
+        pass
+
+    def caption(self, *a, **k):
+        pass
+
+
+def setup_header_env(monkeypatch: MonkeyPatch) -> HeaderDummyStreamlit:
+    st = HeaderDummyStreamlit()
+    monkeypatch.setitem(sys.modules, "streamlit", st)
+    monkeypatch.setattr(header_step, "st", st)
+    monkeypatch.setattr(
+        header_step, "read_tabular_file", lambda _f, sheet_name=None: (pd.DataFrame(), ["A", "B"])
+    )
+    monkeypatch.setattr(
+        header_step, "suggest_header_mapping", lambda fields, cols: {k: {} for k in fields}
+    )
+    monkeypatch.setattr(
+        header_step, "apply_gpt_header_fallback", lambda m, c, targets=None: m
+    )
+    monkeypatch.setattr(header_step, "get_suggestions", lambda *a, **k: [])
+    monkeypatch.setattr(header_step, "add_suggestion", lambda *a, **k: None)
+    st.session_state.update({"uploaded_file": object(), "current_template": "demo"})
+    return st
 
 
 def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Dict[str, object]]:
@@ -85,3 +175,23 @@ def test_adhoc_labels_propagate(monkeypatch: MonkeyPatch) -> None:
     assert captured.get("insert_adhoc") == expected
     assert captured.get("log_adhoc") == expected
     assert state.get("header_adhoc_headers") == expected
+
+
+def test_default_label_updates_on_mapping(monkeypatch: MonkeyPatch) -> None:
+    st = setup_header_env(monkeypatch)
+    layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
+    st.session_state["src_ADHOC_INFO1"] = "A"
+    header_step.render(layer, 0)
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"
+
+
+def test_custom_label_persists(monkeypatch: MonkeyPatch) -> None:
+    st = setup_header_env(monkeypatch)
+    layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
+    st.session_state["src_ADHOC_INFO1"] = "A"
+    header_step.render(layer, 0)
+    st.session_state["adhoc_label_ADHOC_INFO1"] = "Custom"
+    header_step.render(layer, 0)
+    st.session_state["src_ADHOC_INFO1"] = "B"
+    header_step.render(layer, 0)
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "Custom"
