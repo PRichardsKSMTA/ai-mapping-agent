@@ -165,18 +165,83 @@ def get_operational_scac(operation_cd: str) -> str:
     return operation_cd.split("_", 1)[0]
 
 
+def derive_adhoc_headers(df: pd.DataFrame) -> Dict[str, str]:
+    """Return mapping of ``ADHOC_INFO`` slots to original column headers."""
+
+    base_columns = [
+        "OPERATION_CD",
+        "CUSTOMER_NAME",
+        "LANE_ID",
+        "ORIG_CITY",
+        "ORIG_ST",
+        "ORIG_POSTAL_CD",
+        "DEST_CITY",
+        "DEST_ST",
+        "DEST_POSTAL_CD",
+        "BID_VOLUME",
+        "LH_RATE",
+        "FREIGHT_TYPE",
+        "TEMP_CAT",
+        "BTF_FSC_PER_MILE",
+    ]
+    adhoc_slots = [f"ADHOC_INFO{i}" for i in range(1, 11)]
+    tail_columns = [
+        "RFP_MILES",
+        "FM_TOLLS",
+        "PROCESS_GUID",
+        "INSERTED_DTTM",
+        "VOLUME_FREQUENCY",
+    ]
+
+    df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
+    if df_db.columns.duplicated().any():
+        for col in df_db.columns[df_db.columns.duplicated()].unique():
+            cols = [c for c in df_db.columns if c == col]
+            df_db[col] = df_db[cols].bfill(axis=1).iloc[:, 0]
+        df_db = df_db.loc[:, ~df_db.columns.duplicated()]
+
+    try:  # pragma: no cover - optional DB call
+        with _connect() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' "
+                "AND TABLE_NAME = 'RFP_OBJECT_DATA'"
+            )
+            db_columns = {row[0] for row in cur.fetchall()}
+    except Exception:  # pragma: no cover - DB unavailable
+        db_columns = set()
+
+    extra_columns = [
+        col
+        for col in df_db.columns
+        if col in db_columns
+        and col not in base_columns
+        and col not in tail_columns
+        and col not in adhoc_slots
+    ]
+    columns = base_columns + extra_columns + adhoc_slots + tail_columns
+    values = {c: None for c in columns}
+    unmapped = [c for c in df_db.columns if c not in values]
+    available_slots = [slot for slot in adhoc_slots if values[slot] is None]
+    return {slot: col for slot, col in zip(available_slots, unmapped)}
+
+
 def insert_pit_bid_rows(
     df: pd.DataFrame,
     operation_cd: str,
     customer_name: str | None,
     process_guid: str | None = None,
-    ) -> int:
+    adhoc_headers: Dict[str, str] | None = None,
+) -> int:
     """Insert mapped ``pit-bid`` rows into ``dbo.RFP_OBJECT_DATA``.
 
     The DataFrame ``df`` is expected to already use pit-bid template field names.
     Each field is mapped explicitly to its target database column via
     ``PIT_BID_FIELD_MAP``. Columns that remain unmapped are stored sequentially
     in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
+    ``adhoc_headers`` maps ``ADHOC_INFO`` slot names to their source column
+    headers. It is currently unused but accepted so callers can persist the
+    mapping via :func:`log_mapping_process`.
     """
 
     base_columns = [
@@ -300,13 +365,33 @@ def insert_pit_bid_rows(
     return len(rows)
 
 
-def log_mapping_process(process_guid: str, template_name: str, friendly_name: str,
-                        created_by: str, file_name_string: str,
-                        process_json: dict | str, template_guid: str) -> None:
+def log_mapping_process(
+    process_guid: str,
+    template_name: str,
+    friendly_name: str,
+    created_by: str,
+    file_name_string: str,
+    process_json: dict | str,
+    template_guid: str,
+    adhoc_headers: Dict[str, str] | None = None,
+) -> None:
     """Insert a record into ``dbo.MAPPING_AGENT_PROCESSES``."""
+    payload = (
+        json.loads(process_json) if isinstance(process_json, str) else dict(process_json)
+    )
+    if adhoc_headers:
+        payload["adhoc_headers"] = adhoc_headers
     with _connect() as conn:
         conn.cursor().execute(
             "INSERT INTO dbo.MAPPING_AGENT_PROCESSES (PROCESS_GUID, TEMPLATE_NAME, FRIENDLY_NAME, CREATED_BY, CREATED_DTTM, FILE_NAME_STRING, PROCESS_JSON, TEMPLATE_GUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (process_guid, template_name, friendly_name, created_by, datetime.utcnow(), file_name_string,
-             json.dumps(process_json) if not isinstance(process_json, str) else process_json, template_guid),
+            (
+                process_guid,
+                template_name,
+                friendly_name,
+                created_by,
+                datetime.utcnow(),
+                file_name_string,
+                json.dumps(payload),
+                template_guid,
+            ),
         )

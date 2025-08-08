@@ -25,16 +25,20 @@ def _fake_conn(captured: dict):
     return FakeConn()
 
 
-@pytest.mark.parametrize("payload,expected", [
-    ({"a": 1}, json.dumps({"a": 1})),
-    ("{\"a\": 1}", "{\"a\": 1}"),
-])
-def test_log_mapping_process(monkeypatch, payload, expected):
+@pytest.mark.parametrize("payload", [{"a": 1}, "{\"a\": 1}"])
+def test_log_mapping_process(monkeypatch, payload):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    adhoc = {"ADHOC_INFO1": "Foo"}
     azure_sql.log_mapping_process(
-        "proc", "template-name", "Friendly", "user@example.com",
-        "file.csv", payload, "tmpl-guid",
+        "proc",
+        "template-name",
+        "Friendly",
+        "user@example.com",
+        "file.csv",
+        payload,
+        "tmpl-guid",
+        adhoc,
     )
     assert "MAPPING_AGENT_PROCESSES" in captured["query"]
     params = captured["params"]
@@ -44,5 +48,8 @@ def test_log_mapping_process(monkeypatch, payload, expected):
     assert params[3] == "user@example.com"
     assert isinstance(params[4], datetime)
     assert params[5] == "file.csv"
-    assert params[6] == expected
+    stored = json.loads(params[6])
+    expected = json.loads(payload) if isinstance(payload, str) else payload
+    expected["adhoc_headers"] = adhoc
+    assert stored == expected
     assert params[7] == "tmpl-guid"

@@ -12,7 +12,7 @@ def test_cli_basic(monkeypatch, tmp_path: Path):
     out = tmp_path / 'out.json'
     captured: dict[str, object] = {}
 
-    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid):
+    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, adhoc_headers=None):
         captured.update(
             {
                 'process_guid': process_guid,
@@ -22,6 +22,7 @@ def test_cli_basic(monkeypatch, tmp_path: Path):
                 'file_name_string': file_name_string,
                 'process_json': process_json,
                 'template_guid': template_guid,
+                'adhoc_headers': adhoc_headers,
             }
         )
 
@@ -50,6 +51,7 @@ def test_cli_csv_output(monkeypatch, tmp_path: Path):
     out_csv = tmp_path / 'out.csv'
 
     monkeypatch.setattr(azure_sql, 'log_mapping_process', lambda *a, **k: None)
+    monkeypatch.setattr(azure_sql, 'derive_adhoc_headers', lambda df: {})
     monkeypatch.setattr(sys, 'argv', [
         'cli.py',
         str(tpl),
@@ -76,13 +78,15 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
 
     captured: dict[str, object] = {}
 
-    def fake_insert(df, op, cust, guid):
+    def fake_insert(df, op, cust, guid, adhoc_headers):
         captured['cols'] = list(df.columns)
         captured['op'] = op
         captured['cust'] = cust
         captured['guid'] = guid
+        captured['adhoc'] = adhoc_headers
         return len(df)
     monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
+    monkeypatch.setattr(azure_sql, 'derive_adhoc_headers', lambda df: {})
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload', lambda op_cd: {}
     )
@@ -123,7 +127,7 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     out_json = tmp_path / 'out.json'
     out_csv = tmp_path / 'out.csv'
 
-    def fake_insert(df, op, cust, guid):
+    def fake_insert(df, op, cust, guid, adhoc_headers):
         return len(df)
 
     captured: dict[str, object] = {}
@@ -137,6 +141,7 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
         return ['POST https://example.com/hook', 'Done'], {'foo': 'bar'}
 
     monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
+    monkeypatch.setattr(azure_sql, 'derive_adhoc_headers', lambda df: {})
     monkeypatch.setattr(cli, 'run_postprocess_if_configured', fake_postprocess)
     monkeypatch.setattr(azure_sql, 'log_mapping_process', lambda *a, **k: None)
     monkeypatch.setattr(sys, 'argv', [

@@ -96,12 +96,17 @@ def main() -> None:
 
     if args.csv_output:
         mapped_df = save_mapped_csv(df, mapped, args.csv_output)
+        adhoc_headers = azure_sql.derive_adhoc_headers(mapped_df)
         if (
             args.operation_code
             and template.template_name == "PIT BID"
         ):
             rows = azure_sql.insert_pit_bid_rows(
-                mapped_df, args.operation_code, args.customer_name, process_guid
+                mapped_df,
+                args.operation_code,
+                args.customer_name,
+                process_guid,
+                adhoc_headers,
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
             logs_post, payload = run_postprocess_if_configured(
@@ -120,6 +125,7 @@ def main() -> None:
         args.template.name,
         json.dumps(mapped),
         template.template_guid,
+        adhoc_headers if args.csv_output else None,
     )
 
 

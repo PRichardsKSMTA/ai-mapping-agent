@@ -216,7 +216,9 @@ def test_insert_pit_bid_rows(monkeypatch):
             "Foo": ["bar"],
         }
     )
-    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", "guid")
+    rows = azure_sql.insert_pit_bid_rows(
+        df, "OP", "Customer", "guid", {"ADHOC_INFO1": "Foo"}
+    )
     assert rows == 1
     assert "RFP_OBJECT_DATA" in captured["query"]
     assert captured["params"][0] == "OP"

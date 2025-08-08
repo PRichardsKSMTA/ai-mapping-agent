@@ -96,9 +96,10 @@ def run_app(monkeypatch):
     )
     monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
     monkeypatch.setattr(
-        "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid: len(df)
+        "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid, adhoc: len(df)
     )
-    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid):
+    monkeypatch.setattr("app_utils.azure_sql.derive_adhoc_headers", lambda df: {})
+    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, adhoc_headers=None):
         called["log_guid"] = process_guid
         called["log_template"] = template_name
         called["log_friendly"] = friendly_name

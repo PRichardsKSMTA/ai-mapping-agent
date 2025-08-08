@@ -307,11 +307,13 @@ def main():
                         tmp_path = Path(tmp.name)
                         mapped_df = save_mapped_csv(df, final_json, tmp_path)
 
+                    adhoc_headers = azure_sql.derive_adhoc_headers(mapped_df)
                     rows = insert_pit_bid_rows(
                         mapped_df,
                         st.session_state["operation_code"],
                         st.session_state.get("customer_name"),
                         guid,
+                        adhoc_headers,
                     )
                     logs = [
                         f"Inserted {rows} rows into RFP_OBJECT_DATA"
@@ -331,6 +333,7 @@ def main():
                         selected_file,
                         json.dumps(final_json),
                         template_obj.template_guid,
+                        adhoc_headers,
                     )
                     st.session_state["postprocess_payload"] = payload
                     logs.extend(logs_post)
