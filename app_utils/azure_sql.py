@@ -278,3 +278,15 @@ def insert_pit_bid_rows(
                 rows,
             )
     return len(rows)
+
+
+def log_mapping_process(process_guid: str, template_name: str, friendly_name: str,
+                        created_by: str, file_name_string: str,
+                        process_json: dict | str, template_guid: str) -> None:
+    """Insert a record into ``dbo.MAPPING_AGENT_PROCESSES``."""
+    with _connect() as conn:
+        conn.cursor().execute(
+            "INSERT INTO dbo.MAPPING_AGENT_PROCESSES (PROCESS_GUID, TEMPLATE_NAME, FRIENDLY_NAME, CREATED_BY, CREATED_DTTM, FILE_NAME_STRING, PROCESS_JSON, TEMPLATE_GUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (process_guid, template_name, friendly_name, created_by, datetime.utcnow(), file_name_string,
+             json.dumps(process_json) if not isinstance(process_json, str) else process_json, template_guid),
+        )
