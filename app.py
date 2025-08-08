@@ -41,6 +41,7 @@ from app_utils.ui_utils import render_progress, set_steps_from_template
 from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
+from app_utils.ui.header_utils import save_current_template
 import uuid
 
 load_dotenv()
@@ -56,7 +57,15 @@ def main():
 
     if st.session_state.get("unsaved_changes"):
         st.warning(
-            "You have unsaved template changes. Use the Template Manager to save them."
+            "Unsaved template changes detected. Save before leaving to keep your work."
+        )
+        st.caption(
+            "Template edits exist only in this session until you save them."
+        )
+        save_col, mgr_col = st.columns(2)
+        save_col.button("Save Template", on_click=save_current_template)
+        mgr_col.page_link(
+            "pages/template_manager.py", label="Template Manager", icon="📝"
         )
 
     TEMPLATES_DIR = Path("templates")
