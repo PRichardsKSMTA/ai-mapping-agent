@@ -339,10 +339,12 @@ def insert_pit_bid_rows(
     with conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' "
-            "AND TABLE_NAME = 'RFP_OBJECT_DATA'",
+            "SELECT COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS "
+            "WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'RFP_OBJECT_DATA'",
         )
-        db_columns = {row[0] for row in cur.fetchall()}
+        info_rows = cur.fetchall()
+        db_columns = {row[0] for row in info_rows}
+        char_max = {row[0]: row[1] for row in info_rows}
         extra_columns = [
             col
             for col in df_db.columns
@@ -380,6 +382,18 @@ def insert_pit_bid_rows(
         df_db["INSERTED_DTTM"] = now
         if default_freight is not None:
             df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
+        for col, max_len in char_max.items():
+            if max_len is None or col not in df_db.columns:
+                continue
+            mask = df_db[col].notna()
+            if not mask.any():
+                continue
+            too_long = df_db.loc[mask, col].map(lambda v: len(v) > max_len)
+            if too_long.any():
+                bad_val = df_db.loc[mask, col][too_long].iloc[0]
+                raise ValueError(
+                    f"{col} value '{bad_val}' exceeds max length {max_len}"
+                )
 
         rows = list(df_db.itertuples(index=False, name=None))
         transform_time = time.perf_counter() - transform_start

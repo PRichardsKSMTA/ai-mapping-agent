@@ -2,10 +2,10 @@ import pandas as pd
 from app_utils import azure_sql
 
 
-def _fake_conn(captured):
+def _fake_conn(captured, columns: dict[str, int | None] | None = None):
     class FakeCursor:
         def __init__(self) -> None:
-            self.columns: list[str] = []
+            self.columns: dict[str, int | None] = dict(columns or {})
             self.fast_executemany = False
 
         def execute(self, query, params=None):  # pragma: no cover - executed via call
@@ -21,7 +21,7 @@ def _fake_conn(captured):
             return self
 
         def fetchall(self):  # pragma: no cover - executed via call
-            return [(c,) for c in self.columns]
+            return list(self.columns.items())
 
     class FakeConn:
         def cursor(self):
