@@ -1061,68 +1061,46 @@
   },
   {
     "template": "PIT BID",
-    "field": "Freight Type",
+    "field": "ADHOC_INFO1",
     "type": "direct",
     "formula": null,
     "columns": [
-      "Unnamed: 1"
+      "Origin (Live/Drop)"
     ],
-    "display": "Unnamed: 1",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Temp Cat",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 2"
-    ],
-    "display": "Unnamed: 2",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Freight Type",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Origin City"
-    ],
-    "display": "Origin City",
+    "display": "Origin (Live/Drop)",
     "header_id": "bcf296cb"
   },
   {
     "template": "PIT BID",
-    "field": "Temp Cat",
+    "field": "ADHOC_INFO2",
     "type": "direct",
     "formula": null,
     "columns": [
-      "Item ID"
+      "Destination (Live/Drop)"
     ],
-    "display": "Item ID",
+    "display": "Destination (Live/Drop)",
     "header_id": "bcf296cb"
   },
   {
     "template": "PIT BID",
-    "field": "Breakthrough Fuel",
+    "field": "ADHOC_INFO3",
     "type": "direct",
     "formula": null,
     "columns": [
-      "Lane Name"
+      "Delivery Day"
     ],
-    "display": "Lane Name",
+    "display": "Delivery Day",
     "header_id": "bcf296cb"
   },
   {
-    "template": "demo",
-    "field": "A",
+    "template": "PIT BID",
+    "field": "ADHOC_INFO4",
     "type": "direct",
     "formula": null,
     "columns": [
-      "A"
+      "Delivery Time"
     ],
-    "display": "A",
-    "header_id": "86f7e437"
+    "display": "Delivery Time",
+    "header_id": "bcf296cb"
   }
 ]

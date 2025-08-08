@@ -135,7 +135,7 @@ def fetch_freight_type(operation_cd: str) -> str | None:
     with conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT TOP 1 FREIGHT_TYPE FROM dbo.V_OPERATION_FREIGHT_TYPE WHERE OPERATION_CD = ?",
+            "SELECT PRIMARY_FREIGHT_TYPE FROM dbo.CLIENT_OPERATION_CODES WHERE OPERATION_CD = ?",
             operation_cd,
         )
         row = cur.fetchone()
