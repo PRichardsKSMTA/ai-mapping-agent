@@ -130,6 +130,8 @@ def run_manager(
     cols=None,
     reader=None,
     gpt_patch=None,
+    load_patch=None,
+    save_patch=None,
 ):
     dummy_st = DummyStreamlit(uploaded)
     if button_patch:
@@ -158,6 +160,14 @@ def run_manager(
     if builder:
         monkeypatch.setattr(
             "app_utils.template_builder.build_template", builder
+        )
+    if load_patch:
+        monkeypatch.setattr(
+            "app_utils.template_builder.load_template_json", load_patch
+        )
+    if save_patch:
+        monkeypatch.setattr(
+            "app_utils.template_builder.save_template_file", save_patch
         )
     sys.modules.pop("pages.template_manager", None)
     importlib.import_module("pages.template_manager")
@@ -235,6 +245,51 @@ def test_suggest_required_fields_without_file(monkeypatch):
     )
 
     assert calls["read"] == 0
+
+
+def test_guid_generated_on_save(monkeypatch):
+    dummy_file = types.SimpleNamespace(name="demo.csv")
+    captured = {}
+
+    def fake_builder(name, layers, post=None, template_guid=None):
+        return {"template_name": name, "layers": layers}
+
+    def fake_save(tpl):
+        captured["tpl"] = tpl
+        return "demo"
+
+    run_manager(
+        monkeypatch,
+        uploaded=dummy_file,
+        button_patch=lambda label, *a, **k: label == "Save Template",
+        builder=fake_builder,
+        session_state={"tm_name": "demo"},
+        cols=["A"],
+        save_patch=fake_save,
+    )
+
+    assert captured["tpl"].get("template_guid")
+
+
+def test_guid_generated_on_json_upload(monkeypatch):
+    dummy_file = types.SimpleNamespace(name="demo.json")
+    captured = {}
+
+    def fake_load(_uploaded):
+        return {"template_name": "demo", "layers": [{"type": "header", "fields": []}]}
+
+    def fake_save(tpl):
+        captured["tpl"] = tpl
+        return "demo"
+
+    run_manager(
+        monkeypatch,
+        uploaded=dummy_file,
+        load_patch=fake_load,
+        save_patch=fake_save,
+    )
+
+    assert captured["tpl"].get("template_guid")
 
 
 
