@@ -45,11 +45,15 @@
           "required": false
         },
         {
-          "key": "Miles",
+          "key": "Freight Type",
           "required": false
         },
         {
-          "key": "Tolls",
+          "key": "Temp Cat",
+          "required": false
+        },
+        {
+          "key": "Breakthrough Fuel",
           "required": false
         }
       ]

@@ -1162,5 +1162,71 @@
     ],
     "display": "Origin Company",
     "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Tolls",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "6f036dfb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Freight Type",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "6f036dfb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Temp Cat",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 2"
+    ],
+    "display": "Unnamed: 2",
+    "header_id": "6f036dfb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Freight Type",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin City"
+    ],
+    "display": "Origin City",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Temp Cat",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Item ID"
+    ],
+    "display": "Item ID",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Breakthrough Fuel",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Lane Name"
+    ],
+    "display": "Lane Name",
+    "header_id": "bcf296cb"
   }
 ]
