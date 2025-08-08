@@ -307,7 +307,10 @@ def main():
                         tmp_path = Path(tmp.name)
                         mapped_df = save_mapped_csv(df, final_json, tmp_path)
 
-                    adhoc_headers = azure_sql.derive_adhoc_headers(mapped_df)
+                    adhoc_headers = (
+                        st.session_state.get("header_adhoc_headers")
+                        or azure_sql.derive_adhoc_headers(mapped_df)
+                    )
                     rows = insert_pit_bid_rows(
                         mapped_df,
                         st.session_state["operation_code"],
