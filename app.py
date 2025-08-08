@@ -17,7 +17,6 @@ Key features
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import streamlit as st
@@ -372,6 +371,7 @@ def main():
             st.json(st.session_state.get("postprocess_payload"))
             st.json(st.session_state.get("final_json"))
             csv_data = st.session_state.get("mapped_csv")
+
             if csv_data:
                 st.download_button(
                     "Download mapped CSV",

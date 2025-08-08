@@ -162,3 +162,4 @@ def test_sharepoint_link_displayed(monkeypatch):
         "https://tenant.sharepoint.com/sites/demo/docs/folder" in m
         for m in st.markdown_calls
     )
+
