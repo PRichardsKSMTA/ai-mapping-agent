@@ -23,8 +23,6 @@ PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Bid Volume": "BID_VOLUME",
     "LH Rate": "LH_RATE",
     "Bid Miles": "RFP_MILES",
-    "Miles": "RFP_MILES",
-    "Tolls": "FM_TOLLS",
     "Customer Name": "CUSTOMER_NAME",
     "Freight Type": "FREIGHT_TYPE",
     "Temp Cat": "TEMP_CAT",
