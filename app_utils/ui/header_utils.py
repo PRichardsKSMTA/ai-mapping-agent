@@ -14,13 +14,12 @@ from app_utils.ui_utils import set_steps_from_template
 
 
 def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
-    """Persist mapping for ``field_key`` and mark session dirty if changed."""
+    """Persist mapping for ``field_key``."""
     map_key = f"header_mapping_{idx}"
     mapping = st.session_state.setdefault(map_key, {})
     if mapping.get(field_key) != value:
         mapping[field_key] = value
         st.session_state[map_key] = mapping
-        st.session_state["unsaved_changes"] = True
 
 
 def remove_field(field_key: str, idx: int) -> None:
