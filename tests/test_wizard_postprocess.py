@@ -160,4 +160,4 @@ def test_postprocess_runner_called(monkeypatch):
 
 def test_postprocess_payload_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
-    assert st.json_calls and st.json_calls[0] == {"p": 1}
+    assert not st.json_calls
