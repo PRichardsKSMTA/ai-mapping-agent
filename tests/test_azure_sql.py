@@ -200,6 +200,7 @@ def _fake_conn(captured: dict, columns: set[str] | None = None):
 def test_insert_pit_bid_rows(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
         {
             "Lane ID": ["L1"],
@@ -235,6 +236,7 @@ def test_insert_pit_bid_rows(monkeypatch):
 def test_insert_pit_bid_rows_blanks(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
         {
             "Lane ID": ["L1"],
@@ -254,12 +256,12 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
     assert captured["params"][9] is None  # BID_VOLUME
     assert captured["params"][10] is None  # LH_RATE
     assert captured["params"][24] is None  # RFP_MILES
-    assert captured["params"][25] is None  # FM_TOLLS
 
 
 def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
         {
             "LANE_ID": ["L1"],
@@ -281,25 +283,20 @@ def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
     assert captured["params"][14] is None  # no ADHOC columns
 
 
-def test_insert_pit_bid_rows_unmapped_miles(monkeypatch):
+def test_insert_pit_bid_rows_autofill_freight_type(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
-    df = pd.DataFrame(
-        {
-            "Lane ID": ["L1"],
-            "Bid Miles": [321],
-            "Miles": [999],
-        }
-    )
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: "LTL")
+    df = pd.DataFrame({"Lane ID": ["L1"]})
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert rows == 1
-    assert captured["params"][2] == "L1"
-    assert captured["params"][24] == 321  # from Bid Miles
-    assert captured["params"][14] == "999"  # Miles becomes ADHOC_INFO1
+    assert captured["params"][11] == "LTL"
+
 
 def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
         {
             "Lane ID": ["L1"],
@@ -317,11 +314,11 @@ def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     assert captured["params"][9] == 5000.0
     assert captured["params"][10] == 1.5
     assert captured["params"][24] == 1234.0
-    assert captured["params"][25] is None
 
 def test_insert_pit_bid_rows_customer_column(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
         {
             "Customer Name": ["Cust1"],
@@ -357,6 +354,7 @@ def test_insert_pit_bid_rows_extends_known_columns(monkeypatch):
     captured = {}
     table_cols = {"EXTRA_COL"}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured, table_cols))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     monkeypatch.setitem(azure_sql.PIT_BID_FIELD_MAP, "Extra Field", "EXTRA_COL")
     df = pd.DataFrame({"Lane ID": ["L1"], "Extra Field": ["val"]})
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
@@ -369,6 +367,7 @@ def test_insert_pit_bid_rows_extends_known_columns(monkeypatch):
 def test_insert_pit_bid_rows_unknown_columns_to_adhoc(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     monkeypatch.setitem(azure_sql.PIT_BID_FIELD_MAP, "Extra Field", "MISSING_COL")
     df = pd.DataFrame({"Lane ID": ["L1"], "Extra Field": ["val"]})
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")

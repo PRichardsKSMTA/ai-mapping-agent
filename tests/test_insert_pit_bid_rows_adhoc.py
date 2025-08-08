@@ -37,6 +37,7 @@ def _fake_conn(captured):
 def test_insert_pit_bid_rows_adhoc_sequential(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
         {
             "Lane ID": ["L1"],
@@ -59,6 +60,7 @@ def test_insert_pit_bid_rows_adhoc_sequential(monkeypatch):
 def test_insert_pit_bid_rows_preserves_existing_adhoc(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame(
         {
             "Lane ID": ["L1"],
