@@ -56,6 +56,46 @@
         {
           "key": "Breakthrough Fuel",
           "required": false
+        },
+        {
+          "key": "ADHOC_INFO1",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO2",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO3",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO4",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO5",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO6",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO7",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO8",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO9",
+          "required": false
+        },
+        {
+          "key": "ADHOC_INFO10",
+          "required": false
         }
       ]
     }
