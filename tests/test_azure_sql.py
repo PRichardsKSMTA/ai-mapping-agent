@@ -1,7 +1,7 @@
 import types
+import logging
 import pytest
 import pandas as pd
-import types
 
 from app_utils import azure_sql
 
@@ -410,4 +410,23 @@ def test_insert_pit_bid_rows_tvp(monkeypatch):
     assert rows == 2
     assert isinstance(captured["params"], FakeTVP)
     assert captured["params"].name == "dbo.TVP"
+
+
+def test_insert_pit_bid_rows_logs(monkeypatch, caplog):
+    captured: dict = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({"Lane ID": ["L1"]})
+
+    class FakeTime:
+        def __init__(self) -> None:
+            self.times = iter([0.0, 1.0, 1.0, 3.0])
+
+        def perf_counter(self) -> float:
+            return next(self.times)
+
+    monkeypatch.setattr(azure_sql, "time", FakeTime())
+    with caplog.at_level(logging.INFO):
+        azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert any("transform=1.000s" in m and "db=2.000s" in m for m in caplog.messages)
 
