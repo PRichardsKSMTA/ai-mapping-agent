@@ -39,9 +39,13 @@ def _apply_lookup_mapping(layer: Dict[str, Any], idx: int, state: MutableMapping
 def build_output_template(
     template: Template,
     state: MutableMapping[str, Any],
-    process_guid: str | None = None,
+    process_guid: str,
 ) -> Dict[str, Any]:
-    """Return template JSON enriched with user expressions."""
+    """Return template JSON enriched with user expressions.
+
+    ``process_guid`` is always embedded in the returned JSON so downstream
+    systems can trace a specific mapping run.
+    """
     tpl = deepcopy(template.model_dump(mode="json"))
     layers = []
     for idx, layer in enumerate(tpl.get("layers", [])):
@@ -54,6 +58,5 @@ def build_output_template(
         else:
             layers.append(layer)
     tpl["layers"] = layers
-    if process_guid:
-        tpl["process_guid"] = process_guid
+    tpl["process_guid"] = process_guid
     return tpl

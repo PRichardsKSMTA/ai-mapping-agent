@@ -1,5 +1,6 @@
 {
   "template_name": "User Defined Demo",
+  "template_guid": "ee2705fc-ccc3-4eba-b863-f490e5f8f90c",
   "layers": [
     {
       "type": "header",

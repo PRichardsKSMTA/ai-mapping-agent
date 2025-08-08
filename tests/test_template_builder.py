@@ -26,6 +26,7 @@ def test_build_header_template_valid():
     cols = ["A", "B"]
     required = {"A": True, "B": False}
     tpl = build_header_template("demo", cols, required, None)
+    assert tpl.get("template_guid")
     Template.model_validate(tpl)
 
 
@@ -35,6 +36,7 @@ def test_build_header_template_with_postprocess():
     post = {"url": "https://example.com"}
     tpl = build_header_template("demo", cols, required, post)
     assert tpl["postprocess"] == post
+    assert tpl.get("template_guid")
     Template.model_validate(tpl)
 
 
@@ -42,13 +44,18 @@ def test_load_template_json_valid():
     with open("tests/fixtures/simple-template.json") as f:
         tpl = load_template_json(f)
     assert tpl["template_name"] == "simple-template"
+    assert tpl.get("template_guid")
 
 
 def test_save_template_file(tmp_path):
     tpl = {"template_name": "demo*temp", "layers": []}
     name = save_template_file(tpl, directory=tmp_path)
     assert name == "demo-temp"
-    assert (tmp_path / f"{name}.json").exists()
+    assert tpl.get("template_guid")
+    path = tmp_path / f"{name}.json"
+    assert path.exists()
+    saved = json.loads(path.read_text())
+    assert saved.get("template_guid") == tpl["template_guid"]
 
 
 def test_slugify_examples():
@@ -212,6 +219,7 @@ def test_build_lookup_and_computed_layers():
     lookup = build_lookup_layer("SRC", "DEST", "dict", sheet="Sheet1")
     computed = build_computed_layer("TOTAL", "df['A'] + df['B']")
     tpl = build_template("demo", [lookup, computed])
+    assert tpl.get("template_guid")
     Template.model_validate(tpl)
 
 
@@ -221,6 +229,7 @@ def test_build_template_with_header_and_extra_layers():
     comp = build_computed_layer("TOTAL", "df['A']")
     layers = [header["layers"][0], lookup, comp]
     tpl = build_template("demo", layers)
+    assert tpl.get("template_guid")
     Template.model_validate(tpl)
 
 
@@ -241,6 +250,7 @@ def test_build_template_multiple_extra_layers():
     c1 = build_computed_layer("TOTAL", "df['A'] + df['B']")
     layers = [header["layers"][0], l1, l2, c1]
     tpl = build_template("demo", layers)
+    assert tpl.get("template_guid")
     Template.model_validate(tpl)
 
 

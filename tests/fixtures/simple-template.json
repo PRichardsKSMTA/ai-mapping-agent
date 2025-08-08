@@ -1,5 +1,6 @@
 {
   "template_name": "simple-template",
+  "template_guid": "1d448372-6dfc-49da-970d-435e1ecf00b5",
   "layers": [
     {
       "type": "header",

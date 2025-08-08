@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 from typing import List
+import uuid
 
 import streamlit as st
 from pydantic import ValidationError
@@ -16,7 +17,6 @@ from app_utils.template_builder import (
     build_template,
     load_template_json,
     save_template_file,
-    slugify,
     apply_field_choices,
     gpt_field_suggestions,
 )
@@ -62,6 +62,7 @@ def show() -> None:
         if uploaded.name.lower().endswith(".json"):
             try:
                 tpl = load_template_json(uploaded)
+                tpl.setdefault("template_guid", str(uuid.uuid4()))
                 safe = persist_template(tpl)
                 st.success(f"Saved template '{safe}'")
                 st.rerun()
@@ -144,6 +145,7 @@ def show() -> None:
         post_obj = json.loads(post_txt) if post_txt else None
         header_only = build_header_template(name, selected_cols, req_map)
         tpl = build_template(name, [header_only["layers"][0]], post_obj)
+        tpl.setdefault("template_guid", str(uuid.uuid4()))
         with st.spinner("Saving template..."):
             try:
                 Template.model_validate(tpl)
@@ -174,12 +176,14 @@ def show() -> None:
             "%Y-%m-%d %H:%M"
         )
         layers = len(data.get("layers", []))
-        row = st.columns([3, 1, 2, 1])
+        guid = data.get("template_guid", "—")
+        row = st.columns([3, 1, 2, 3, 1])
         if row[0].button(data.get("template_name", tf[:-5]), key=f"tm_open_{tf}"):
             edit_template(tf, data)
         row[1].write(f"{layers} layers")
         row[2].write(modified)
-        if row[3].button("Delete", key=f"tm_del_{tf}"):
+        row[3].write(guid)
+        if row[4].button("Delete", key=f"tm_del_{tf}"):
             confirm_delete(tf)
 
 
@@ -212,10 +216,9 @@ def edit_template(filename: str, data: dict) -> None:
                         obj.pop("postprocess", None)
                     else:
                         obj["postprocess"] = post_obj
+                    obj.setdefault("template_guid", str(uuid.uuid4()))
                     Template.model_validate(obj)
-                    safe = slugify(obj["template_name"])
-                    with open(os.path.join("templates", f"{safe}.json"), "w") as f:
-                        json.dump(obj, f, indent=2)
+                    safe = save_template_file(obj)
                     if safe + ".json" != filename:
                         os.remove(os.path.join("templates", filename))
                     st.success("Template saved")

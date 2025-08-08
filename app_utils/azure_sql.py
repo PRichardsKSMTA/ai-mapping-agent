@@ -23,8 +23,6 @@ PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Bid Volume": "BID_VOLUME",
     "LH Rate": "LH_RATE",
     "Bid Miles": "RFP_MILES",
-    "Miles": "RFP_MILES",
-    "Tolls": "FM_TOLLS",
     "Customer Name": "CUSTOMER_NAME",
     "Freight Type": "FREIGHT_TYPE",
     "Temp Cat": "TEMP_CAT",
@@ -126,6 +124,22 @@ def fetch_customers(operational_scac: str) -> List[Dict[str, str]]:
         cols = [c[0] for c in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
     return sorted(rows, key=lambda r: r["BILLTO_NAME"])
+
+
+def fetch_freight_type(operation_cd: str) -> str | None:
+    """Return the default freight type for an operation code."""
+    try:
+        conn = _connect()
+    except RuntimeError as err:  # pragma: no cover - exercised in integration
+        raise RuntimeError(f"Freight type lookup failed: {err}") from err
+    with conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 1 FREIGHT_TYPE FROM dbo.V_OPERATION_FREIGHT_TYPE WHERE OPERATION_CD = ?",
+            operation_cd,
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
 
 
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
@@ -231,6 +245,10 @@ def insert_pit_bid_rows(
             df_db[col] = df_db[cols].bfill(axis=1).iloc[:, 0]
         df_db = df_db.loc[:, ~df_db.columns.duplicated()]
 
+    default_freight = None
+    if "FREIGHT_TYPE" not in df_db.columns or df_db["FREIGHT_TYPE"].isna().all():
+        default_freight = fetch_freight_type(operation_cd)
+
     conn = _connect()
     with conn:
         cur = conn.cursor()
@@ -266,6 +284,8 @@ def insert_pit_bid_rows(
                         values[col] = _to_str(row[col])
             if customer_name is not None:
                 values["CUSTOMER_NAME"] = customer_name
+            if values["FREIGHT_TYPE"] is None:
+                values["FREIGHT_TYPE"] = default_freight
             unmapped = [c for c in df_db.columns if c not in values]
             available_slots = [slot for slot in adhoc_slots if values[slot] is None]
             for slot, col in zip(available_slots, unmapped):
@@ -278,3 +298,15 @@ def insert_pit_bid_rows(
                 rows,
             )
     return len(rows)
+
+
+def log_mapping_process(process_guid: str, template_name: str, friendly_name: str,
+                        created_by: str, file_name_string: str,
+                        process_json: dict | str, template_guid: str) -> None:
+    """Insert a record into ``dbo.MAPPING_AGENT_PROCESSES``."""
+    with _connect() as conn:
+        conn.cursor().execute(
+            "INSERT INTO dbo.MAPPING_AGENT_PROCESSES (PROCESS_GUID, TEMPLATE_NAME, FRIENDLY_NAME, CREATED_BY, CREATED_DTTM, FILE_NAME_STRING, PROCESS_JSON, TEMPLATE_GUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (process_guid, template_name, friendly_name, created_by, datetime.utcnow(), file_name_string,
+             json.dumps(process_json) if not isinstance(process_json, str) else process_json, template_guid),
+        )

@@ -25,6 +25,7 @@ from pydantic import (
     HttpUrl,
 )
 from typing import List, Literal, Optional, Dict, Any
+from uuid import UUID
 
 
 class FieldSpec(BaseModel):
@@ -76,6 +77,9 @@ Layer = HeaderLayer | LookupLayer | ComputedLayer
 
 
 class Template(BaseModel):
+    template_guid: Optional[str] = Field(
+        default=None, description="Unique identifier for this template"
+    )
     template_name: str
     layers: List[Layer]
     postprocess: Optional[PostprocessSpec] = None
@@ -84,6 +88,14 @@ class Template(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     # Pydantic-v2 syle validator
+    @field_validator("template_guid")
+    @classmethod
+    def _valid_guid(cls, v: Optional[str]):
+        if v is None:
+            return v
+        UUID(v)
+        return v
+
     @field_validator("layers")
     @classmethod
     def _non_empty_layers(cls, v: List[Layer]):

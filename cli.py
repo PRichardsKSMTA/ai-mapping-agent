@@ -78,14 +78,17 @@ def main() -> None:
         type=str,
         help="Optional customer name for SQL insert",
     )
+    parser.add_argument(
+        "--user-email",
+        type=str,
+        help="User email for process logging",
+    )
     args = parser.parse_args()
 
     template = load_template(args.template)
     df = load_data(args.input_file)
     state = auto_map(template, df)
-    process_guid: str | None = None
-    if args.operation_code and template.template_name == "PIT BID":
-        process_guid = str(uuid.uuid4())
+    process_guid = str(uuid.uuid4())
     mapped = build_output_template(template, state, process_guid)
 
     with args.output.open("w") as f:
@@ -96,7 +99,6 @@ def main() -> None:
         if (
             args.operation_code
             and template.template_name == "PIT BID"
-            and process_guid is not None
         ):
             rows = azure_sql.insert_pit_bid_rows(
                 mapped_df, args.operation_code, args.customer_name, process_guid
@@ -109,6 +111,16 @@ def main() -> None:
                 print(line)
             if payload is not None:
                 print(json.dumps(payload, indent=2))
+
+    azure_sql.log_mapping_process(
+        process_guid,
+        args.template.stem,
+        template.template_name,
+        args.user_email,
+        args.template.name,
+        json.dumps(mapped),
+        template.template_guid,
+    )
 
 
 if __name__ == "__main__":
