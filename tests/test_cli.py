@@ -93,7 +93,7 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     monkeypatch.setattr(
         cli,
         'run_postprocess_if_configured',
-        lambda tpl_obj, df, guid, operation_code=None, customer_name=None: ([], None),
+        lambda tpl_obj, df, guid, customer_name, operation_code=None: ([], None),
     )
     monkeypatch.setattr(azure_sql, 'log_mapping_process', lambda *a, **k: None)
     monkeypatch.setattr(sys, 'argv', [
@@ -133,7 +133,7 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     captured: dict[str, object] = {}
 
     def fake_postprocess(
-        tpl_obj, df, process_guid, op_cd, cust_name
+        tpl_obj, df, process_guid, cust_name, op_cd
     ):
         captured['op'] = op_cd
         captured['cust'] = cust_name

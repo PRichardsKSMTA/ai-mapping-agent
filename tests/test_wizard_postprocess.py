@@ -133,6 +133,7 @@ def run_app(monkeypatch):
         "template_name": "PIT BID",
         "current_template": "PIT BID",
         "layer_confirmed_0": True,
+        "customer_name": "Cust",
     })
     sys.modules.pop("app", None)
     importlib.import_module("app")

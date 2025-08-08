@@ -1,6 +1,5 @@
 import types
 import sys
-import datetime
 import json
 from typing import Any, Dict
 import pandas as pd
@@ -51,7 +50,7 @@ def test_if_configured_helper(load_env, monkeypatch):
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
         'postprocess': {'url': 'https://example.com'}
     })
-    logs, payload = run_postprocess_if_configured(tpl, pd.DataFrame(), "guid")
+    logs, payload = run_postprocess_if_configured(tpl, pd.DataFrame(), "guid", "Cust")
     assert called.get('run') is True
     assert isinstance(logs, list)
     assert payload == []
@@ -78,7 +77,7 @@ def test_if_configured_applies_header_mappings(load_env, monkeypatch):
 
     df = pd.DataFrame({'Lane Code': ['L1']})
 
-    logs, _ = run_postprocess_if_configured(tpl, df, "guid")
+    logs, _ = run_postprocess_if_configured(tpl, df, "guid", "Cust")
 
     assert captured['lane'] == 'L1'
     assert captured['cols'] == ['LANE_ID']
@@ -102,11 +101,6 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         called['json'] = json
 
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=fake_post))
-    fixed_now = datetime.datetime(2024, 1, 2, 3, 4, 5)
-    monkeypatch.setattr(
-        'app_utils.postprocess_runner.datetime',
-        types.SimpleNamespace(utcnow=lambda: fixed_now),
-    )
     tpl = Template.model_validate({
         'template_name': 'PIT BID',
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
@@ -153,11 +147,6 @@ def test_pit_bid_posts(monkeypatch):
         called['json'] = json
 
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=fake_post))
-    fixed_now = datetime.datetime(2024, 1, 2, 3, 4, 5)
-    monkeypatch.setattr(
-        'app_utils.postprocess_runner.datetime',
-        types.SimpleNamespace(utcnow=lambda: fixed_now),
-    )
     tpl = Template.model_validate({
         'template_name': 'PIT BID',
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
@@ -192,7 +181,7 @@ def test_pit_bid_requires_process_guid():
         'postprocess': {'url': 'https://example.com/post'},
     })
     with pytest.raises(ValueError):
-        run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), '', operation_cd='OP')
+        run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), '', 'Cust', operation_cd='OP')
 
 
 def test_pit_bid_null_payload_logged(load_env, monkeypatch):
@@ -214,6 +203,7 @@ def test_pit_bid_null_payload_logged(load_env, monkeypatch):
             tpl,
             pd.DataFrame({'A': [1]}),
             'guid',
+            'Cust',
             operation_cd='OP',
         )
 

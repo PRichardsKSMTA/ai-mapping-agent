@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 import json
-from datetime import datetime
 import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
@@ -33,8 +32,8 @@ def run_postprocess_if_configured(
     template: Template,
     df: pd.DataFrame,
     process_guid: str,
+    customer_name: str,
     operation_cd: str | None = None,
-    customer_name: str | None = None,
 ) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None]:
     """Run optional postprocess hooks based on ``template``."""
 
@@ -55,9 +54,7 @@ def run_postprocess_if_configured(
             logs.append(f"Payload error: {err}")
             raise
         logs.append(f"Payload: {json.dumps(payload)}")
-        now = datetime.utcnow()
-        stamp = customer_name or now.strftime("%H%M%S")
-        fname = f"{operation_cd} - BID - {stamp} BID.xlsm"
+        fname = f"{operation_cd} - BID - {customer_name} BID.xlsm"
         payload.setdefault("item/In_dtInputData", [{}])
         if not payload["item/In_dtInputData"]:
             payload["item/In_dtInputData"].append({})

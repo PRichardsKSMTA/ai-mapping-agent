@@ -322,8 +322,8 @@ def main():
                         template_obj,
                         df,
                         guid,
+                        st.session_state.get("customer_name", ""),
                         st.session_state.get("operation_code"),
-                        st.session_state.get("customer_name"),
                     )
                     azure_sql.log_mapping_process(
                         guid,
