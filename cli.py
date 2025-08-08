@@ -100,6 +100,7 @@ def main() -> None:
         adhoc_headers = azure_sql.derive_adhoc_headers(mapped_df)
         if (
             args.operation_code
+            and args.customer_name
             and template.template_name == "PIT BID"
         ):
             if not args.customer_name:
@@ -113,7 +114,11 @@ def main() -> None:
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
             logs_post, payload = run_postprocess_if_configured(
-                template, df, process_guid, args.operation_code, args.customer_name
+                template,
+                df,
+                process_guid,
+                args.customer_name,
+                args.operation_code,
             )
             for line in logs_post:
                 print(line)
