@@ -11,6 +11,7 @@ import json
 import logging
 
 import pandas as pd
+from .state_abbrev import abbreviate_state
 
 PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Lane ID": "LANE_ID",
@@ -303,6 +304,17 @@ def insert_pit_bid_rows(
         text = str(val).strip()
         return text or None
 
+    def _prep_state(val: Any, field: str) -> str | None:
+        if pd.isna(val) or val == "":
+            return None
+        text = str(val).strip()
+        abbr = abbreviate_state(text)
+        if abbr:
+            return abbr
+        if len(text) >= 2:
+            return text[:2].upper()
+        raise ValueError(f"{field} value '{val}' cannot be abbreviated")
+
 
     # Rename DataFrame columns to their target database names.
     df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
@@ -311,6 +323,10 @@ def insert_pit_bid_rows(
             cols = [c for c in df_db.columns if c == col]
             df_db[col] = df_db[cols].bfill(axis=1).iloc[:, 0]
         df_db = df_db.loc[:, ~df_db.columns.duplicated()]
+
+    for col in ["ORIG_ST", "DEST_ST"]:
+        if col in df_db.columns:
+            df_db[col] = df_db[col].apply(lambda v, c=col: _prep_state(v, c))
 
     default_freight = None
     if "FREIGHT_TYPE" not in df_db.columns or df_db["FREIGHT_TYPE"].isna().all():
