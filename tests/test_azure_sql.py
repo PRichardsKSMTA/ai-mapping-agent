@@ -167,7 +167,9 @@ def test_connect_requires_pyodbc(monkeypatch):
 def _fake_conn(captured: dict, columns: dict[str, int | None] | None = None):
     class FakeCursor:
         def __init__(self) -> None:
-            self.columns = dict(columns or {})
+            base_cols = {"FREIGHT_TYPE": 1}
+            base_cols.update(columns or {})
+            self.columns = base_cols
             self.fast_executemany = False
 
         def execute(self, query, params=None):  # pragma: no cover - executed via call
@@ -295,7 +297,7 @@ def test_insert_pit_bid_rows_autofill_freight_type(monkeypatch):
     df = pd.DataFrame({"Lane ID": ["L1"]})
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert rows == 1
-    assert captured["params"][11] == "LTL"
+    assert captured["params"][11] == "L"
 
 
 def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
@@ -373,7 +375,7 @@ def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert rows == 1
     assert captured["params"][1] == "Customer"  # CUSTOMER_NAME
-    assert captured["params"][11] == "TL"  # FREIGHT_TYPE
+    assert captured["params"][11] == "T"  # FREIGHT_TYPE
     assert captured["params"][14] == "Acme"  # ADHOC_INFO1
     assert captured["params"][15] == "bar"  # ADHOC_INFO2
 
