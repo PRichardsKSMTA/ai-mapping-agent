@@ -331,6 +331,18 @@ def test_insert_pit_bid_rows_length_error(monkeypatch):
         azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
     assert "LANE_ID" in str(exc.value)
 
+
+def test_insert_pit_bid_rows_nvarchar_max(monkeypatch):
+    captured = {}
+    cols = {"ADHOC_INFO1": -1}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured, cols))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    long_val = "x" * 5000
+    df = pd.DataFrame({"Lane ID": ["L1"], "Foo": [long_val]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
+    assert captured["params"][14] == long_val
+
 def test_insert_pit_bid_rows_customer_column_ignored(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))

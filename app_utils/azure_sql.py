@@ -383,7 +383,7 @@ def insert_pit_bid_rows(
         if default_freight is not None:
             df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
         for col, max_len in char_max.items():
-            if max_len is None or col not in df_db.columns:
+            if max_len is None or max_len < 0 or col not in df_db.columns:
                 continue
             mask = df_db[col].notna()
             if not mask.any():
