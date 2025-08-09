@@ -32,6 +32,8 @@ PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Volume Frequency": "VOLUME_FREQUENCY",
 }
 
+FREIGHT_TYPE_MAP: Dict[str, str] = {"LTL": "L", "TL": "T", "FLT": "F"}
+
 try:  # pragma: no cover - optional dependency
     from dotenv import load_dotenv
 
@@ -334,6 +336,8 @@ def insert_pit_bid_rows(
     default_freight = None
     if "FREIGHT_TYPE" not in df_db.columns or df_db["FREIGHT_TYPE"].isna().all():
         default_freight = fetch_freight_type(operation_cd)
+        if default_freight is not None:
+            default_freight = FREIGHT_TYPE_MAP.get(default_freight, default_freight)
 
     conn = _connect()
     with conn:
@@ -382,6 +386,10 @@ def insert_pit_bid_rows(
         df_db["INSERTED_DTTM"] = now
         if default_freight is not None:
             df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
+        if "FREIGHT_TYPE" in df_db.columns:
+            df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].map(
+                lambda v: FREIGHT_TYPE_MAP.get(v, v)
+            )
         for col, max_len in char_max.items():
             if max_len is None or max_len < 0 or col not in df_db.columns:
                 continue
