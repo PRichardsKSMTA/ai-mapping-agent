@@ -101,7 +101,7 @@ def fetch_operation_codes(email: str | None = None) -> List[str]:
     with conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT OPERATION_CD FROM dbo.V_O365_MEMBER_OPERATIONS WHERE EMAIL = ? AND OPERATION_CD NOT LIKE '%LOG'",
+            "SELECT OPERATION_CD FROM dbo.V_O365_MEMBER_OPERATIONS WHERE EMAIL = ? AND PIT_REFRESH = 1",
             email,
         )
         rows = cur.fetchall()
