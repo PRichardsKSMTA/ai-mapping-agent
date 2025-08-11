@@ -184,6 +184,16 @@ def _fake_conn(captured: dict, columns: dict[str, int | None] | None = None):
             captured.setdefault("batches", []).append(list(params))
             captured["params"] = params[0] if params else None
             captured["fast_executemany"] = self.fast_executemany
+            if self.columns and "INSERT INTO" in query:
+                cols = query.split("(")[1].split(")", 1)[0].split(",")
+                cols = [c.strip() for c in cols]
+                for row in params:
+                    for col, max_len in self.columns.items():
+                        if max_len is not None and max_len > 0:
+                            idx = cols.index(col)
+                            val = row[idx]
+                            if val is not None and len(str(val)) > max_len:
+                                raise Exception(f"{col} value exceeds length {max_len}")
             return self
 
         def fetchall(self):  # pragma: no cover - executed via call
@@ -331,7 +341,7 @@ def test_insert_pit_bid_rows_length_error(monkeypatch):
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured, cols))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame({"Lane ID": ["123456"]})
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(RuntimeError) as exc:
         azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
     assert "LANE_ID" in str(exc.value)
 

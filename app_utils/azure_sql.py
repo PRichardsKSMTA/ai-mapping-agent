@@ -369,12 +369,11 @@ def insert_pit_bid_rows(
     with conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS "
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
             "WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'RFP_OBJECT_DATA'",
         )
         info_rows = cur.fetchall()
         db_columns = {row[0] for row in info_rows}
-        char_max = {row[0]: row[1] for row in info_rows}
         extra_columns = [
             col
             for col in df_db.columns
@@ -417,18 +416,6 @@ def insert_pit_bid_rows(
             df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].map(
                 lambda v: FREIGHT_TYPE_MAP.get(v, v)
             )
-        for col, max_len in char_max.items():
-            if max_len is None or max_len < 0 or col not in df_db.columns:
-                continue
-            mask = df_db[col].notna()
-            if not mask.any():
-                continue
-            too_long = df_db.loc[mask, col].map(lambda v: len(v) > max_len)
-            if too_long.any():
-                bad_val = df_db.loc[mask, col][too_long].iloc[0]
-                raise ValueError(
-                    f"{col} value '{bad_val}' exceeds max length {max_len}"
-                )
 
         rows = list(df_db.itertuples(index=False, name=None))
         transform_time = time.perf_counter() - transform_start
@@ -438,36 +425,39 @@ def insert_pit_bid_rows(
             )
             return 0
 
-        cur.fast_executemany = True  # type: ignore[attr-defined]
-        placeholders = ",".join(["?"] * len(columns))
-        db_start = time.perf_counter()
-        if tvp_name and pyodbc and hasattr(pyodbc, "TableValuedParam"):
-            tvp = pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
-            cur.execute(
-                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
-                tvp,
-            )
-        elif use_bulk_insert:
-            import csv
-            import tempfile
-
-            with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
-                csv.writer(tmp).writerows(rows)
-                tmp_path = tmp.name
-            try:
+        try:
+            cur.fast_executemany = True  # type: ignore[attr-defined]
+            placeholders = ",".join(["?"] * len(columns))
+            db_start = time.perf_counter()
+            if tvp_name and pyodbc and hasattr(pyodbc, "TableValuedParam"):
+                tvp = pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
                 cur.execute(
-                    f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{tmp_path}' WITH (FORMAT = 'CSV')"
+                    f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
+                    tvp,
                 )
-            finally:
-                os.unlink(tmp_path)
-        else:
-            query = (
-                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
-            )
-            for start in range(0, len(rows), batch_size):
-                batch = rows[start : start + batch_size]
-                cur.executemany(query, batch)
-        db_time = time.perf_counter() - db_start
+            elif use_bulk_insert:
+                import csv
+                import tempfile
+
+                with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
+                    csv.writer(tmp).writerows(rows)
+                    tmp_path = tmp.name
+                try:
+                    cur.execute(
+                        f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{tmp_path}' WITH (FORMAT = 'CSV')"
+                    )
+                finally:
+                    os.unlink(tmp_path)
+            else:
+                query = (
+                    f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
+                )
+                for start in range(0, len(rows), batch_size):
+                    batch = rows[start : start + batch_size]
+                    cur.executemany(query, batch)
+            db_time = time.perf_counter() - db_start
+        except Exception as err:
+            raise RuntimeError(f"Failed to insert PIT bid rows: {err}") from err
     logging.info(
         "insert_pit_bid_rows transform=%.3fs db=%.3fs", transform_time, db_time
     )
