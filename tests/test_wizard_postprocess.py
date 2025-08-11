@@ -15,6 +15,11 @@ class DummyContainer:
     def progress(self, *a, **k):
         pass
 
+
+class DummyColumn:
+    def button(self, *a, **k):
+        return False
+
 class DummySidebar:
     def __init__(self, st):
         self.st = st
@@ -78,6 +83,16 @@ class DummyStreamlit:
         def wrap(func):
             return func
         return wrap
+    def multiselect(self, label, options, default=None, key=None, **k):
+        if key and key in self.session_state:
+            return self.session_state[key]
+        sel = default or []
+        if key:
+            self.session_state[key] = sel
+        return sel
+    def columns(self, spec):
+        n = len(spec) if isinstance(spec, (list, tuple)) else spec
+        return [DummyColumn() for _ in range(n)]
 
 
 def run_app(monkeypatch):
@@ -96,7 +111,10 @@ def run_app(monkeypatch):
     monkeypatch.setattr(
         "app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["ADSJ_VAN"]
     )
-    monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [{"BILLTO_NAME": "Cust"}])
+    monkeypatch.setattr(
+        "app_utils.azure_sql.fetch_customers",
+        lambda scac: [{"BILLTO_NAME": "Cust", "BILLTO_ID": "1"}],
+    )
     monkeypatch.setattr(
         "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid, adhoc: len(df)
     )
@@ -137,6 +155,7 @@ def run_app(monkeypatch):
         "customer_name": "Customer",
         "layer_confirmed_0": True,
         "customer_name": "Cust",
+        "customer_ids": ["1"],
     })
     sys.modules.pop("app", None)
     importlib.import_module("app")

@@ -216,17 +216,41 @@ def main():
             idx = 0
             if st.session_state.get("customer_name") in cust_names:
                 idx = cust_names.index(st.session_state["customer_name"])
+            prev_name = st.session_state.get("customer_name")
             selected_name = st.selectbox(
-                "Customer", cust_names, index=idx, key="customer_name_select"
+                "Customer", cust_names, index=idx, key="customer_name"
             )
-            st.session_state["customer_name"] = selected_name
+            if selected_name != prev_name:
+                st.session_state["customer_ids"] = []
             st.session_state["selected_customer"] = next(
                 c for c in cust_records if c["BILLTO_NAME"] == selected_name
             )
+            billto_ids: list[str] = [
+                c["BILLTO_ID"]
+                for c in cust_records
+                if c["BILLTO_NAME"]
+                == st.session_state["selected_customer"]["BILLTO_NAME"]
+            ]
+            st.session_state["customer_id_options"] = billto_ids
+            if billto_ids:
+                st.multiselect(
+                    "Customer ID",
+                    billto_ids,
+                    key="customer_ids",
+                    max_selections=5,
+                )
+                btn_col1, btn_col2 = st.columns(2)
+                if btn_col1.button("Select all"):
+                    st.session_state["customer_ids"] = billto_ids[:5]
+                if btn_col2.button("Deselect all"):
+                    st.session_state["customer_ids"] = []
         else:
             st.warning("No customers found for selected operation.")
         if not st.session_state.get("customer_name"):
             st.error("Please select a customer to proceed.")
+            return
+        if not st.session_state.get("customer_ids"):
+            st.error("Select at least one Customer ID.")
             return
 
     # ---------------------------------------------------------------------------

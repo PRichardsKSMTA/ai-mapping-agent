@@ -160,6 +160,7 @@ def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Di
             "header_adhoc_headers": {"ADHOC_INFO1": "Foo"},
             "customer_name": "Demo",
             "operation_code": "ADSJ_VAN",
+            "customer_ids": ["1"],
         }
     )
     sys.modules.pop("app", None)
