@@ -233,6 +233,12 @@ def main():
             ]
             st.session_state["customer_id_options"] = billto_ids
             if billto_ids:
+                def select_all_ids() -> None:
+                    st.session_state["customer_ids"] = billto_ids[:5]
+
+                def deselect_all_ids() -> None:
+                    st.session_state["customer_ids"] = []
+
                 st.multiselect(
                     "Customer ID",
                     billto_ids,
@@ -240,10 +246,8 @@ def main():
                     max_selections=5,
                 )
                 btn_col1, btn_col2 = st.columns(2)
-                if btn_col1.button("Select all"):
-                    st.session_state["customer_ids"] = billto_ids[:5]
-                if btn_col2.button("Deselect all"):
-                    st.session_state["customer_ids"] = []
+                btn_col1.button("Select all", on_click=select_all_ids)
+                btn_col2.button("Deselect all", on_click=deselect_all_ids)
         else:
             st.warning("No customers found for selected operation.")
         if not st.session_state.get("customer_name"):
