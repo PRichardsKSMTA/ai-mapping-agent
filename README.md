@@ -25,12 +25,29 @@ or add them to `.streamlit/secrets.toml`:
 Alternatively, a full connection string may be supplied via
 `AZURE_SQL_CONN_STRING`.
 
+### Customer ID selection
+
+After choosing a customer, the Streamlit app presents a multiselect field for
+**Customer IDs**. Up to five IDs may be selected; any additional selections are
+ignored.
+
 ## Command Line Interface
 
 Run the mapping pipeline directly from the terminal using `cli.py`:
 
 ```bash
 python cli.py <template.json> <input.csv|xlsx> <output.json>
+```
+
+Pass one or more `--customer-id` values to attach Customer IDs to a run. The
+flag is repeatable and accepts up to five IDs.
+
+```bash
+# single ID
+python cli.py template.json input.csv output.json --customer-id 12345
+
+# multiple IDs
+python cli.py template.json input.csv output.json --customer-id 12345 --customer-id 67890
 ```
 
 The script loads the template, auto-maps columns using heuristics, and writes a
