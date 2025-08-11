@@ -33,10 +33,14 @@ PIT_BID_FIELD_MAP: Dict[str, str] = {
 }
 
 FREIGHT_TYPE_MAP: Dict[str, str] = {
-    "LTL": "L",
-    "TL": "T",
-    "FLT": "F",
+    "V": "V",
     "VAN": "V",
+    "R": "R",
+    "REEFER": "R",
+    "F": "F",
+    "FLATBED": "F",
+    "D": "D",
+    "DEDICATED": "D",
 }
 
 try:  # pragma: no cover - optional dependency
@@ -148,16 +152,14 @@ def fetch_freight_type(operation_cd: str) -> str | None:
     with conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT PRIMARY_FREIGHT_TYPE FROM dbo.CLIENT_OPERATION_CODES WHERE OPERATION_CD = ?",
+            "SELECT FREIGHT_TYPE FROM dbo.CLIENT_OPERATION_CODES WHERE OPERATION_CD = ?",
             operation_cd,
         )
         row = cur.fetchone()
     if not row:
         return None
     freight: str = row[0]
-    if len(freight) > 1:
-        freight = FREIGHT_TYPE_MAP.setdefault(freight, freight[0])
-    return freight
+    return str(freight).strip().upper()
 
 
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
@@ -358,8 +360,6 @@ def insert_pit_bid_rows(
     default_freight = None
     if "FREIGHT_TYPE" not in df_db.columns or df_db["FREIGHT_TYPE"].isna().all():
         default_freight = fetch_freight_type(operation_cd)
-        if default_freight is not None:
-            default_freight = FREIGHT_TYPE_MAP.get(default_freight, default_freight)
 
     ids = list(customer_ids)
     if len(ids) > 5:
@@ -373,8 +373,8 @@ def insert_pit_bid_rows(
             "WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'RFP_OBJECT_DATA'",
         )
         info_rows = cur.fetchall()
-        db_columns = {row[0] for row in info_rows}
         char_max = {row[0]: row[1] for row in info_rows}
+        db_columns = char_max.keys()
         extra_columns = [
             col
             for col in df_db.columns
@@ -411,12 +411,15 @@ def insert_pit_bid_rows(
         df_db["CUSTOMER_ID"] = ",".join(ids) or None
         df_db["PROCESS_GUID"] = process_guid
         df_db["INSERTED_DTTM"] = now
-        if default_freight is not None:
-            df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
         if "FREIGHT_TYPE" in df_db.columns:
             df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].map(
-                lambda v: FREIGHT_TYPE_MAP.get(v, v)
+                lambda v: FREIGHT_TYPE_MAP.get(str(v).strip().upper())
+                if v is not None
+                else None,
             )
+        if default_freight is not None:
+            df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
+
         for col, max_len in char_max.items():
             if max_len is None or max_len < 0 or col not in df_db.columns:
                 continue
@@ -438,36 +441,39 @@ def insert_pit_bid_rows(
             )
             return 0
 
-        cur.fast_executemany = True  # type: ignore[attr-defined]
-        placeholders = ",".join(["?"] * len(columns))
-        db_start = time.perf_counter()
-        if tvp_name and pyodbc and hasattr(pyodbc, "TableValuedParam"):
-            tvp = pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
-            cur.execute(
-                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
-                tvp,
-            )
-        elif use_bulk_insert:
-            import csv
-            import tempfile
-
-            with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
-                csv.writer(tmp).writerows(rows)
-                tmp_path = tmp.name
-            try:
+        try:
+            cur.fast_executemany = True  # type: ignore[attr-defined]
+            placeholders = ",".join(["?"] * len(columns))
+            db_start = time.perf_counter()
+            if tvp_name and pyodbc and hasattr(pyodbc, "TableValuedParam"):
+                tvp = pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
                 cur.execute(
-                    f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{tmp_path}' WITH (FORMAT = 'CSV')"
+                    f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
+                    tvp,
                 )
-            finally:
-                os.unlink(tmp_path)
-        else:
-            query = (
-                f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
-            )
-            for start in range(0, len(rows), batch_size):
-                batch = rows[start : start + batch_size]
-                cur.executemany(query, batch)
-        db_time = time.perf_counter() - db_start
+            elif use_bulk_insert:
+                import csv
+                import tempfile
+
+                with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
+                    csv.writer(tmp).writerows(rows)
+                    tmp_path = tmp.name
+                try:
+                    cur.execute(
+                        f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{tmp_path}' WITH (FORMAT = 'CSV')"
+                    )
+                finally:
+                    os.unlink(tmp_path)
+            else:
+                query = (
+                    f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
+                )
+                for start in range(0, len(rows), batch_size):
+                    batch = rows[start : start + batch_size]
+                    cur.executemany(query, batch)
+            db_time = time.perf_counter() - db_start
+        except Exception as err:
+            raise RuntimeError(f"Failed to insert PIT bid rows: {err}") from err
     logging.info(
         "insert_pit_bid_rows transform=%.3fs db=%.3fs", transform_time, db_time
     )

@@ -184,6 +184,16 @@ def _fake_conn(captured: dict, columns: dict[str, int | None] | None = None):
             captured.setdefault("batches", []).append(list(params))
             captured["params"] = params[0] if params else None
             captured["fast_executemany"] = self.fast_executemany
+            if self.columns and "INSERT INTO" in query:
+                cols = query.split("(")[1].split(")", 1)[0].split(",")
+                cols = [c.strip() for c in cols]
+                for row in params:
+                    for col, max_len in self.columns.items():
+                        if max_len is not None and max_len > 0:
+                            idx = cols.index(col)
+                            val = row[idx]
+                            if val is not None and len(str(val)) > max_len:
+                                raise Exception(f"{col} value exceeds length {max_len}")
             return self
 
         def fetchall(self):  # pragma: no cover - executed via call
@@ -295,11 +305,11 @@ def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
 def test_insert_pit_bid_rows_autofill_freight_type(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
-    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: "LTL")
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: "V")
     df = pd.DataFrame({"Lane ID": ["L1"]})
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
     assert rows == 1
-    assert captured["params"][12] == "L"
+    assert captured["params"][12] == "V"
 
 
 def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
@@ -394,20 +404,30 @@ def test_insert_pit_bid_rows_freight_type_van(monkeypatch):
     assert captured["params"][12] == "V"  # FREIGHT_TYPE
 
 
+def test_insert_pit_bid_rows_invalid_freight_type_uses_default(monkeypatch):
+    captured: dict = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: "R")
+    df = pd.DataFrame({"Lane ID": ["L1"], "FREIGHT_TYPE": ["plane"]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
+    assert rows == 1
+    assert captured["params"][12] == "R"  # FREIGHT_TYPE
+
+
 def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     df = pd.DataFrame(
         {
             "CUSTOMER": ["Acme"],
-            "Freight Type": ["TL"],
+            "Freight Type": ["van"],
             "Foo": ["bar"],
         }
     )
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
     assert rows == 1
     assert captured["params"][1] == "Customer"  # CUSTOMER_NAME
-    assert captured["params"][12] == "T"  # FREIGHT_TYPE
+    assert captured["params"][12] == "V"  # FREIGHT_TYPE
     assert captured["params"][15] == "Acme"  # ADHOC_INFO1
     assert captured["params"][16] == "bar"  # ADHOC_INFO2
 
