@@ -19,6 +19,9 @@ class DummyContainer:
     def caption(self, *a, **k):
         pass
 
+    def button(self, *a, **k):
+        return False
+
 
 class DummySidebar:
     def __init__(self, st):
@@ -76,6 +79,12 @@ class DummyStreamlit:
             self.session_state[key] = choice
         return choice
 
+    def multiselect(self, label, options, default=None, key=None, **k):
+        choice = default or []
+        if key:
+            self.session_state[key] = choice
+        return choice
+
     def file_uploader(self, *a, **k):
         raise RuntimeError("file_uploader should not run when no customer selected")
 
@@ -91,6 +100,9 @@ class DummyStreamlit:
     def error(self, msg, *a, **k):
         self.errors.append(msg)
 
+    def columns(self, n):
+        return (DummyContainer(),) * n
+
     def rerun(self):
         pass
 
@@ -100,7 +112,7 @@ class DummyStreamlit:
         return wrap
 
 
-def run_app(monkeypatch):
+def run_app(monkeypatch, customers=None):
     st = DummyStreamlit()
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
@@ -108,7 +120,10 @@ def run_app(monkeypatch):
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: [])
     monkeypatch.setattr("app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["OP"])
-    monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
+    monkeypatch.setattr(
+        "app_utils.azure_sql.fetch_customers",
+        lambda scac: customers or [],
+    )
     monkeypatch.setattr("app_utils.azure_sql.get_operational_scac", lambda op: "SCAC")
     st.session_state.update({"template_name": "PIT BID"})
     sys.modules.pop("app", None)
@@ -119,3 +134,25 @@ def run_app(monkeypatch):
 def test_pit_bid_requires_customer(monkeypatch):
     st = run_app(monkeypatch)
     assert "Please select a customer to proceed." in st.errors
+
+
+def test_pit_bid_requires_customer_id(monkeypatch):
+    customers = [
+        {
+            "CLIENT_SCAC": "ADSJ",
+            "BILLTO_ID": "1",
+            "BILLTO_NAME": "Acme",
+            "BILLTO_TYPE": "T",
+            "OPERATIONAL_SCAC": "ADSJ",
+        }
+    ]
+
+    def selectbox(self, label, options, index=0, key=None, **k):
+        choice = options[index] if options else None
+        if key:
+            self.session_state[key] = choice
+        return choice
+
+    monkeypatch.setattr(DummyStreamlit, "selectbox", selectbox)
+    st = run_app(monkeypatch, customers)
+    assert "Select at least one Customer ID." in st.errors
