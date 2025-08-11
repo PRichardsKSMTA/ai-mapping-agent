@@ -111,7 +111,9 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
         '--customer-name',
         'Cust',
         '--customer-id',
-        '1,2',
+        '1',
+        '--customer-id',
+        '2',
     ])
 
     cli.main()

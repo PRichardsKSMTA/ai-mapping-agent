@@ -221,14 +221,15 @@ def test_insert_pit_bid_rows(monkeypatch):
             "Foo": ["bar"],
         }
     )
+    customer_ids = ["1", "2"]
     rows = azure_sql.insert_pit_bid_rows(
-        df, "OP", "Customer", ["1", "2"], "guid", {"ADHOC_INFO1": "Foo"}
+        df, "OP", "Customer", customer_ids, "guid", {"ADHOC_INFO1": "Foo"}
     )
     assert rows == 1
     assert "RFP_OBJECT_DATA" in captured["query"]
     assert captured["params"][0] == "OP"
     assert captured["params"][1] == "Customer"
-    assert captured["params"][2] == "1,2"
+    assert captured["params"][2] == ",".join(customer_ids)
     assert captured["params"][3] == "L1"
     assert captured["params"][6] == "11111"  # ORIG_POSTAL_CD
     assert captured["params"][9] == "22222"  # DEST_POSTAL_CD
