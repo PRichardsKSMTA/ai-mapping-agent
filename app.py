@@ -339,6 +339,7 @@ def main():
                         mapped_df,
                         st.session_state["operation_code"],
                         st.session_state["customer_name"],
+                        st.session_state["customer_ids"],
                         guid,
                         adhoc_headers,
                     )

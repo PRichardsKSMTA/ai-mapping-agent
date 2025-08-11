@@ -116,7 +116,8 @@ def run_app(monkeypatch):
         lambda scac: [{"BILLTO_NAME": "Cust", "BILLTO_ID": "1"}],
     )
     monkeypatch.setattr(
-        "app_utils.azure_sql.insert_pit_bid_rows", lambda df, op, cust, guid, adhoc: len(df)
+        "app_utils.azure_sql.insert_pit_bid_rows",
+        lambda df, op, cust, ids, guid, adhoc: len(df),
     )
     monkeypatch.setattr("app_utils.azure_sql.derive_adhoc_headers", lambda df: {})
     def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, adhoc_headers=None):
