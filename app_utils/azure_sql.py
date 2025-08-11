@@ -32,7 +32,12 @@ PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Volume Frequency": "VOLUME_FREQUENCY",
 }
 
-FREIGHT_TYPE_MAP: Dict[str, str] = {"LTL": "L", "TL": "T", "FLT": "F"}
+FREIGHT_TYPE_MAP: Dict[str, str] = {
+    "LTL": "L",
+    "TL": "T",
+    "FLT": "F",
+    "VAN": "V",
+}
 
 try:  # pragma: no cover - optional dependency
     from dotenv import load_dotenv
@@ -143,7 +148,12 @@ def fetch_freight_type(operation_cd: str) -> str | None:
             operation_cd,
         )
         row = cur.fetchone()
-    return row[0] if row else None
+    if not row:
+        return None
+    freight: str = row[0]
+    if len(freight) > 1:
+        freight = FREIGHT_TYPE_MAP.setdefault(freight, freight[0])
+    return freight
 
 
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
