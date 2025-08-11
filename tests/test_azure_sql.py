@@ -362,6 +362,16 @@ def test_insert_pit_bid_rows_customer_column_ignored(monkeypatch):
     assert captured["params"][1] == "Customer"
 
 
+def test_insert_pit_bid_rows_freight_type_van(monkeypatch):
+    captured: dict = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({"Lane ID": ["L1"], "FREIGHT_TYPE": ["VAN"]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    assert rows == 1
+    assert captured["params"][11] == "V"  # FREIGHT_TYPE
+
+
 def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
