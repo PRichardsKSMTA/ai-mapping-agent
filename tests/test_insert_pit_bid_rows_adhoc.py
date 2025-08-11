@@ -48,15 +48,15 @@ def test_insert_pit_bid_rows_adhoc_sequential(monkeypatch):
             "Baz": ["z"],
         }
     )
-    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
     assert rows == 1
     params = captured["params"]
-    assert params[2] == "L1"  # LANE_ID
-    assert params[14] == "x"  # ADHOC_INFO1
-    assert params[15] == "y"  # ADHOC_INFO2
-    assert params[16] == "z"  # ADHOC_INFO3
-    assert params[17] is None  # ADHOC_INFO4
-    assert params[23] is None  # ADHOC_INFO10
+    assert params[3] == "L1"  # LANE_ID
+    assert params[15] == "x"  # ADHOC_INFO1
+    assert params[16] == "y"  # ADHOC_INFO2
+    assert params[17] == "z"  # ADHOC_INFO3
+    assert params[18] is None  # ADHOC_INFO4
+    assert params[24] is None  # ADHOC_INFO10
 
 
 def test_insert_pit_bid_rows_preserves_existing_adhoc(monkeypatch):
@@ -70,13 +70,13 @@ def test_insert_pit_bid_rows_preserves_existing_adhoc(monkeypatch):
             "Extra": ["new"],
         }
     )
-    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer")
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
     assert rows == 1
     params = captured["params"]
-    assert params[14] == "keep"  # existing ADHOC_INFO1 preserved
-    assert params[15] == "new"  # ADHOC_INFO2 filled with extra column
-    assert params[16] is None  # ADHOC_INFO3 remains None
-    assert params[23] is None  # ADHOC_INFO10 remains None
+    assert params[15] == "keep"  # existing ADHOC_INFO1 preserved
+    assert params[16] == "new"  # ADHOC_INFO2 filled with extra column
+    assert params[17] is None  # ADHOC_INFO3 remains None
+    assert params[24] is None  # ADHOC_INFO10 remains None
 
 
 def test_insert_pit_bid_rows_batches(monkeypatch):
@@ -87,7 +87,7 @@ def test_insert_pit_bid_rows_batches(monkeypatch):
         "Lane ID": [f"L{i}" for i in range(1500)],
         "Foo": [i for i in range(1500)],
     })
-    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", batch_size=1000)
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"], batch_size=1000)
     assert rows == 1500
     assert len(captured["batches"]) == 2
     assert len(captured["batches"][0]) == 1000

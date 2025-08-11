@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Helpers for Azure SQL queries."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 import os
 from pathlib import Path
 from datetime import datetime
@@ -185,6 +185,7 @@ def derive_adhoc_headers(df: pd.DataFrame) -> Dict[str, str]:
     base_columns = [
         "OPERATION_CD",
         "CUSTOMER_NAME",
+        "CUSTOMER_ID",
         "LANE_ID",
         "ORIG_CITY",
         "ORIG_ST",
@@ -208,6 +209,8 @@ def derive_adhoc_headers(df: pd.DataFrame) -> Dict[str, str]:
     ]
 
     df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
+    if "CUSTOMER_ID" in df_db.columns:
+        df_db = df_db.drop(columns=["CUSTOMER_ID"])
     if df_db.columns.duplicated().any():
         for col in df_db.columns[df_db.columns.duplicated()].unique():
             cols = [c for c in df_db.columns if c == col]
@@ -244,6 +247,7 @@ def insert_pit_bid_rows(
     df: pd.DataFrame,
     operation_cd: str,
     customer_name: str,
+    customer_ids: Sequence[str],
     process_guid: str | None = None,
     adhoc_headers: Dict[str, str] | None = None,
     *,
@@ -257,16 +261,18 @@ def insert_pit_bid_rows(
     Each field is mapped explicitly to its target database column via
     ``PIT_BID_FIELD_MAP``. Columns that remain unmapped are stored sequentially
     in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
-    ``customer_name`` is required and applied to every inserted row regardless
-    of any ``CUSTOMER_NAME`` column in ``df``. ``adhoc_headers`` maps
-    ``ADHOC_INFO`` slot names to their source column headers. It is currently
-    unused but accepted so callers can persist the mapping via
+    ``customer_name`` and ``customer_ids`` are required and applied to every
+    inserted row regardless of any ``CUSTOMER_NAME`` or ``CUSTOMER_ID`` column
+    in ``df``. ``customer_ids`` may contain up to five entries. ``adhoc_headers``
+    maps ``ADHOC_INFO`` slot names to their source column headers. It is
+    currently unused but accepted so callers can persist the mapping via
     :func:`log_mapping_process`.
     """
 
     base_columns = [
         "OPERATION_CD",
         "CUSTOMER_NAME",
+        "CUSTOMER_ID",
         "LANE_ID",
         "ORIG_CITY",
         "ORIG_ST",
@@ -333,6 +339,8 @@ def insert_pit_bid_rows(
         raise ValueError(f"{field} value '{val}' cannot be abbreviated")
 
     df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
+    if "CUSTOMER_ID" in df_db.columns:
+        df_db = df_db.drop(columns=["CUSTOMER_ID"])
     if df_db.columns.duplicated().any():
         for col in df_db.columns[df_db.columns.duplicated()].unique():
             cols = [c for c in df_db.columns if c == col]
@@ -348,6 +356,10 @@ def insert_pit_bid_rows(
         default_freight = fetch_freight_type(operation_cd)
         if default_freight is not None:
             default_freight = FREIGHT_TYPE_MAP.get(default_freight, default_freight)
+
+    ids = list(customer_ids)
+    if len(ids) > 5:
+        raise ValueError("Up to 5 customer IDs supported")
 
     conn = _connect()
     with conn:
@@ -392,6 +404,7 @@ def insert_pit_bid_rows(
         df_db = df_db.where(pd.notna(df_db), None)
         df_db["OPERATION_CD"] = operation_cd
         df_db["CUSTOMER_NAME"] = customer_name
+        df_db["CUSTOMER_ID"] = ",".join(ids) or None
         df_db["PROCESS_GUID"] = process_guid
         df_db["INSERTED_DTTM"] = now
         if default_freight is not None:

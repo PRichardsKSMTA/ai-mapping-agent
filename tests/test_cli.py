@@ -80,10 +80,11 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
 
     captured: dict[str, object] = {}
 
-    def fake_insert(df, op, cust, guid, adhoc_headers):
+    def fake_insert(df, op, cust, ids, guid, adhoc_headers):
         captured['cols'] = list(df.columns)
         captured['op'] = op
         captured['cust'] = cust
+        captured['ids'] = ids
         captured['guid'] = guid
         captured['adhoc'] = adhoc_headers
         return len(df)
@@ -109,6 +110,8 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
         'OP',
         '--customer-name',
         'Cust',
+        '--customer-id',
+        '1',
     ])
 
     cli.main()
@@ -117,6 +120,7 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     assert 'Inserted 1 rows into RFP_OBJECT_DATA' in out
     assert captured['op'] == 'OP'
     assert captured['cust'] == 'Cust'
+    assert captured['ids'] == ['1']
     assert 'Lane ID' in captured['cols']
     assert captured['guid']
     assert data['process_guid'] == captured['guid']
@@ -129,7 +133,7 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     out_json = tmp_path / 'out.json'
     out_csv = tmp_path / 'out.csv'
 
-    def fake_insert(df, op, cust, guid, adhoc_headers):
+    def fake_insert(df, op, cust, ids, guid, adhoc_headers):
         return len(df)
 
     captured: dict[str, object] = {}
@@ -157,6 +161,8 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
         'OP',
         '--customer-name',
         'Cust',
+        '--customer-id',
+        '1',
     ])
 
     cli.main()
@@ -188,6 +194,8 @@ def test_cli_requires_customer_name_for_pit_bid(monkeypatch, tmp_path: Path):
         str(out_csv),
         '--operation-code',
         'OP',
+        '--customer-id',
+        '1',
     ])
 
     with pytest.raises(SystemExit):

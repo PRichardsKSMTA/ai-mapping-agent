@@ -119,7 +119,7 @@ def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Di
 
     captured: dict[str, object] = {}
 
-    def fake_insert(df, op, cust, guid, adhoc_headers):
+    def fake_insert(df, op, cust, ids, guid, adhoc_headers):
         captured["insert_adhoc"] = adhoc_headers
         return len(df)
 
