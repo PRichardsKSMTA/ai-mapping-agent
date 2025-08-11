@@ -83,7 +83,8 @@ def main() -> None:
         "--customer-id",
         dest="customer_ids",
         action="append",
-        help="Customer ID(s) for SQL insert (repeatable, up to 5)",
+        default=[],
+        help="Customer ID(s) for SQL insert (repeatable or comma-separated, up to 5)",
     )
     parser.add_argument(
         "--user-email",
@@ -91,6 +92,12 @@ def main() -> None:
         help="User email for process logging",
     )
     args = parser.parse_args()
+
+    ids: list[str] = []
+    for value in args.customer_ids:
+        ids.extend([cid.strip() for cid in value.split(",") if cid.strip()])
+    args.customer_ids = ids
+
     template = load_template(args.template)
     if template.template_name == "PIT BID" and not args.customer_name:
         parser.error("--customer-name is required for PIT BID templates")
