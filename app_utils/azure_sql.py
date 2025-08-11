@@ -131,7 +131,11 @@ def fetch_customers(operational_scac: str) -> List[Dict[str, str]]:
             operational_scac,
         )
         cols = [c[0] for c in cur.description]
-        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        rows: List[Dict[str, str]] = []
+        for raw in cur.fetchall():
+            row = dict(zip(cols, raw))
+            row["BILLTO_NAME"] = row["BILLTO_NAME"].strip().title()
+            rows.append(row)
     return sorted(rows, key=lambda r: r["BILLTO_NAME"])
 
 

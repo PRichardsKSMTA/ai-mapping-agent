@@ -210,26 +210,26 @@ def main():
             except RuntimeError as err:
                 st.error(f"Customer lookup failed: {err}")
                 return
-        cust_records = st.session_state["customer_options"]
-        cust_names = [c["BILLTO_NAME"] for c in cust_records]
+        cust_records = [
+            {**c, "BILLTO_NAME": c["BILLTO_NAME"].strip().title()}
+            for c in st.session_state["customer_options"]
+        ]
+        st.session_state["customer_options"] = cust_records
+        cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
         if cust_names:
-            idx = 0
-            if st.session_state.get("customer_name") in cust_names:
-                idx = cust_names.index(st.session_state["customer_name"])
             prev_name = st.session_state.get("customer_name")
+            prev_name_norm = prev_name.strip().title() if prev_name else None
+            idx = cust_names.index(prev_name_norm) if prev_name_norm in cust_names else 0
             selected_name = st.selectbox(
                 "Customer", cust_names, index=idx, key="customer_name"
             )
-            if selected_name != prev_name:
+            if selected_name != prev_name_norm:
                 st.session_state["customer_ids"] = []
             st.session_state["selected_customer"] = next(
                 c for c in cust_records if c["BILLTO_NAME"] == selected_name
             )
             billto_ids: list[str] = [
-                c["BILLTO_ID"]
-                for c in cust_records
-                if c["BILLTO_NAME"]
-                == st.session_state["selected_customer"]["BILLTO_NAME"]
+                c["BILLTO_ID"] for c in cust_records if c["BILLTO_NAME"] == selected_name
             ]
             st.session_state["customer_id_options"] = billto_ids
             if billto_ids:
