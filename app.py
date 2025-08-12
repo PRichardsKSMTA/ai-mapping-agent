@@ -350,13 +350,6 @@ def main():
                     logs = [
                         f"Inserted {rows} rows into RFP_OBJECT_DATA"
                     ]
-                    logs_post, payload = run_postprocess_if_configured(
-                        template_obj,
-                        df,
-                        guid,
-                        st.session_state.get("customer_name", ""),
-                        st.session_state.get("operation_code"),
-                    )
                     azure_sql.log_mapping_process(
                         guid,
                         slugify(template_obj.template_name),
@@ -366,6 +359,13 @@ def main():
                         json.dumps(final_json),
                         template_obj.template_guid,
                         adhoc_headers,
+                    )
+                    logs_post, payload = run_postprocess_if_configured(
+                        template_obj,
+                        df,
+                        guid,
+                        st.session_state.get("customer_name", ""),
+                        st.session_state.get("operation_code"),
                     )
                     st.session_state["postprocess_payload"] = payload
                     logs.extend(logs_post)
