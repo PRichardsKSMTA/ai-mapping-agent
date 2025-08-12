@@ -50,7 +50,9 @@ def test_wait_for_postprocess_completion_reexec(
     monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
 
     caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
-    azure_sql.wait_for_postprocess_completion("pg", "OP", poll_interval=1)
+    process_guid = "pg"
+    operation_cd = "OP"
+    azure_sql.wait_for_postprocess_completion(process_guid, operation_cd, poll_interval=1)
 
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
@@ -58,6 +60,7 @@ def test_wait_for_postprocess_completion_reexec(
     assert len(selects) == 2
     assert len(execs) == 2
     assert len(sleeps) == 2
+    assert all(params == (process_guid, operation_cd) for _, params in execs)
     assert any("still running" in m for m in caplog.messages)
 
 
@@ -95,8 +98,10 @@ def test_wait_for_postprocess_completion_missing_begin(
     monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
 
     caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
+    process_guid = "pg"
+    operation_cd = "OP"
     with pytest.raises(RuntimeError, match="did not begin"):
-        azure_sql.wait_for_postprocess_completion("pg", "OP", poll_interval=1)
+        azure_sql.wait_for_postprocess_completion(process_guid, operation_cd, poll_interval=1)
 
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
@@ -104,5 +109,6 @@ def test_wait_for_postprocess_completion_missing_begin(
     assert len(selects) == 1
     assert len(execs) == 1
     assert len(sleeps) == 1
+    assert execs[0][1] == (process_guid, operation_cd)
     assert any("did not begin" in m for m in caplog.messages)
 
