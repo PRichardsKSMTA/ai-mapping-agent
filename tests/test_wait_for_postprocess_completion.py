@@ -29,8 +29,8 @@ def test_wait_for_postprocess_completion_reexec(
             if "SELECT" in self._last_sql:
                 self._select_count += 1
                 if self._select_count == 1:
-                    return ("2024-01-01", None)
-                return ("2024-01-01", "2024-01-02")
+                    return (None,)
+                return ("2024-01-02",)
             return None
 
     class DummyConn:
@@ -62,53 +62,4 @@ def test_wait_for_postprocess_completion_reexec(
     assert len(sleeps) == 2
     assert all(params == (process_guid, operation_cd) for _, params in execs)
     assert any("still running" in m for m in caplog.messages)
-
-
-def test_wait_for_postprocess_completion_missing_begin(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
-    """Raises when the postprocess never begins."""
-
-    calls: list[tuple[str, tuple[Any, ...]]] = []
-
-    class DummyCursor:
-        def execute(self, sql: str, *params: Any) -> None:
-            calls.append((sql, params))
-            self._last_sql = sql
-
-        def fetchone(self) -> tuple[Any, ...] | None:
-            if "SELECT" in self._last_sql:
-                return (None, None)
-            return None
-
-    class DummyConn:
-        def __enter__(self) -> "DummyConn":
-            return self
-
-        def __exit__(self, exc_type, exc, tb) -> None:
-            return None
-
-        def cursor(self) -> DummyCursor:
-            return DummyCursor()
-
-        def commit(self) -> None:
-            calls.append(("commit", ()))
-
-    monkeypatch.setattr(azure_sql, "_connect", lambda: DummyConn())
-    monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
-
-    caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
-    process_guid = "pg"
-    operation_cd = "OP"
-    with pytest.raises(RuntimeError, match="did not begin"):
-        azure_sql.wait_for_postprocess_completion(process_guid, operation_cd, poll_interval=1)
-
-    selects = [c for c in calls if c[0].startswith("SELECT")]
-    execs = [c for c in calls if c[0].startswith("EXEC")]
-    sleeps = [c for c in calls if c[0] == "sleep"]
-    assert len(selects) == 1
-    assert len(execs) == 1
-    assert len(sleeps) == 1
-    assert execs[0][1] == (process_guid, operation_cd)
-    assert any("did not begin" in m for m in caplog.messages)
 

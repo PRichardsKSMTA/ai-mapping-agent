@@ -196,21 +196,17 @@ def wait_for_postprocess_completion(
             logger.info("Sleeping %s seconds before next poll", poll_interval)
             time.sleep(poll_interval)
             cur.execute(
-                (
-                    "SELECT POST_PROCESS_BEGIN_DTTM, POST_PROCESS_COMPLETE_DTTM "
-                    "FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?"
-                ),
+                "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
                 process_guid,
             )
             row = cur.fetchone()
-            begin = row[0] if row else None
-            complete = row[1] if row else None
-            if begin is None:
-                msg = f"Post-process did not begin for {process_guid}"
-                logger.error(msg)
-                raise RuntimeError(msg)
+            complete = row[0] if row else None
             if complete is not None:
-                logger.info("Post-process complete for %s", process_guid)
+                logger.info(
+                    "Post-process complete for %s at %s",
+                    process_guid,
+                    complete,
+                )
                 break
             logger.info("Post-process still running for %s", process_guid)
             cur.execute(
