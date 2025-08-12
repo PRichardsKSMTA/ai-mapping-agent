@@ -1,7 +1,10 @@
-import types
+import builtins
 import logging
-import pytest
+import sys
+import types
+
 import pandas as pd
+import pytest
 
 from app_utils import azure_sql
 
@@ -54,12 +57,7 @@ def test_fetch_operation_codes(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             pass
 
-    fake_pyodbc = types.SimpleNamespace(connect=lambda conn_str: FakeConn())
-    monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
-    monkeypatch.setenv("SQL_SERVER", "srv")
-    monkeypatch.setenv("SQL_DATABASE", "db")
-    monkeypatch.setenv("SQL_USERNAME", "user")
-    monkeypatch.setenv("SQL_PASSWORD", "pwd")
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
 
     codes = azure_sql.fetch_operation_codes("user@example.com")
     assert codes == ["ADSJ_VAN", "DEK1_REF"]
@@ -86,12 +84,7 @@ def test_fetch_operation_codes_default_email(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             pass
 
-    fake_pyodbc = types.SimpleNamespace(connect=lambda conn_str: FakeConn())
-    monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
-    monkeypatch.setenv("SQL_SERVER", "srv")
-    monkeypatch.setenv("SQL_DATABASE", "db")
-    monkeypatch.setenv("SQL_USERNAME", "user")
-    monkeypatch.setenv("SQL_PASSWORD", "pwd")
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
     monkeypatch.delenv("DEV_USER_EMAIL", raising=False)
 
     codes = azure_sql.fetch_operation_codes()
@@ -129,19 +122,21 @@ def test_fetch_customers(monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             pass
 
-    fake_pyodbc = types.SimpleNamespace(connect=lambda conn_str: FakeConn())
-    monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
-    monkeypatch.setenv("SQL_SERVER", "srv")
-    monkeypatch.setenv("SQL_DATABASE", "db")
-    monkeypatch.setenv("SQL_USERNAME", "user")
-    monkeypatch.setenv("SQL_PASSWORD", "pwd")
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
 
     customers = azure_sql.fetch_customers("ADSJ")
     assert [c["BILLTO_NAME"] for c in customers] == ["Alpha", "Beta"]
 
 
 def test_connect_requires_config(monkeypatch):
-    monkeypatch.setattr(azure_sql, "pyodbc", types.SimpleNamespace())
+    original_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "pyodbc":
+            return types.SimpleNamespace(connect=lambda conn_str: None)
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
     for key in [
         "SQL_SERVER",
         "SQL_DATABASE",
@@ -154,14 +149,19 @@ def test_connect_requires_config(monkeypatch):
         azure_sql._connect()
 
 
-def test_connect_requires_pyodbc(monkeypatch):
-    monkeypatch.setattr(azure_sql, "pyodbc", None)
-    monkeypatch.setenv("SQL_SERVER", "srv")
-    monkeypatch.setenv("SQL_DATABASE", "db")
-    monkeypatch.setenv("SQL_USERNAME", "user")
-    monkeypatch.setenv("SQL_PASSWORD", "pwd")
-    with pytest.raises(RuntimeError):
+def test_connect_import_error(monkeypatch):
+    original_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "pyodbc":
+            raise ImportError("boom")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(RuntimeError) as exc:
         azure_sql._connect()
+    assert "pyodbc import failed" in str(exc.value)
+    assert isinstance(exc.value.__cause__, ImportError)
 
 
 def _fake_conn(captured: dict, columns: dict[str, int | None] | None = None):
@@ -479,7 +479,7 @@ def test_insert_pit_bid_rows_tvp(monkeypatch):
             self.rows = rows
 
     fake_pyodbc = types.SimpleNamespace(TableValuedParam=FakeTVP)
-    monkeypatch.setattr(azure_sql, "pyodbc", fake_pyodbc)
+    monkeypatch.setitem(sys.modules, "pyodbc", fake_pyodbc)
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     df = pd.DataFrame({"Lane ID": ["L1", "L2"]})
