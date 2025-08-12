@@ -188,8 +188,8 @@ def wait_for_postprocess_completion(
         )
         cur.execute(
             "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
-            operation_cd,
             process_guid,
+            operation_cd,
         )
         conn.commit()
         while True:
@@ -215,8 +215,8 @@ def wait_for_postprocess_completion(
             logger.info("Post-process still running for %s", process_guid)
             cur.execute(
                 "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
-                operation_cd,
                 process_guid,
+                operation_cd,
             )
             conn.commit()
 
