@@ -111,6 +111,7 @@ def main() -> None:
     with args.output.open("w") as f:
         json.dump(mapped, f, indent=2)
 
+    adhoc_headers: dict[str, str] | None = None
     if args.csv_output:
         mapped_df = save_mapped_csv(df, mapped, args.csv_output)
         adhoc_headers = azure_sql.derive_adhoc_headers(mapped_df)
@@ -129,6 +130,16 @@ def main() -> None:
                 adhoc_headers,
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
+            azure_sql.log_mapping_process(
+                process_guid,
+                args.template.stem,
+                template.template_name,
+                args.user_email,
+                args.template.name,
+                json.dumps(mapped),
+                template.template_guid,
+                adhoc_headers,
+            )
             logs_post, payload = run_postprocess_if_configured(
                 template,
                 df,
@@ -140,17 +151,28 @@ def main() -> None:
                 print(line)
             if payload is not None:
                 print(json.dumps(payload, indent=2))
-
-    azure_sql.log_mapping_process(
-        process_guid,
-        args.template.stem,
-        template.template_name,
-        args.user_email,
-        args.template.name,
-        json.dumps(mapped),
-        template.template_guid,
-        adhoc_headers if args.csv_output else None,
-    )
+        else:
+            azure_sql.log_mapping_process(
+                process_guid,
+                args.template.stem,
+                template.template_name,
+                args.user_email,
+                args.template.name,
+                json.dumps(mapped),
+                template.template_guid,
+                adhoc_headers,
+            )
+    else:
+        azure_sql.log_mapping_process(
+            process_guid,
+            args.template.stem,
+            template.template_name,
+            args.user_email,
+            args.template.name,
+            json.dumps(mapped),
+            template.template_guid,
+            None,
+        )
 
 
 if __name__ == "__main__":
