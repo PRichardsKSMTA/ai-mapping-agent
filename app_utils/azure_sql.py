@@ -161,12 +161,16 @@ def fetch_freight_type(operation_cd: str) -> str | None:
 
 
 def wait_for_postprocess_completion(
-    process_guid: str, operation_cd: str, poll_interval: int = 300
+    process_guid: str,
+    operation_cd: str,
+    poll_interval: int = 300,
+    max_attempts: int = 2,
 ) -> None:
     """Poll ``dbo.MAPPING_AGENT_PROCESSES`` until postprocess is complete.
 
     Repeatedly executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` until the
-    ``POST_PROCESS_COMPLETE_DTTM`` for ``process_guid`` is populated.
+    ``POST_PROCESS_COMPLETE_DTTM`` for ``process_guid`` is populated or
+    ``max_attempts`` is reached.
 
     Parameters
     ----------
@@ -176,23 +180,25 @@ def wait_for_postprocess_completion(
         Operation code associated with the process.
     poll_interval:
         Seconds to wait between polling attempts. Defaults to 5 minutes.
+    max_attempts:
+        Maximum number of execute/poll cycles. Defaults to ``2``.
     """
 
     logger = logging.getLogger(__name__)
     with _connect() as conn:
         cur = conn.cursor()
-        logger.info(
-            "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
-            operation_cd,
-            process_guid,
-        )
-        cur.execute(
-            "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
-            process_guid,
-            operation_cd,
-        )
-        conn.commit()
-        while True:
+        for attempt in range(max_attempts):
+            logger.info(
+                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
+                operation_cd,
+                process_guid,
+            )
+            cur.execute(
+                "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
+                process_guid,
+                operation_cd,
+            )
+            conn.commit()
             logger.info("Sleeping %s seconds before next poll", poll_interval)
             time.sleep(poll_interval)
             cur.execute(
@@ -207,14 +213,13 @@ def wait_for_postprocess_completion(
                     process_guid,
                     complete,
                 )
-                break
+                return
             logger.info("Post-process still running for %s", process_guid)
-            cur.execute(
-                "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
-                process_guid,
-                operation_cd,
-            )
-            conn.commit()
+    logger.warning(
+        "Post-process did not complete for %s after %s attempts",
+        process_guid,
+        max_attempts,
+    )
 
 
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:

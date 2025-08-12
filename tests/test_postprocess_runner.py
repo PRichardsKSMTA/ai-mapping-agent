@@ -224,8 +224,10 @@ def test_pit_bid_null_payload_logged(load_env, monkeypatch):
 def test_wait_for_postprocess_completion_called(monkeypatch):
     called: dict[str, Any] = {}
 
-    def fake_wait(pg: str, op: str, poll_interval: int = 300) -> None:
-        called["args"] = (pg, op, poll_interval)
+    def fake_wait(
+        pg: str, op: str, poll_interval: int = 300, max_attempts: int = 2
+    ) -> None:
+        called["args"] = (pg, op, poll_interval, max_attempts)
         logging.getLogger("app_utils.azure_sql").info("cycle")
 
     monkeypatch.setattr(
@@ -254,6 +256,6 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
         operation_cd="OP",
         poll_interval=1,
     )
-    assert called["args"] == ("guid", "OP", 1)
+    assert called["args"] == ("guid", "OP", 1, 2)
     assert "cycle" in logs
 
