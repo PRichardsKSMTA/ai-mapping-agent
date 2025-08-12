@@ -183,28 +183,44 @@ def wait_for_postprocess_completion(
     logger = logging.getLogger(__name__)
     with _connect() as conn:
         cur = conn.cursor()
+        logger.info(
+            "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
+            operation_cd,
+            process_guid,
+        )
+        cur.execute(
+            "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
+            operation_cd,
+            process_guid,
+        )
+        conn.commit()
         while True:
+            logger.info("Sleeping %s seconds before next poll", poll_interval)
+            time.sleep(poll_interval)
             cur.execute(
-                "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
+                (
+                    "SELECT POST_PROCESS_BEGIN_DTTM, POST_PROCESS_COMPLETE_DTTM "
+                    "FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?"
+                ),
                 process_guid,
             )
             row = cur.fetchone()
-            if row and row[0] is not None:
+            begin = row[0] if row else None
+            complete = row[1] if row else None
+            if begin is None:
+                msg = f"Post-process did not begin for {process_guid}"
+                logger.error(msg)
+                raise RuntimeError(msg)
+            if complete is not None:
                 logger.info("Post-process complete for %s", process_guid)
                 break
-            logger.info(
-                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
-                operation_cd,
-                process_guid,
-            )
+            logger.info("Post-process still running for %s", process_guid)
             cur.execute(
                 "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
                 operation_cd,
                 process_guid,
             )
             conn.commit()
-            logger.info("Sleeping %s seconds before next poll", poll_interval)
-            time.sleep(poll_interval)
 
 
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
