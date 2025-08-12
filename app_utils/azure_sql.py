@@ -167,6 +167,8 @@ def wait_for_postprocess_completion(
 
     Repeatedly executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` until the
     ``POST_PROCESS_COMPLETE_DTTM`` for ``process_guid`` is populated.
+    Aborts early if ``dbo.LANES_MISSING_DATA`` contains rows for the client
+    SCAC associated with ``operation_cd``.
 
     Parameters
     ----------
@@ -181,6 +183,15 @@ def wait_for_postprocess_completion(
     logger = logging.getLogger(__name__)
     with _connect() as conn:
         cur = conn.cursor()
+        scac = get_operational_scac(operation_cd)
+        cur.execute(
+            "SELECT TOP 1 1 FROM dbo.LANES_MISSING_DATA WHERE CLIENT_SCAC = ?",
+            scac,
+        )
+        if cur.fetchone():
+            msg = f"Missing lane data for {scac}"
+            logger.error(msg)
+            raise RuntimeError(msg)
         logger.info(
             "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
             operation_cd,

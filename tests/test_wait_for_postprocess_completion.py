@@ -10,6 +10,56 @@ import pytest
 from app_utils import azure_sql
 
 
+def test_wait_for_postprocess_completion_missing_lane_data(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Aborts when ``LANES_MISSING_DATA`` has rows for the client SCAC."""
+
+    calls: list[tuple[str, tuple[Any, ...]]] = []
+
+    class DummyCursor:
+        def execute(self, sql: str, *params: Any) -> None:
+            calls.append((sql, params))
+            self._last_sql = sql
+
+        def fetchone(self) -> tuple[Any, ...] | None:
+            if "LANES_MISSING_DATA" in self._last_sql:
+                return (1,)
+            if "SELECT" in self._last_sql:
+                return (None, None)
+            return None
+
+    class DummyConn:
+        def __enter__(self) -> "DummyConn":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def cursor(self) -> DummyCursor:
+            return DummyCursor()
+
+        def commit(self) -> None:
+            calls.append(("commit", ()))
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: DummyConn())
+    monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
+
+    caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
+    process_guid = "pg"
+    operation_cd = "ADSJ_VAN"
+    with pytest.raises(RuntimeError, match="Missing lane data"):
+        azure_sql.wait_for_postprocess_completion(process_guid, operation_cd, poll_interval=1)
+
+    selects = [c for c in calls if c[0].startswith("SELECT")]
+    execs = [c for c in calls if c[0].startswith("EXEC")]
+    commits = [c for c in calls if c[0] == "commit"]
+    assert len(selects) == 1
+    assert not execs
+    assert not commits
+    assert any("Missing lane data" in m for m in caplog.messages)
+
+
 def test_wait_for_postprocess_completion_reexec(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -26,6 +76,8 @@ def test_wait_for_postprocess_completion_reexec(
             self._last_sql = sql
 
         def fetchone(self) -> tuple[Any, ...] | None:
+            if "LANES_MISSING_DATA" in self._last_sql:
+                return None
             if "SELECT" in self._last_sql:
                 self._select_count += 1
                 if self._select_count == 1:
@@ -57,7 +109,7 @@ def test_wait_for_postprocess_completion_reexec(
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
     sleeps = [c for c in calls if c[0] == "sleep"]
-    assert len(selects) == 2
+    assert len(selects) == 3
     assert len(execs) == 2
     assert len(sleeps) == 2
     assert all(params == (process_guid, operation_cd) for _, params in execs)
@@ -77,6 +129,8 @@ def test_wait_for_postprocess_completion_missing_begin(
             self._last_sql = sql
 
         def fetchone(self) -> tuple[Any, ...] | None:
+            if "LANES_MISSING_DATA" in self._last_sql:
+                return None
             if "SELECT" in self._last_sql:
                 return (None, None)
             return None
@@ -106,7 +160,7 @@ def test_wait_for_postprocess_completion_missing_begin(
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
     sleeps = [c for c in calls if c[0] == "sleep"]
-    assert len(selects) == 1
+    assert len(selects) == 2
     assert len(execs) == 1
     assert len(sleeps) == 1
     assert execs[0][1] == (process_guid, operation_cd)
