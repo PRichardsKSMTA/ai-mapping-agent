@@ -55,12 +55,6 @@ try:  # pragma: no cover - handled in tests via monkeypatch
 except Exception:  # pragma: no cover
     tomllib = None  # type: ignore
 
-try:  # pragma: no cover - handled in tests via monkeypatch
-    import pyodbc  # type: ignore
-except Exception:  # pragma: no cover - if pyodbc missing or misconfigured
-    pyodbc = None  # type: ignore
-
-
 def _load_secret(key: str) -> str | None:
     """Return a config value from env or `.streamlit/secrets.toml`."""
     if val := os.getenv(key):
@@ -93,8 +87,12 @@ def _build_conn_str() -> str:
 
 def _connect() -> "pyodbc.Connection":
     """Return a database connection or raise ``RuntimeError`` if misconfigured."""
-    if not pyodbc:
-        raise RuntimeError("pyodbc is not installed")
+    try:
+        import pyodbc  # type: ignore
+    except ImportError as exc:  # pragma: no cover - exercised in unit tests
+        raise RuntimeError(
+            "pyodbc import failed; install pyodbc and ODBC Driver 18"
+        ) from exc
     conn_str = os.getenv("AZURE_SQL_CONN_STRING") or _build_conn_str()
     return pyodbc.connect(conn_str)
 
@@ -509,8 +507,12 @@ def insert_pit_bid_rows(
             cur.fast_executemany = True  # type: ignore[attr-defined]
             placeholders = ",".join(["?"] * len(columns))
             db_start = time.perf_counter()
-            if tvp_name and pyodbc and hasattr(pyodbc, "TableValuedParam"):
-                tvp = pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
+            try:  # pragma: no cover - handled in tests via monkeypatch
+                import pyodbc as _pyodbc  # type: ignore
+            except Exception:  # pragma: no cover - if pyodbc missing
+                _pyodbc = None  # type: ignore
+            if tvp_name and _pyodbc and hasattr(_pyodbc, "TableValuedParam"):
+                tvp = _pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
                 cur.execute(
                     f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
                     tvp,
