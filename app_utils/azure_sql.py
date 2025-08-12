@@ -162,6 +162,51 @@ def fetch_freight_type(operation_cd: str) -> str | None:
     return str(freight).strip().upper()
 
 
+def wait_for_postprocess_completion(
+    process_guid: str, operation_cd: str, poll_interval: int = 300
+) -> None:
+    """Poll ``dbo.MAPPING_AGENT_PROCESSES`` until postprocess is complete.
+
+    Repeatedly executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` until the
+    ``POST_PROCESS_COMPLETE_DTTM`` for ``process_guid`` is populated.
+
+    Parameters
+    ----------
+    process_guid:
+        Mapping process GUID.
+    operation_cd:
+        Operation code associated with the process.
+    poll_interval:
+        Seconds to wait between polling attempts. Defaults to 5 minutes.
+    """
+
+    logger = logging.getLogger(__name__)
+    with _connect() as conn:
+        cur = conn.cursor()
+        while True:
+            cur.execute(
+                "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
+                process_guid,
+            )
+            row = cur.fetchone()
+            if row and row[0] is not None:
+                logger.info("Post-process complete for %s", process_guid)
+                break
+            logger.info(
+                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
+                operation_cd,
+                process_guid,
+            )
+            cur.execute(
+                "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
+                operation_cd,
+                process_guid,
+            )
+            conn.commit()
+            logger.info("Sleeping %s seconds before next poll", poll_interval)
+            time.sleep(poll_interval)
+
+
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
     """Return the PIT URL JSON payload for an operation code."""
     try:
@@ -358,7 +403,15 @@ def insert_pit_bid_rows(
             df_db[col] = df_db[col].apply(lambda v, c=col: _prep_state(v, c))
 
     default_freight = None
-    if "FREIGHT_TYPE" not in df_db.columns or df_db["FREIGHT_TYPE"].isna().all():
+    if "FREIGHT_TYPE" in df_db.columns:
+        df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].map(
+            lambda v: FREIGHT_TYPE_MAP.get(str(v).strip().upper())
+            if v is not None
+            else None,
+        )
+        if df_db["FREIGHT_TYPE"].isna().all():
+            default_freight = fetch_freight_type(operation_cd)
+    else:
         default_freight = fetch_freight_type(operation_cd)
 
     ids = list(customer_ids)
@@ -411,13 +464,8 @@ def insert_pit_bid_rows(
         df_db["CUSTOMER_ID"] = ",".join(ids) or None
         df_db["PROCESS_GUID"] = process_guid
         df_db["INSERTED_DTTM"] = now
-        if "FREIGHT_TYPE" in df_db.columns:
-            df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].map(
-                lambda v: FREIGHT_TYPE_MAP.get(str(v).strip().upper())
-                if v is not None
-                else None,
-            )
         if default_freight is not None:
+            df_db["FREIGHT_TYPE"] = df_db.get("FREIGHT_TYPE", pd.Series([None] * len(df_db)))
             df_db["FREIGHT_TYPE"] = df_db["FREIGHT_TYPE"].fillna(default_freight)
 
         for col, max_len in char_max.items():
