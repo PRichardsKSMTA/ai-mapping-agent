@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 import json
+import logging
 import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
-from app_utils.azure_sql import get_pit_url_payload
+from app_utils.azure_sql import get_pit_url_payload, wait_for_postprocess_completion
 
 
 def run_postprocess(
@@ -34,6 +35,7 @@ def run_postprocess_if_configured(
     process_guid: str,
     customer_name: str,
     operation_cd: str | None = None,
+    poll_interval: int = 300,
 ) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None]:
     """Run optional postprocess hooks based on ``template``."""
 
@@ -47,6 +49,26 @@ def run_postprocess_if_configured(
             raise ValueError("operation_cd required for PIT BID postprocess")
         if not process_guid:
             raise ValueError("process_guid required for PIT BID postprocess")
+        class _ListHandler(logging.Handler):
+            def __init__(self, buf: List[str]) -> None:
+                super().__init__()
+                self.buf = buf
+
+            def emit(self, record: logging.LogRecord) -> None:
+                self.buf.append(record.getMessage())
+
+        handler = _ListHandler(logs)
+        logger = logging.getLogger("app_utils.azure_sql")
+        logger.addHandler(handler)
+        old_level = logger.level
+        logger.setLevel(logging.INFO)
+        try:
+            wait_for_postprocess_completion(
+                process_guid, operation_cd, poll_interval=poll_interval
+            )
+        finally:
+            logger.removeHandler(handler)
+            logger.setLevel(old_level)
         logs.append(f"POST {template.postprocess.url}")
         try:
             payload = get_pit_url_payload(operation_cd)

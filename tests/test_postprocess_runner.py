@@ -1,6 +1,7 @@
 import types
 import sys
 import json
+import logging
 from typing import Any, Dict
 import pandas as pd
 import pytest
@@ -94,6 +95,10 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
     )
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.wait_for_postprocess_completion',
+        lambda *a, **k: None,
+    )
     called = {}
 
     def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
@@ -113,7 +118,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         operation_cd='OP',
         customer_name='Cust',
     )
-    expected = 'OP - BID - Cust BID.xlsm'
+    expected = 'OP - BID - Cust.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
     assert called['url'] == tpl.postprocess.url
@@ -140,6 +145,10 @@ def test_pit_bid_posts(monkeypatch):
         'app_utils.postprocess_runner.get_pit_url_payload',
         lambda op_cd, week_ct=12: payload,
     )
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.wait_for_postprocess_completion',
+        lambda *a, **k: None,
+    )
     called: dict[str, Any] = {}
 
     def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
@@ -161,7 +170,7 @@ def test_pit_bid_posts(monkeypatch):
     )
     payload_logs = [l for l in logs if l.startswith('Payload:')]
     assert payload_logs
-    expected = 'OP - BID - Cust BID.xlsm'
+    expected = 'OP - BID - Cust.xlsm'
     original_payload = json.loads(payload_logs[0].split('Payload: ')[1])
     assert original_payload['BID-Payload'] == ''
     logged_payload = json.loads(payload_logs[-1].split('Payload: ')[1])
@@ -192,6 +201,10 @@ def test_pit_bid_null_payload_logged(load_env, monkeypatch):
         'app_utils.postprocess_runner.get_pit_url_payload',
         fake_get_pit_url_payload,
     )
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.wait_for_postprocess_completion',
+        lambda *a, **k: None,
+    )
 
     tpl = Template.model_validate({
         'template_name': 'PIT BID',
@@ -206,4 +219,41 @@ def test_pit_bid_null_payload_logged(load_env, monkeypatch):
             'Cust',
             operation_cd='OP',
         )
+
+
+def test_wait_for_postprocess_completion_called(monkeypatch):
+    called: dict[str, Any] = {}
+
+    def fake_wait(pg: str, op: str, poll_interval: int = 300) -> None:
+        called["args"] = (pg, op, poll_interval)
+        logging.getLogger("app_utils.azure_sql").info("cycle")
+
+    monkeypatch.setattr(
+        "app_utils.postprocess_runner.wait_for_postprocess_completion",
+        fake_wait,
+    )
+    monkeypatch.setattr(
+        "app_utils.postprocess_runner.get_pit_url_payload",
+        lambda op_cd, week_ct=12: {"BID-Payload": "", "item/In_dtInputData": [{}]},
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "requests",
+        types.SimpleNamespace(post=lambda *a, **k: types.SimpleNamespace(status_code=200, text="", raise_for_status=lambda: None)),
+    )
+    tpl = Template.model_validate({
+        "template_name": "PIT BID",
+        "layers": [{"type": "header", "fields": [{"key": "A"}]}],
+        "postprocess": {"url": "https://example.com/post"},
+    })
+    logs, _ = run_postprocess_if_configured(
+        tpl,
+        pd.DataFrame({"A": [1]}),
+        "guid",
+        customer_name="Cust",
+        operation_cd="OP",
+        poll_interval=1,
+    )
+    assert called["args"] == ("guid", "OP", 1)
+    assert "cycle" in logs
 
