@@ -54,7 +54,7 @@ def run_postprocess_if_configured(
             logs.append(f"Payload error: {err}")
             raise
         logs.append(f"Payload: {json.dumps(payload)}")
-        fname = f"{operation_cd} - BID - {customer_name} BID.xlsm"
+        fname = f"{operation_cd} - BID - {customer_name}.xlsm"
         payload.setdefault("item/In_dtInputData", [{}])
         if not payload["item/In_dtInputData"]:
             payload["item/In_dtInputData"].append({})

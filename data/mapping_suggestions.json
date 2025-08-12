@@ -1102,5 +1102,203 @@
     ],
     "display": "Delivery Time",
     "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO5",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Lane Bundle ID"
+    ],
+    "display": "Lane Bundle ID",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO6",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination Company"
+    ],
+    "display": "Destination Company",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO7",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin Company"
+    ],
+    "display": "Origin Company",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO8",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Ready Day"
+    ],
+    "display": "Ready Day",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO9",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Ready Time"
+    ],
+    "display": "Ready Time",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO10",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Bid 1 - Bid Currency"
+    ],
+    "display": "Bid 1 - Bid Currency",
+    "header_id": "bcf296cb"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Freight Type",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Equipment"
+    ],
+    "display": "Equipment",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Breakthrough Fuel",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Breakthrough Fuel Estimate"
+    ],
+    "display": "Breakthrough Fuel Estimate",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO1",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Mode"
+    ],
+    "display": "Mode",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO2",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Service Level"
+    ],
+    "display": "Service Level",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO3",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Precedence"
+    ],
+    "display": "Precedence",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO4",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Round Trip"
+    ],
+    "display": "Round Trip",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO5",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Basis"
+    ],
+    "display": "Basis",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO6",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "No of Shipments"
+    ],
+    "display": "No of Shipments",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO7",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination Country"
+    ],
+    "display": "Destination Country",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO8",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Number of Stops (average)"
+    ],
+    "display": "Number of Stops (average)",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO9",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Minimum"
+    ],
+    "display": "Minimum",
+    "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO10",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Currency"
+    ],
+    "display": "Currency",
+    "header_id": "ed64196f"
   }
 ]
