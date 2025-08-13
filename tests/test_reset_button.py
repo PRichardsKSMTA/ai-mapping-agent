@@ -86,6 +86,7 @@ def run_app(monkeypatch):
     st.session_state.update({
         "selected_template_file": "demo.json",
         "uploaded_file": object(),
+        "upload_data_file": object(),
         "template": {},
         "template_name": "Demo",
         "current_template": "Demo",
@@ -102,5 +103,6 @@ def test_reset_button_triggers_rerun(monkeypatch):
     st = run_app(monkeypatch)
     assert st.rerun_called is True
     assert "uploaded_file" not in st.session_state
+    assert "upload_data_file" not in st.session_state
     assert "export_complete" not in st.session_state
     assert "header_mapping_0" not in st.session_state
