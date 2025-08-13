@@ -252,14 +252,15 @@ def main():
                 )
                 if selected_name and selected_name != prev_name_norm:
                     st.session_state["customer_ids"] = []
-                if selected_name:
+                customer_name = st.session_state.get("customer_name")
+                if customer_name:
                     st.session_state["selected_customer"] = next(
-                        c for c in cust_records if c["BILLTO_NAME"] == selected_name
+                        c for c in cust_records if c["BILLTO_NAME"] == customer_name
                     )
                     billto_ids: list[str] = [
                         c["BILLTO_ID"]
                         for c in cust_records
-                        if c["BILLTO_NAME"] == selected_name
+                        if c["BILLTO_NAME"] == customer_name
                     ]
                     st.session_state["customer_id_options"] = billto_ids
                     if billto_ids:
@@ -281,7 +282,7 @@ def main():
                     else:
                         st.warning("No customers found for selected operation.")
                 else:
-                    st.info("Select a customer to view IDs.")
+                    st.info("Select a customer to view ID options.")
             else:
                 st.warning("No customers found for selected operation.")
             if not st.session_state.get("customer_name"):
