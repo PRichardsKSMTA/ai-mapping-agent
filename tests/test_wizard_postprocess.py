@@ -52,12 +52,19 @@ class DummyStreamlit:
         self.session_state = {}
         self.sidebar = DummySidebar(self)
         self.markdown_calls: list[str] = []
+        self.spinner_messages: list[str] = []
+        self.info_messages: list[str] = []
+        self.success_messages: list[str] = []
         self.secrets = {}
     def set_page_config(self, *a, **k):
         pass
     def title(self, *a, **k):
         pass
-    header = subheader = success = error = write = warning = info = title
+    header = subheader = error = write = warning = title
+    def info(self, msg, *a, **k):
+        self.info_messages.append(msg)
+    def success(self, msg, *a, **k):
+        self.success_messages.append(msg)
     def selectbox(self, label, options, index=0, key=None, **k):
         choice = options[index]
         if key:
@@ -67,8 +74,12 @@ class DummyStreamlit:
         return None
     def button(self, label, *a, **k):
         return label == "Run Export" and not self.session_state.get("export_complete")
-    def spinner(self, *a, **k):
-        return DummyContainer()
+    def spinner(self, msg, *a, **k):
+        class _C(DummyContainer):
+            def __enter__(self_inner):
+                self.spinner_messages.append(msg)
+                return self_inner
+        return _C()
     def empty(self):
         return DummyContainer()
     def rerun(self):
@@ -99,8 +110,6 @@ def run_app(monkeypatch):
     st = DummyStreamlit()
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
-    monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
-    monkeypatch.setenv("CLIENT_DEST_FOLDER_PATH", "docs/folder")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
@@ -132,7 +141,12 @@ def run_app(monkeypatch):
     def fake_runner(tpl, df, process_guid, *args):
         called["run"] = True
         called["guid"] = process_guid
-        return ["ok"], {"p": 1}
+        payload = {
+            "p": 1,
+            "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
+            "CLIENT_DEST_FOLDER_PATH": "docs/folder",
+        }
+        return ["ok"], payload
 
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",
@@ -174,12 +188,16 @@ def test_postprocess_runner_called(monkeypatch):
     assert called.get("log_friendly") == "PIT BID"
     assert called.get("log_file") == "pit-bid.json"
     assert state["final_json"].get("process_guid") == called.get("guid")
-    assert state.get("postprocess_payload") == {"p": 1}
+    assert state.get("postprocess_payload") == {
+        "p": 1,
+        "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
+        "CLIENT_DEST_FOLDER_PATH": "docs/folder",
+    }
 
 def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
-    assert any(
-        "https://tenant.sharepoint.com/sites/demo/docs/folder" in m
-        for m in st.markdown_calls
-    )
+    assert any("mileage and toll data" in m for m in st.spinner_messages)
+    link = "https://tenant.sharepoint.com/sites/demo/docs/folder"
+    messages = st.success_messages + st.info_messages
+    assert any(link in m for m in messages)
 
