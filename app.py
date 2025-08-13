@@ -458,6 +458,14 @@ def main():
             csv_data = st.session_state.get("mapped_csv")
 
             if csv_data:
+                import pandas as pd
+                import io
+
+                preview_df = pd.read_csv(io.BytesIO(csv_data))
+                if hasattr(st, "dataframe"):
+                    st.dataframe(preview_df.head())
+                else:  # pragma: no cover - fallback for test stubs
+                    st.write(preview_df.head())
                 st.download_button(
                     "Download mapped CSV",
                     data=csv_data,
