@@ -35,7 +35,7 @@ def run_postprocess_if_configured(
     process_guid: str,
     customer_name: str,
     operation_cd: str | None = None,
-    poll_interval: int = 300,
+    poll_interval: int = 30,
 ) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None]:
     """Run optional postprocess hooks based on ``template``."""
 
