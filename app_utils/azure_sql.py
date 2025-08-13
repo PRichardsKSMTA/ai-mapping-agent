@@ -163,14 +163,16 @@ def fetch_freight_type(operation_cd: str) -> str | None:
 def wait_for_postprocess_completion(
     process_guid: str,
     operation_cd: str,
-    poll_interval: int = 300,
+    poll_interval: int = 30,
     max_attempts: int = 2,
 ) -> None:
     """Poll ``dbo.MAPPING_AGENT_PROCESSES`` until postprocess is complete.
 
-    Repeatedly executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` until the
-    ``POST_PROCESS_COMPLETE_DTTM`` for ``process_guid`` is populated or
-    ``max_attempts`` is reached.
+    Executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` and then checks
+    ``POST_PROCESS_COMPLETE_DTTM`` every ``poll_interval`` seconds. After
+    ten polls (5 minutes with the default 30‑second interval) without a
+    completion timestamp, the stored procedure is invoked again. The cycle
+    repeats until ``max_attempts`` is reached.
 
     Parameters
     ----------
@@ -179,33 +181,22 @@ def wait_for_postprocess_completion(
     operation_cd:
         Operation code associated with the process.
     poll_interval:
-        Seconds to wait between polling attempts. Defaults to 5 minutes.
+        Seconds between polling attempts. Defaults to ``30`` seconds.
     max_attempts:
-        Maximum number of execute/poll cycles. Defaults to ``2``.
+        Maximum number of stored procedure executions. Defaults to ``2``.
     """
 
     logger = logging.getLogger(__name__)
+    checks_per_attempt = 10
     with _connect() as conn:
         cur = conn.cursor()
-        intervals = [30] + [poll_interval] * max_attempts
-        for interval in intervals:
-            cur.execute(
-                "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
-                process_guid,
-            )
-            row = cur.fetchone()
-            complete = row[0] if row else None
-            if complete is not None:
-                logger.info(
-                    "Post-process complete for %s at %s",
-                    process_guid,
-                    complete,
-                )
-                return
+        for attempt in range(max_attempts):
             logger.info(
-                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
+                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s (attempt %s/%s)",
                 operation_cd,
                 process_guid,
+                attempt + 1,
+                max_attempts,
             )
             cur.execute(
                 "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
@@ -213,21 +204,29 @@ def wait_for_postprocess_completion(
                 operation_cd,
             )
             conn.commit()
-            logger.info("Sleeping %s seconds before next poll", interval)
-            time.sleep(interval)
-        cur.execute(
-            "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
-            process_guid,
-        )
-        row = cur.fetchone()
-        complete = row[0] if row else None
-        if complete is not None:
-            logger.info(
-                "Post-process complete for %s at %s",
-                process_guid,
-                complete,
-            )
-            return
+            for _ in range(checks_per_attempt):
+                logger.info(
+                    "Sleeping %s seconds before next poll", poll_interval
+                )
+                time.sleep(poll_interval)
+                cur.execute(
+                    "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
+                    process_guid,
+                )
+                row = cur.fetchone()
+                complete = row[0] if row else None
+                if complete is not None:
+                    logger.info(
+                        "Post-process complete for %s at %s",
+                        process_guid,
+                        complete,
+                    )
+                    return
+            if attempt < max_attempts - 1:
+                logger.info(
+                    "Re-running postprocess after %s seconds of polling",
+                    poll_interval * checks_per_attempt,
+                )
         logger.warning(
             "Post-process did not complete for %s after %s attempts",
             process_guid,
