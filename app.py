@@ -98,7 +98,6 @@ def main():
                 st.session_state.pop(k)
         for k in [
             "uploaded_file",
-            "upload_data_file",
             "upload_sheet",
             "upload_sheets",
             "template",
@@ -113,6 +112,8 @@ def main():
             "selected_customer",
         ]:
             st.session_state.pop(k, None)
+        st.session_state["upload_data_file"] = None
+        st.session_state.pop("upload_data_file", None)
         st.session_state["current_step"] = 0
         if user_email:
             set_last_template(user_email, "")
