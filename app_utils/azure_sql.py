@@ -120,9 +120,8 @@ def _odbc_diag_log() -> None:
         logging.error("pyodbc not importable: %s", exc)
 
 
-def _build_conn_str_freetds() -> str:
-    """Assemble an ODBC connection string for the FreeTDS (tdsodbc) driver."""
-    # Same key support as above.
+def _build_conn_str_msodbc(driver_name: str) -> str:
+    """Build a connection string for the given Microsoft ODBC driver name (17 or 18)."""
     server = _load_secret("SQL_SERVER") or _load_secret("AZURE_SQL_SERVER")
     database = _load_secret("SQL_DATABASE") or _load_secret("AZURE_SQL_DB")
     username = _load_secret("SQL_USERNAME") or _load_secret("AZURE_SQL_USER")
@@ -133,15 +132,12 @@ def _build_conn_str_freetds() -> str:
             "SQL_USERNAME/SQL_PASSWORD (or AZURE_SQL_SERVER/AZURE_SQL_DB/"
             "AZURE_SQL_USER/AZURE_SQL_PASSWORD)"
         )
-    host, port = _normalize_host_port(server)
-    # TDS_Version=7.4 works with Azure SQL; Encrypt/TrustServerCertificate recommended.
     return (
-        "Driver=FreeTDS;"
-        f"Server={host};Port={port};Database={database};"
-        f"UID={username};PWD={password};"
-        "TDS_Version=7.4;Encrypt=yes;TrustServerCertificate=no;"
-        "ClientCharset=UTF-8;Connection Timeout=30;"
+        f"DRIVER={{{driver_name}}};"
+        f"SERVER={server};DATABASE={database};UID={username};PWD={password};"
+        "Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
     )
+
 
 
 def _freetds_lib_candidates() -> List[str]:
@@ -177,59 +173,33 @@ def _build_conn_str_freetds_path(lib_path: str) -> str:
 
 
 def _connect() -> "pyodbc.Connection":
-    """
-    Prefer Microsoft ODBC 18 when present.
-    Otherwise try FreeTDS by NAME, then by absolute DRIVER path if the name isn't registered.
-    Respects AZURE_SQL_CONN_STRING if provided.
-    """
+    """Return a DB connection using Microsoft ODBC 18 or 17. No FreeTDS fallback."""
     try:
         import pyodbc  # type: ignore
     except ImportError as exc:
-        raise RuntimeError(
-            "pyodbc import failed; install pyodbc and an ODBC driver (ODBC Driver 18 or FreeTDS)"
-        ) from exc
+        raise RuntimeError("pyodbc not installed") from exc
 
-    # 1) Explicit connection string wins.
+    # Explicit connection string still wins if you provide one.
     user_conn_str = os.getenv("AZURE_SQL_CONN_STRING")
     if user_conn_str:
         return pyodbc.connect(user_conn_str)
 
-    # 2) Probe installed ODBC drivers (registered names).
-    drivers_lower = [d.lower() for d in pyodbc.drivers()]
-    has_ms18 = any("odbc driver 18 for sql server" in d for d in drivers_lower)
-    has_freetds = any("freetds" in d for d in drivers_lower)
+    # Probe available ODBC drivers and pick the best Microsoft one.
+    drivers = pyodbc.drivers()
+    drivers_lower = [d.lower() for d in drivers]
+    if "odbc driver 18 for sql server" in drivers_lower:
+        driver_name = "ODBC Driver 18 for SQL Server"
+    elif "odbc driver 17 for sql server" in drivers_lower:
+        driver_name = "ODBC Driver 17 for SQL Server"
+    else:
+        raise RuntimeError(
+            "Microsoft ODBC Driver 17/18 for SQL Server not found in this environment. "
+            "On Streamlit Cloud, v17 is typically preinstalled. If needed, add 'msodbcsql17' "
+            "to packages.txt. Available drivers: " + repr(drivers)
+        )
 
-    logger = logging.getLogger(__name__)
-    logger.info("Available ODBC drivers reported by pyodbc: %s", pyodbc.drivers())
+    return pyodbc.connect(_build_conn_str_msodbc(driver_name))
 
-    # 3) Microsoft ODBC 18 (registered)
-    if has_ms18:
-        logger.info("Using Microsoft ODBC Driver 18 for SQL Server (registered)")
-        return pyodbc.connect(_build_conn_str())
-
-    # 4) FreeTDS by NAME (registered)
-    if has_freetds:
-        try:
-            logger.info("Using FreeTDS (tdsodbc) by name (registered)")
-            return pyodbc.connect(_build_conn_str_freetds())
-        except Exception as exc:
-            logger.warning("FreeTDS by name failed (%s); will try by path", exc)
-
-    # 5) FreeTDS by PATH (unregistered driver)
-    for lib in _freetds_lib_candidates():
-        if os.path.exists(lib):
-            try:
-                logger.info("Using FreeTDS via DRIVER path: %s", lib)
-                return pyodbc.connect(_build_conn_str_freetds_path(lib))
-            except Exception as exc:
-                logger.warning("FreeTDS by path failed for %s: %s", lib, exc)
-
-    # 6) Nothing worked — be explicit so it’s easy to diagnose.
-    raise RuntimeError(
-        "No suitable ODBC driver usable by pyodbc. "
-        "Tried: MS ODBC 18 (name), FreeTDS (name), and FreeTDS (by library path). "
-        "Ensure 'tdsodbc' is installed and libtdsodbc.so is present."
-    )
     
 def _pyodbc_driver_name(conn) -> str:
     try:
@@ -653,36 +623,22 @@ def insert_pit_bid_rows(
             return 0
 
         try:
-            # Detect driver to choose safest path
-            try:
-                import pyodbc as _pyodbc  # type: ignore
-            except Exception:
-                _pyodbc = None  # type: ignore
-
-            is_ms = _is_ms_odbc(conn)
-            is_ft = _is_freetds(conn)
-
-            # Only enable fast_executemany on Microsoft ODBC
-            if is_ms and hasattr(cur, "fast_executemany"):
-                cur.fast_executemany = True  # type: ignore[attr-defined]
-
-            # FreeTDS is more stable with smaller batches and without bulk/TVP
-            eff_batch_size = batch_size
-            if is_ft:
-                eff_batch_size = min(batch_size, 500)
-
+            # Re-enable fast_executemany on Microsoft ODBC
+            cur.fast_executemany = True  # type: ignore[attr-defined]
             placeholders = ",".join(["?"] * len(columns))
             db_start = time.perf_counter()
-
-            # TVP is MS-specific (pyodbc feature + server support)
-            if is_ms and tvp_name and _pyodbc and hasattr(_pyodbc, "TableValuedParam"):
+            try:  # pragma: no cover - handled in tests via monkeypatch
+                import pyodbc as _pyodbc  # type: ignore
+            except Exception:  # pragma: no cover - if pyodbc missing
+                _pyodbc = None  # type: ignore
+            if tvp_name and _pyodbc and hasattr(_pyodbc, "TableValuedParam"):
                 tvp = _pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
                 cur.execute(
                     f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
                     tvp,
                 )
-            # Avoid BULK INSERT when using FreeTDS (server-side file access + driver quirks)
-            elif use_bulk_insert and not is_ft:
+            elif use_bulk_insert:
+                # (optional path you had; fine to leave in)
                 import csv
                 import tempfile
                 with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
@@ -698,11 +654,11 @@ def insert_pit_bid_rows(
                 query = (
                     f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
                 )
-                for start in range(0, len(rows), eff_batch_size):
-                    batch = rows[start : start + eff_batch_size]
+                for start in range(0, len(rows), batch_size):
+                    batch = rows[start : start + batch_size]
                     cur.executemany(query, batch)
-
             db_time = time.perf_counter() - db_start
+
         except Exception as err:
             raise RuntimeError(f"Failed to insert PIT bid rows: {err}") from err
     logging.info(
