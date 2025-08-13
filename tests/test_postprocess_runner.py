@@ -231,7 +231,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
     called: dict[str, Any] = {}
 
     def fake_wait(
-        pg: str, op: str, poll_interval: int = 300, max_attempts: int = 2
+        pg: str, op: str, poll_interval: int = 30, max_attempts: int = 2
     ) -> None:
         called["args"] = (pg, op, poll_interval, max_attempts)
         logging.getLogger("app_utils.azure_sql").info("cycle")
