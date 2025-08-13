@@ -34,6 +34,9 @@ def test_wait_for_postprocess_completion_reexec(
             return None
 
     class DummyConn:
+        def __init__(self) -> None:
+            self.commit_count = 0
+
         def __enter__(self) -> "DummyConn":
             return self
 
@@ -44,9 +47,11 @@ def test_wait_for_postprocess_completion_reexec(
             return DummyCursor()
 
         def commit(self) -> None:
+            self.commit_count += 1
             calls.append(("commit", ()))
 
-    monkeypatch.setattr(azure_sql, "_connect", lambda: DummyConn())
+    conn = DummyConn()
+    monkeypatch.setattr(azure_sql, "_connect", lambda: conn)
     monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
 
     caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
@@ -55,11 +60,16 @@ def test_wait_for_postprocess_completion_reexec(
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
     sleeps = [c for c in calls if c[0] == "sleep"]
+    commits = [c for c in calls if c[0] == "commit"]
     assert len(selects) == 12
     assert len(execs) == 2
     assert len(sleeps) == 12
+    assert len(commits) == len(selects) + len(execs)
     exec_indices = [i for i, c in enumerate(calls) if c[0].startswith("EXEC")]
-    assert sum(1 for c in calls[:exec_indices[1]] if c[0].startswith("SELECT")) == 10
+    commit_before_retry = (
+        sum(1 for c in calls[:exec_indices[1]] if c[0] == "commit") - 1
+    )
+    assert commit_before_retry == 10
     assert any("Post-process complete" in m for m in caplog.messages)
 
 
@@ -81,6 +91,9 @@ def test_wait_for_postprocess_completion_max_attempts(
             return None
 
     class DummyConn:
+        def __init__(self) -> None:
+            self.commit_count = 0
+
         def __enter__(self) -> "DummyConn":
             return self
 
@@ -91,9 +104,11 @@ def test_wait_for_postprocess_completion_max_attempts(
             return DummyCursor()
 
         def commit(self) -> None:
+            self.commit_count += 1
             calls.append(("commit", ()))
 
-    monkeypatch.setattr(azure_sql, "_connect", lambda: DummyConn())
+    conn = DummyConn()
+    monkeypatch.setattr(azure_sql, "_connect", lambda: conn)
     monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
 
     caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
@@ -102,9 +117,11 @@ def test_wait_for_postprocess_completion_max_attempts(
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
     sleeps = [c for c in calls if c[0] == "sleep"]
+    commits = [c for c in calls if c[0] == "commit"]
     assert len(selects) == 20
     assert len(execs) == 2
     assert len(sleeps) == 20
+    assert len(commits) == len(selects) + len(execs)
     assert any("did not complete" in m for m in caplog.messages)
 
 
@@ -132,6 +149,9 @@ def test_wait_for_postprocess_completion_exits_early(
             return None
 
     class DummyConn:
+        def __init__(self) -> None:
+            self.commit_count = 0
+
         def __enter__(self) -> "DummyConn":
             return self
 
@@ -142,9 +162,11 @@ def test_wait_for_postprocess_completion_exits_early(
             return DummyCursor()
 
         def commit(self) -> None:
+            self.commit_count += 1
             calls.append(("commit", ()))
 
-    monkeypatch.setattr(azure_sql, "_connect", lambda: DummyConn())
+    conn = DummyConn()
+    monkeypatch.setattr(azure_sql, "_connect", lambda: conn)
     monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
 
     caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
@@ -153,8 +175,10 @@ def test_wait_for_postprocess_completion_exits_early(
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
     sleeps = [c for c in calls if c[0] == "sleep"]
+    commits = [c for c in calls if c[0] == "commit"]
     assert len(selects) == 3
     assert len(execs) == 1
     assert len(sleeps) == 3
+    assert len(commits) == len(selects) + len(execs)
     assert any("Post-process complete" in m for m in caplog.messages)
 
