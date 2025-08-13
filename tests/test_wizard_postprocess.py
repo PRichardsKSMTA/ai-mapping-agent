@@ -48,7 +48,7 @@ class DummySidebar:
         return False
 
 class DummyStreamlit:
-    def __init__(self):
+    def __init__(self, button_sequence: list[set[str]] | None = None):
         self.session_state = {}
         self.sidebar = DummySidebar(self)
         self.markdown_calls: list[str] = []
@@ -56,6 +56,8 @@ class DummyStreamlit:
         self.info_messages: list[str] = []
         self.success_messages: list[str] = []
         self.secrets = {}
+        self.button_sequence = button_sequence or []
+        self.run_idx = 0
     def set_page_config(self, *a, **k):
         pass
     def title(self, *a, **k):
@@ -73,7 +75,12 @@ class DummyStreamlit:
     def file_uploader(self, *a, **k):
         return None
     def button(self, label, *a, **k):
-        return label == "Run Export" and not self.session_state.get("export_complete")
+        presses = (
+            self.button_sequence[self.run_idx]
+            if self.run_idx < len(self.button_sequence)
+            else set()
+        )
+        return label in presses
     def spinner(self, msg, *a, **k):
         class _C(DummyContainer):
             def __enter__(self_inner):
@@ -84,6 +91,9 @@ class DummyStreamlit:
         return DummyContainer()
     def rerun(self):
         pass
+
+    def next_run(self) -> None:
+        self.run_idx += 1
     def markdown(self, text, *a, **k):
         self.markdown_calls.append(text)
     def download_button(self, *a, **k):
@@ -106,8 +116,8 @@ class DummyStreamlit:
         return [DummyColumn() for _ in range(n)]
 
 
-def run_app(monkeypatch):
-    st = DummyStreamlit()
+def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
+    st = DummyStreamlit(button_sequence or [{"Run Export"}])
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
@@ -176,8 +186,10 @@ def run_app(monkeypatch):
     })
     sys.modules.pop("app", None)
     importlib.import_module("app")
+    st.next_run()
     if st.session_state.get("export_complete"):
         importlib.reload(sys.modules["app"])
+        st.next_run()
     return called, st.session_state, st
 
 
@@ -201,4 +213,26 @@ def test_sharepoint_link_displayed(monkeypatch):
     assert any("mileage and toll data" in m for m in st.spinner_messages)
     link = "https://tenant.sharepoint.com/sites/demo/docs/folder"
     assert any(link in m for m in st.markdown_calls)
+
+
+def test_back_before_export(monkeypatch):
+    _, state, _ = run_app(monkeypatch, button_sequence=[{"Back to mappings"}])
+    assert "export_complete" not in state
+    assert "layer_confirmed_0" not in state
+
+
+def test_back_after_export(monkeypatch):
+    _, state, _ = run_app(
+        monkeypatch,
+        button_sequence=[{"Run Export"}, {"Back to mappings"}],
+    )
+    for key in [
+        "export_complete",
+        "export_logs",
+        "final_json",
+        "postprocess_payload",
+        "mapped_csv",
+    ]:
+        assert key not in state
+    assert "layer_confirmed_0" not in state
 
