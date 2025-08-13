@@ -144,41 +144,91 @@ def _build_conn_str_freetds() -> str:
     )
 
 
-def _connect() -> "pyodbc.Connection":
-    """Return a database connection or raise ``RuntimeError`` if misconfigured.
+def _freetds_lib_candidates() -> List[str]:
+    # Try common locations for libtdsodbc.so on Debian/Ubuntu images
+    return [
+        "/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so",
+        "/usr/lib/arm64-linux-gnu/odbc/libtdsodbc.so",
+        "/usr/lib/aarch64-linux-gnu/odbc/libtdsodbc.so",
+        "/usr/lib64/libtdsodbc.so",
+        "/usr/local/lib/libtdsodbc.so",
+    ]
 
-    Prefers Microsoft ODBC 18 when installed; falls back to FreeTDS (tdsodbc).
+
+def _build_conn_str_freetds_path(lib_path: str) -> str:
+    server = _load_secret("SQL_SERVER") or _load_secret("AZURE_SQL_SERVER")
+    database = _load_secret("SQL_DATABASE") or _load_secret("AZURE_SQL_DB")
+    username = _load_secret("SQL_USERNAME") or _load_secret("AZURE_SQL_USER")
+    password = _load_secret("SQL_PASSWORD") or _load_secret("AZURE_SQL_PASSWORD")
+    if not all([server, database, username, password]):
+        raise RuntimeError(
+            "SQL connection is not configured; set SQL_SERVER/SQL_DATABASE/"
+            "SQL_USERNAME/SQL_PASSWORD (or AZURE_SQL_SERVER/AZURE_SQL_DB/"
+            "AZURE_SQL_USER/AZURE_SQL_PASSWORD)"
+        )
+    host, port = _normalize_host_port(server)
+    return (
+        f"Driver={lib_path};"
+        f"Server={host};Port={port};Database={database};"
+        f"UID={username};PWD={password};"
+        "TDS_Version=7.4;Encrypt=yes;TrustServerCertificate=no;"
+        "ClientCharset=UTF-8;Connection Timeout=30;"
+    )
+
+
+def _connect() -> "pyodbc.Connection":
+    """
+    Prefer Microsoft ODBC 18 when present.
+    Otherwise try FreeTDS by NAME, then by absolute DRIVER path if the name isn't registered.
     Respects AZURE_SQL_CONN_STRING if provided.
     """
     try:
         import pyodbc  # type: ignore
-    except ImportError as exc:  # pragma: no cover - exercised in unit tests
+    except ImportError as exc:
         raise RuntimeError(
             "pyodbc import failed; install pyodbc and an ODBC driver (ODBC Driver 18 or FreeTDS)"
         ) from exc
 
-    # Explicit connection string wins.
-    conn_str = os.getenv("AZURE_SQL_CONN_STRING")
-    if conn_str:
-        return pyodbc.connect(conn_str)
+    # 1) Explicit connection string wins.
+    user_conn_str = os.getenv("AZURE_SQL_CONN_STRING")
+    if user_conn_str:
+        return pyodbc.connect(user_conn_str)
 
-    # Probe installed ODBC drivers.
+    # 2) Probe installed ODBC drivers (registered names).
     drivers_lower = [d.lower() for d in pyodbc.drivers()]
     has_ms18 = any("odbc driver 18 for sql server" in d for d in drivers_lower)
     has_freetds = any("freetds" in d for d in drivers_lower)
 
     logger = logging.getLogger(__name__)
+    logger.info("Available ODBC drivers reported by pyodbc: %s", pyodbc.drivers())
+
+    # 3) Microsoft ODBC 18 (registered)
     if has_ms18:
-        logger.info("Using Microsoft ODBC Driver 18 for SQL Server")
+        logger.info("Using Microsoft ODBC Driver 18 for SQL Server (registered)")
         return pyodbc.connect(_build_conn_str())
 
+    # 4) FreeTDS by NAME (registered)
     if has_freetds:
-        logger.info("Using FreeTDS (tdsodbc) driver for SQL Server")
-        return pyodbc.connect(_build_conn_str_freetds())
+        try:
+            logger.info("Using FreeTDS (tdsodbc) by name (registered)")
+            return pyodbc.connect(_build_conn_str_freetds())
+        except Exception as exc:
+            logger.warning("FreeTDS by name failed (%s); will try by path", exc)
 
+    # 5) FreeTDS by PATH (unregistered driver)
+    for lib in _freetds_lib_candidates():
+        if os.path.exists(lib):
+            try:
+                logger.info("Using FreeTDS via DRIVER path: %s", lib)
+                return pyodbc.connect(_build_conn_str_freetds_path(lib))
+            except Exception as exc:
+                logger.warning("FreeTDS by path failed for %s: %s", lib, exc)
+
+    # 6) Nothing worked — be explicit so it’s easy to diagnose.
     raise RuntimeError(
-        "No suitable ODBC driver found. Install Microsoft ODBC Driver 18 or FreeTDS (tdsodbc). "
-        "On Streamlit Cloud, add 'tdsodbc' in packages.txt."
+        "No suitable ODBC driver usable by pyodbc. "
+        "Tried: MS ODBC 18 (name), FreeTDS (name), and FreeTDS (by library path). "
+        "Ensure 'tdsodbc' is installed and libtdsodbc.so is present."
     )
 
 
