@@ -39,7 +39,11 @@ from app_utils.azure_sql import (
 from app_utils import azure_sql
 from app_utils.template_builder import slugify
 from schemas.template_v2 import Template
-from app_utils.ui_utils import render_progress, set_steps_from_template
+from app_utils.ui_utils import (
+    render_progress,
+    set_steps_from_template,
+    compute_current_step,
+)
 from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
@@ -330,6 +334,20 @@ def main():
 
         # All layers confirmed - run export step
         st.success("✅ All layers confirmed! Proceed to export.")
+
+        last_idx = len(template_obj.layers) - 1
+        if st.button("Back to mappings"):
+            for key in [
+                "export_complete",
+                "export_logs",
+                "final_json",
+                "postprocess_payload",
+                "mapped_csv",
+            ]:
+                st.session_state.pop(key, None)
+            st.session_state.pop(f"layer_confirmed_{last_idx}", None)
+            st.session_state["current_step"] = compute_current_step()
+            st.rerun()
 
         if not st.session_state.get("export_complete"):
             st.header("Step — Run Export")
