@@ -121,16 +121,19 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     expected = 'OP - BID - Cust.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
+    assert returned['DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
     assert called['url'] == tpl.postprocess.url
     assert called['json'] == returned
     payload_logs = [l for l in logs if l.startswith('Payload:')]
     assert len(payload_logs) == 2
     original_payload = json.loads(payload_logs[0].split('Payload: ')[1])
     assert original_payload['BID-Payload'] == ''
+    assert original_payload['DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
     assert 'old.xlsm' in payload_logs[0]
     logged_payload = json.loads(payload_logs[1].split('Payload: ')[1])
     assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert logged_payload['BID-Payload'] == 'guid'
+    assert logged_payload['DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
     assert list(logged_payload['item/In_dtInputData'][0].keys()).count('NEW_EXCEL_FILENAME') == 1
     assert logs[-1] == 'Done'
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)
@@ -173,13 +176,16 @@ def test_pit_bid_posts(monkeypatch):
     expected = 'OP - BID - Cust.xlsm'
     original_payload = json.loads(payload_logs[0].split('Payload: ')[1])
     assert original_payload['BID-Payload'] == ''
+    assert original_payload['DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
     logged_payload = json.loads(payload_logs[-1].split('Payload: ')[1])
     assert logged_payload['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert logged_payload['BID-Payload'] == 'guid'
+    assert logged_payload['DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
     assert logs[-1] == 'Done'
     assert called['url'] == tpl.postprocess.url
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
+    assert returned['DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)
 
 

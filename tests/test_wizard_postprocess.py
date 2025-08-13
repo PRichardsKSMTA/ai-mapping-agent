@@ -146,7 +146,7 @@ def run_app(monkeypatch):
         payload = {
             "p": 1,
             "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
-            "CLIENT_DEST_FOLDER_PATH": "docs/folder",
+            "DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
         }
         return ["ok"], payload
 
@@ -193,7 +193,7 @@ def test_postprocess_runner_called(monkeypatch):
     assert state.get("postprocess_payload") == {
         "p": 1,
         "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
-        "CLIENT_DEST_FOLDER_PATH": "docs/folder",
+        "DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
     }
 
 def test_sharepoint_link_displayed(monkeypatch):
