@@ -84,6 +84,9 @@ class DummyStreamlit:
     def markdown(self, *a, **k):
         pass
 
+    def dataframe(self, *a, **k):
+        pass
+
     def selectbox(self, label, options, index=0, key=None, **k):
         if label == "Customer":
             choice = None if index is None else options[index]
@@ -102,7 +105,14 @@ class DummyStreamlit:
 
     def file_uploader(self, *a, **k):
         data = (FIXTURE_DIR / "simple.csv").read_bytes()
-        file_obj = io.BytesIO(data)
+
+        class Upload(io.BytesIO):
+            def read(self, *args, **kwargs):
+                self.seek(0)
+                return super().read(*args, **kwargs)
+
+        file_obj = Upload(data)
+        file_obj.name = "simple.csv"
         self.session_state["uploaded_file"] = file_obj
         return file_obj
 
@@ -115,6 +125,11 @@ class DummyStreamlit:
     def button(self, *a, **k):
         return False
 
+    def text_input(self, label, value="", key=None, **k):
+        if key:
+            self.session_state[key] = value
+        return value
+
     def error(self, msg, *a, **k):
         self.errors.append(msg)
 
@@ -122,7 +137,8 @@ class DummyStreamlit:
         return None
 
     def columns(self, n):
-        return (DummyContainer(),) * n
+        count = n if isinstance(n, int) else len(n)
+        return (self,) * count
 
     def rerun(self):
         pass

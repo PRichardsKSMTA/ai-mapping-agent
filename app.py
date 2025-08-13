@@ -17,6 +17,7 @@ Key features
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 import streamlit as st
 from pydantic import ValidationError
@@ -362,6 +363,21 @@ def main():
 
         if not st.session_state.get("export_complete"):
             st.header("Step — Run Export")
+
+            sheet = st.session_state.get("upload_sheet", 0)
+            df, _ = read_tabular_file(
+                st.session_state["uploaded_file"], sheet_name=sheet
+            )
+            preview_guid = str(uuid.uuid4())
+            preview_json = build_output_template(
+                template_obj, st.session_state, preview_guid
+            )
+            with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+                tmp_path = Path(tmp.name)
+                mapped_df = save_mapped_csv(df, preview_json, tmp_path)
+            tmp_path.unlink()
+            st.dataframe(mapped_df)
+
             if st.button("Run Export"):
                 with st.spinner("Gathering mileage and toll data…"):
                     sheet = st.session_state.get("upload_sheet", 0)
@@ -374,8 +390,6 @@ def main():
                     )
 
                     # Prepare CSV for download using current mappings
-                    import tempfile
-
                     with tempfile.NamedTemporaryFile(
                         suffix=".csv", delete=False
                     ) as tmp:

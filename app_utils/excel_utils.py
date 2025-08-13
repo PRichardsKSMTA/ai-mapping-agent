@@ -153,6 +153,7 @@ def read_tabular_file(
         df = pd.read_excel(tmp_path, header=header_row, sheet_name=sheet_name)
         os.unlink(tmp_path)
     else:  # CSV
+        uploaded_file.seek(0)
         df = pd.read_csv(uploaded_file)
 
     df = _clean_columns(df)
