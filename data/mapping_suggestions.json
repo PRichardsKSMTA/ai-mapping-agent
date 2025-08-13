@@ -1417,9 +1417,9 @@
     "type": "direct",
     "formula": null,
     "columns": [
-      "Origin State"
+      "Destination State"
     ],
-    "display": "Origin State",
+    "display": "Destination State",
     "header_id": "dcd0231f"
   },
   {
@@ -1575,5 +1575,104 @@
     ],
     "display": "Destination Drop Capability (Y/N)*",
     "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Lane ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Lane"
+    ],
+    "display": "Lane",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Origin City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin City"
+    ],
+    "display": "Origin City",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin State"
+    ],
+    "display": "Origin State",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Destination City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination City"
+    ],
+    "display": "Destination City",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination State"
+    ],
+    "display": "Origin State",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Volume",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Volume"
+    ],
+    "display": "Volume",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Miles",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Miles"
+    ],
+    "display": "Miles",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO1",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "O/D Type"
+    ],
+    "display": "O/D Type",
+    "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO2",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Lane"
+    ],
+    "display": "Lane",
+    "header_id": "58f3a111"
   }
 ]
