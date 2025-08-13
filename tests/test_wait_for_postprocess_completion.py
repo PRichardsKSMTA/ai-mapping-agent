@@ -65,6 +65,9 @@ def test_wait_for_postprocess_completion_reexec(
     assert len(execs) == 2
     assert len(sleeps) == 12
     assert len(commits) == len(selects) + len(execs)
+    for idx, (sql, _) in enumerate(calls):
+        if sql.startswith("SELECT") or sql.startswith("EXEC"):
+            assert calls[idx + 1][0] == "commit"
     exec_indices = [i for i, c in enumerate(calls) if c[0].startswith("EXEC")]
     commit_before_retry = (
         sum(1 for c in calls[:exec_indices[1]] if c[0] == "commit") - 1
@@ -122,6 +125,9 @@ def test_wait_for_postprocess_completion_max_attempts(
     assert len(execs) == 2
     assert len(sleeps) == 20
     assert len(commits) == len(selects) + len(execs)
+    for idx, (sql, _) in enumerate(calls):
+        if sql.startswith("SELECT") or sql.startswith("EXEC"):
+            assert calls[idx + 1][0] == "commit"
     assert any("did not complete" in m for m in caplog.messages)
 
 
@@ -180,5 +186,8 @@ def test_wait_for_postprocess_completion_exits_early(
     assert len(execs) == 1
     assert len(sleeps) == 3
     assert len(commits) == len(selects) + len(execs)
+    for idx, (sql, _) in enumerate(calls):
+        if sql.startswith("SELECT") or sql.startswith("EXEC"):
+            assert calls[idx + 1][0] == "commit"
     assert any("Post-process complete" in m for m in caplog.messages)
 
