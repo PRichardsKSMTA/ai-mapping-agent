@@ -36,6 +36,14 @@ def test_read_tabular_file_header_only():
     assert df.empty
 
 
+def test_read_tabular_file_multiple_reads():
+    with open('tests/fixtures/simple.csv', 'rb') as f:
+        df1, cols1 = read_tabular_file(f)
+        df2, cols2 = read_tabular_file(f)
+    assert cols1 == cols2 == ['Name', 'Value']
+    assert df1.equals(df2)
+
+
 def test_list_sheets_closes_temp(monkeypatch, tmp_path):
     path = tmp_path / "dummy.xlsx"
     excel_utils.pd.DataFrame({'A': [1]}).to_excel(path, index=False)
