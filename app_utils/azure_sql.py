@@ -230,6 +230,21 @@ def _connect() -> "pyodbc.Connection":
         "Tried: MS ODBC 18 (name), FreeTDS (name), and FreeTDS (by library path). "
         "Ensure 'tdsodbc' is installed and libtdsodbc.so is present."
     )
+    
+def _pyodbc_driver_name(conn) -> str:
+    try:
+        import pyodbc
+        return (conn.getinfo(pyodbc.SQL_DRIVER_NAME) or "").lower()
+    except Exception:
+        return ""
+
+def _is_ms_odbc(conn) -> bool:
+    name = _pyodbc_driver_name(conn)
+    # msodbcsqlXX.so on Linux; SQLNCLI*.DLL on older Windows clients
+    return ("msodbc" in name) or ("sqlncli" in name) or ("odbc" in name and "sql" in name and "ms" in name)
+
+def _is_freetds(conn) -> bool:
+    return "tdsodbc" in _pyodbc_driver_name(conn)
 
 
 def fetch_operation_codes(email: str | None = None) -> List[str]:
@@ -638,40 +653,55 @@ def insert_pit_bid_rows(
             return 0
 
         try:
-            cur.fast_executemany = True  # type: ignore[attr-defined]
+            # Detect driver to choose safest path
+            try:
+                import pyodbc as _pyodbc  # type: ignore
+            except Exception:
+                _pyodbc = None  # type: ignore
+
+            is_ms = _is_ms_odbc(conn)
+            is_ft = _is_freetds(conn)
+
+            # Only enable fast_executemany on Microsoft ODBC
+            if is_ms and hasattr(cur, "fast_executemany"):
+                cur.fast_executemany = True  # type: ignore[attr-defined]
+
+            # FreeTDS is more stable with smaller batches and without bulk/TVP
+            eff_batch_size = batch_size
+            if is_ft:
+                eff_batch_size = min(batch_size, 500)
+
             placeholders = ",".join(["?"] * len(columns))
             db_start = time.perf_counter()
-            try:  # pragma: no cover - handled in tests via monkeypatch
-                import pyodbc as _pyodbc  # type: ignore
-            except Exception:  # pragma: no cover - if pyodbc missing
-                _pyodbc = None  # type: ignore
-            if tvp_name and _pyodbc and hasattr(_pyodbc, "TableValuedParam"):
+
+            # TVP is MS-specific (pyodbc feature + server support)
+            if is_ms and tvp_name and _pyodbc and hasattr(_pyodbc, "TableValuedParam"):
                 tvp = _pyodbc.TableValuedParam(tvp_name, rows)  # type: ignore[attr-defined]
                 cur.execute(
                     f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) SELECT * FROM ?",
                     tvp,
                 )
-            elif use_bulk_insert:
+            # Avoid BULK INSERT when using FreeTDS (server-side file access + driver quirks)
+            elif use_bulk_insert and not is_ft:
                 import csv
                 import tempfile
-
                 with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
                     csv.writer(tmp).writerows(rows)
                     tmp_path = tmp.name
-                finally_path = tmp_path
                 try:
                     cur.execute(
-                        f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{finally_path}' WITH (FORMAT = 'CSV')"
+                        f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{tmp_path}' WITH (FORMAT = 'CSV')"
                     )
                 finally:
-                    os.unlink(finally_path)
+                    os.unlink(tmp_path)
             else:
                 query = (
                     f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
                 )
-                for start in range(0, len(rows), batch_size):
-                    batch = rows[start : start + batch_size]
+                for start in range(0, len(rows), eff_batch_size):
+                    batch = rows[start : start + eff_batch_size]
                     cur.executemany(query, batch)
+
             db_time = time.perf_counter() - db_start
         except Exception as err:
             raise RuntimeError(f"Failed to insert PIT bid rows: {err}") from err
