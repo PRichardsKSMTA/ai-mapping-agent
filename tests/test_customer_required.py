@@ -118,6 +118,9 @@ class DummyStreamlit:
     def error(self, msg, *a, **k):
         self.errors.append(msg)
 
+    def stop(self):
+        return None
+
     def columns(self, n):
         return (DummyContainer(),) * n
 
@@ -163,6 +166,15 @@ def test_pit_bid_requires_customer_id(monkeypatch):
         return choice
 
     monkeypatch.setattr(DummyStreamlit, "selectbox", selectbox)
-    st = run_app(monkeypatch, CUSTOMERS)
+    customers = CUSTOMERS + [
+        {
+            "CLIENT_SCAC": "ADSJ",
+            "BILLTO_ID": "2",
+            "BILLTO_NAME": "Acme",
+            "BILLTO_TYPE": "T",
+            "OPERATIONAL_SCAC": "ADSJ",
+        }
+    ]
+    st = run_app(monkeypatch, customers)
     assert "Select at least one Customer ID." in st.errors
     assert "Customer ID" in st.multiselect_calls
