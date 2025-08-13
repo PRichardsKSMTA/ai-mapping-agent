@@ -106,8 +106,18 @@ def _build_conn_str() -> str:
         )
     return (
         "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={server};DATABASE={database};UID={username};PWD={password}"
+        f"SERVER={server};DATABASE={database};UID={username};PWD={password};"
+        "Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
     )
+
+
+def _odbc_diag_log() -> None:
+    import logging
+    try:
+        import pyodbc
+        logging.info("Available ODBC drivers: %s", pyodbc.drivers())
+    except Exception as exc:
+        logging.error("pyodbc not importable: %s", exc)
 
 
 def _build_conn_str_freetds() -> str:

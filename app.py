@@ -50,6 +50,8 @@ from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.header_utils import save_current_template
 import uuid
 
+azure_sql._odbc_diag_log()
+
 load_dotenv()
 
 
