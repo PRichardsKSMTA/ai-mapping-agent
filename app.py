@@ -380,7 +380,9 @@ def main():
                 tmp_path = Path(tmp.name)
                 mapped_df = save_mapped_csv(df, preview_json, tmp_path)
             tmp_path.unlink()
-            st.dataframe(mapped_df)
+            adhoc_headers = st.session_state.get("header_adhoc_headers", {})
+            display_df = mapped_df.rename(columns=adhoc_headers)
+            st.dataframe(display_df)
 
             if st.button(button_text):
                 with st.spinner("Gathering mileage and toll data…"):
