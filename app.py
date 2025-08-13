@@ -18,8 +18,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import os
-
 import streamlit as st
 from pydantic import ValidationError
 import auth
@@ -316,7 +314,7 @@ def main():
         if not st.session_state.get("export_complete"):
             st.header("Step — Run Export")
             if st.button("Run Export"):
-                with st.spinner("Running postprocess..."):
+                with st.spinner("Gathering mileage and toll data…"):
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
                         st.session_state["uploaded_file"], sheet_name=sheet
@@ -368,6 +366,11 @@ def main():
                         st.session_state.get("operation_code"),
                     )
                     st.session_state["postprocess_payload"] = payload
+                    site = payload.get("CLIENT_DEST_SITE", "").rstrip("/")
+                    folder = payload.get("CLIENT_DEST_FOLDER_PATH", "")
+                    if site:
+                        href = f"{site}/{folder.lstrip('/')}" if folder else site
+                        st.session_state["sharepoint_url"] = href
                     logs.extend(logs_post)
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
@@ -381,19 +384,11 @@ def main():
                     st.session_state.update(state_updates)
                     st.rerun()
         else:
+            href = st.session_state.get("sharepoint_url")
+            link = f"\n\n[Open SharePoint site]({href})" if href else ""
             st.success(
-                "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
+                "Generating your BID file; it will be uploaded to SharePoint in about 5 minutes." + link
             )
-            dest_site = os.getenv("CLIENT_DEST_SITE")
-            dest_folder = os.getenv("CLIENT_DEST_FOLDER_PATH")
-            if dest_site:
-                href = dest_site.rstrip("/")
-                if dest_folder:
-                    href = f"{href}/{dest_folder.lstrip('/')}"
-                st.markdown(
-                    f'<a href="{href}" target="_blank">Open SharePoint site</a>',
-                    unsafe_allow_html=True,
-                )
             for line in st.session_state.get("export_logs", []):
                 st.write(line)
             if template_obj.postprocess:
