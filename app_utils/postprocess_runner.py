@@ -75,6 +75,7 @@ def run_postprocess_if_configured(
         except RuntimeError as err:  # pragma: no cover - exercised in integration
             logs.append(f"Payload error: {err}")
             raise
+        payload["DEST_FOLDER_PATH"] = "/Client Downloads/Pricing Tools/Customer Bids"
         logs.append(f"Payload: {json.dumps(payload)}")
         fname = f"{operation_cd} - BID - {customer_name}.xlsm"
         payload.setdefault("item/In_dtInputData", [{}])
