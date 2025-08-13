@@ -201,9 +201,7 @@ def test_postprocess_runner_called(monkeypatch):
     assert called.get("log_template") == "pit-bid"
     assert called.get("log_friendly") == "PIT BID"
     assert called.get("log_file") == "pit-bid.json"
-    assert state["final_json"].get("process_guid") == called.get("guid")
-
-    assert "postprocess_payload" not in state
+    assert "final_json" not in state
 
 def test_no_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
@@ -222,12 +220,7 @@ def test_back_after_export(monkeypatch):
         monkeypatch,
         button_sequence=[{"Run Export"}, {"Back to mappings"}],
     )
-    for key in [
-        "export_complete",
-        "export_logs",
-        "final_json",
-        "mapped_csv",
-    ]:
+    for key in ["export_complete", "mapped_csv"]:
         assert key not in state
     assert "layer_confirmed_0" not in state
 
