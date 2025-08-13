@@ -1,6 +1,19 @@
 import importlib
+import io
 import sys
 import types
+from pathlib import Path
+
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
+CUSTOMERS = [
+    {
+        "CLIENT_SCAC": "ADSJ",
+        "BILLTO_ID": "1",
+        "BILLTO_NAME": "Acme",
+        "BILLTO_TYPE": "T",
+        "OPERATIONAL_SCAC": "ADSJ",
+    }
+]
 
 
 class DummyContainer:
@@ -58,6 +71,7 @@ class DummyStreamlit:
         self.sidebar = DummySidebar(self)
         self.errors = []
         self.secrets = {}
+        self.multiselect_calls: list[str] = []
 
     def set_page_config(self, *a, **k):
         pass
@@ -80,13 +94,17 @@ class DummyStreamlit:
         return choice
 
     def multiselect(self, label, options, default=None, key=None, **k):
+        self.multiselect_calls.append(label)
         choice = default or []
         if key:
             self.session_state[key] = choice
         return choice
 
     def file_uploader(self, *a, **k):
-        return None
+        data = (FIXTURE_DIR / "simple.csv").read_bytes()
+        file_obj = io.BytesIO(data)
+        self.session_state["uploaded_file"] = file_obj
+        return file_obj
 
     def spinner(self, *a, **k):
         return DummyContainer()
@@ -118,35 +136,26 @@ def run_app(monkeypatch, customers=None):
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
     monkeypatch.setattr("auth.logout_button", lambda: None)
-    monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: [])
+    monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
     monkeypatch.setattr("app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["OP"])
     monkeypatch.setattr(
         "app_utils.azure_sql.fetch_customers",
         lambda scac: customers or [],
     )
     monkeypatch.setattr("app_utils.azure_sql.get_operational_scac", lambda op: "SCAC")
-    st.session_state.update({"template_name": "PIT BID", "uploaded_file": object()})
     sys.modules.pop("app", None)
     importlib.import_module("app")
     return st
 
 
-def test_pit_bid_requires_customer(monkeypatch):
-    st = run_app(monkeypatch)
+def test_error_when_no_customer_after_upload(monkeypatch):
+    st = run_app(monkeypatch, CUSTOMERS)
+    assert st.session_state.get("uploaded_file") is not None
     assert "Please select a customer to proceed." in st.errors
+    assert "Customer ID" not in st.multiselect_calls
 
 
 def test_pit_bid_requires_customer_id(monkeypatch):
-    customers = [
-        {
-            "CLIENT_SCAC": "ADSJ",
-            "BILLTO_ID": "1",
-            "BILLTO_NAME": "Acme",
-            "BILLTO_TYPE": "T",
-            "OPERATIONAL_SCAC": "ADSJ",
-        }
-    ]
-
     def selectbox(self, label, options, index=0, key=None, **k):
         choice = options[0] if options else None
         if key:
@@ -154,5 +163,6 @@ def test_pit_bid_requires_customer_id(monkeypatch):
         return choice
 
     monkeypatch.setattr(DummyStreamlit, "selectbox", selectbox)
-    st = run_app(monkeypatch, customers)
+    st = run_app(monkeypatch, CUSTOMERS)
     assert "Select at least one Customer ID." in st.errors
+    assert "Customer ID" in st.multiselect_calls
