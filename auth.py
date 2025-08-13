@@ -34,18 +34,26 @@ except Exception:  # pragma: no cover - if python-dotenv not installed
 
 load_dotenv()
 
+# Helper to retrieve configuration from st.secrets or environment
+def _get_config(name: str, default: str | None = None) -> str | None:
+    """Return a config value from st.secrets or environment."""
+    try:
+        return str(st.secrets[name])
+    except Exception:
+        return os.environ.get(name, default)
+
 # --------------------------------------------------------------------------- #
 # 1.  Dev bypass mode                                                         #
 # --------------------------------------------------------------------------- #
-DISABLE_AUTH = os.getenv("DISABLE_AUTH", "0") == "1"
-CLIENT_ID = os.getenv("AAD_CLIENT_ID")
-TENANT_ID = os.getenv("AAD_TENANT_ID")
-REDIRECT_URI = os.getenv("AAD_REDIRECT_URI")
+DISABLE_AUTH = _get_config("DISABLE_AUTH", "0") == "1"
+CLIENT_ID = _get_config("AAD_CLIENT_ID")
+TENANT_ID = _get_config("AAD_TENANT_ID")
+REDIRECT_URI = _get_config("AAD_REDIRECT_URI")
 
 if DISABLE_AUTH:
     # Seed fake session values
     st.session_state.setdefault(
-        "user_email", os.getenv("DEV_USER_EMAIL", "")
+        "user_email", _get_config("DEV_USER_EMAIL", "pete.richards@ksmta.com")
     )
     st.session_state.setdefault("is_employee", True)
     st.session_state.setdefault("is_ksmta", True)
@@ -74,21 +82,21 @@ else:
 
     if not all([CLIENT_ID, TENANT_ID, REDIRECT_URI]):
         raise RuntimeError(
-            "AAD_CLIENT_ID, AAD_TENANT_ID, and AAD_REDIRECT_URI must be set."
+            "AAD_CLIENT_ID, AAD_TENANT_ID, and AAD_REDIRECT_URI must be set in st.secrets or environment variables."
         )
 
     EMPLOYEE_GROUP_IDS: Set[str] = {
         g.strip()
-        for g in os.getenv("AAD_EMPLOYEE_GROUP_IDS", "").split(",")
+        for g in _get_config("AAD_EMPLOYEE_GROUP_IDS", "").split(",")
         if g.strip()
     }
     EMPLOYEE_DOMAINS: Set[str] = {
         d.strip().lower()
-        for d in os.getenv("AAD_EMPLOYEE_DOMAINS", "").split(",")
+        for d in _get_config("AAD_EMPLOYEE_DOMAINS", "").split(",")
         if d.strip()
     }
     KSMTA_GROUP_IDS: Set[str] = {
-        g.strip() for g in os.getenv("AAD_KSMTA_GROUP_IDS", "").split(",") if g.strip()
+        g.strip() for g in _get_config("AAD_KSMTA_GROUP_IDS", "").split(",") if g.strip()
     }
 
     AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
