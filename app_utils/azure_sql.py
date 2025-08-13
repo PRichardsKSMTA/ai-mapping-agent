@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Helpers for Azure SQL queries."""
 
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Tuple
 import os
 from pathlib import Path
 from datetime import datetime
@@ -45,7 +45,6 @@ FREIGHT_TYPE_MAP: Dict[str, str] = {
 
 try:  # pragma: no cover - optional dependency
     from dotenv import load_dotenv
-
     load_dotenv()
 except Exception:  # pragma: no cover - if python-dotenv not installed
     pass
@@ -54,6 +53,7 @@ try:  # pragma: no cover - handled in tests via monkeypatch
     import tomllib  # Python 3.11+
 except Exception:  # pragma: no cover
     tomllib = None  # type: ignore
+
 
 def _load_secret(key: str) -> str | None:
     """Return a config value from env or `.streamlit/secrets.toml`."""
@@ -68,16 +68,41 @@ def _load_secret(key: str) -> str | None:
     return None
 
 
+def _normalize_host_port(server_value: str) -> Tuple[str, int]:
+    """
+    Accepts forms like:
+      'tcp:myserver.database.windows.net'
+      'tcp:myserver.database.windows.net,1433'
+      'myserver.database.windows.net'
+      'myserver.database.windows.net,1433'
+    Returns (host, port).
+    """
+    v = (server_value or "").strip()
+    if v.lower().startswith("tcp:"):
+        v = v[4:]
+    if "," in v:
+        host, port_s = v.split(",", 1)
+        try:
+            port = int(port_s)
+        except Exception:
+            port = 1433
+    else:
+        host, port = v, 1433
+    return host, port
+
+
 def _build_conn_str() -> str:
-    """Assemble an ODBC connection string from config."""
-    server = _load_secret("SQL_SERVER")
-    database = _load_secret("SQL_DATABASE")
-    username = _load_secret("SQL_USERNAME")
-    password = _load_secret("SQL_PASSWORD")
+    """Assemble an ODBC connection string for Microsoft ODBC Driver 18."""
+    # Support both your existing SQL_* keys and AZURE_SQL_* synonyms.
+    server = _load_secret("SQL_SERVER") or _load_secret("AZURE_SQL_SERVER")
+    database = _load_secret("SQL_DATABASE") or _load_secret("AZURE_SQL_DB")
+    username = _load_secret("SQL_USERNAME") or _load_secret("AZURE_SQL_USER")
+    password = _load_secret("SQL_PASSWORD") or _load_secret("AZURE_SQL_PASSWORD")
     if not all([server, database, username, password]):
         raise RuntimeError(
-            "SQL connection is not configured; set SQL_SERVER, SQL_DATABASE, "
-            "SQL_USERNAME, and SQL_PASSWORD"
+            "SQL connection is not configured; set SQL_SERVER/SQL_DATABASE/"
+            "SQL_USERNAME/SQL_PASSWORD (or AZURE_SQL_SERVER/AZURE_SQL_DB/"
+            "AZURE_SQL_USER/AZURE_SQL_PASSWORD)"
         )
     return (
         "DRIVER={ODBC Driver 18 for SQL Server};"
@@ -85,16 +110,66 @@ def _build_conn_str() -> str:
     )
 
 
+def _build_conn_str_freetds() -> str:
+    """Assemble an ODBC connection string for the FreeTDS (tdsodbc) driver."""
+    # Same key support as above.
+    server = _load_secret("SQL_SERVER") or _load_secret("AZURE_SQL_SERVER")
+    database = _load_secret("SQL_DATABASE") or _load_secret("AZURE_SQL_DB")
+    username = _load_secret("SQL_USERNAME") or _load_secret("AZURE_SQL_USER")
+    password = _load_secret("SQL_PASSWORD") or _load_secret("AZURE_SQL_PASSWORD")
+    if not all([server, database, username, password]):
+        raise RuntimeError(
+            "SQL connection is not configured; set SQL_SERVER/SQL_DATABASE/"
+            "SQL_USERNAME/SQL_PASSWORD (or AZURE_SQL_SERVER/AZURE_SQL_DB/"
+            "AZURE_SQL_USER/AZURE_SQL_PASSWORD)"
+        )
+    host, port = _normalize_host_port(server)
+    # TDS_Version=7.4 works with Azure SQL; Encrypt/TrustServerCertificate recommended.
+    return (
+        "Driver=FreeTDS;"
+        f"Server={host};Port={port};Database={database};"
+        f"UID={username};PWD={password};"
+        "TDS_Version=7.4;Encrypt=yes;TrustServerCertificate=no;"
+        "ClientCharset=UTF-8;Connection Timeout=30;"
+    )
+
+
 def _connect() -> "pyodbc.Connection":
-    """Return a database connection or raise ``RuntimeError`` if misconfigured."""
+    """Return a database connection or raise ``RuntimeError`` if misconfigured.
+
+    Prefers Microsoft ODBC 18 when installed; falls back to FreeTDS (tdsodbc).
+    Respects AZURE_SQL_CONN_STRING if provided.
+    """
     try:
         import pyodbc  # type: ignore
     except ImportError as exc:  # pragma: no cover - exercised in unit tests
         raise RuntimeError(
-            "pyodbc import failed; install pyodbc and ODBC Driver 18"
+            "pyodbc import failed; install pyodbc and an ODBC driver (ODBC Driver 18 or FreeTDS)"
         ) from exc
-    conn_str = os.getenv("AZURE_SQL_CONN_STRING") or _build_conn_str()
-    return pyodbc.connect(conn_str)
+
+    # Explicit connection string wins.
+    conn_str = os.getenv("AZURE_SQL_CONN_STRING")
+    if conn_str:
+        return pyodbc.connect(conn_str)
+
+    # Probe installed ODBC drivers.
+    drivers_lower = [d.lower() for d in pyodbc.drivers()]
+    has_ms18 = any("odbc driver 18 for sql server" in d for d in drivers_lower)
+    has_freetds = any("freetds" in d for d in drivers_lower)
+
+    logger = logging.getLogger(__name__)
+    if has_ms18:
+        logger.info("Using Microsoft ODBC Driver 18 for SQL Server")
+        return pyodbc.connect(_build_conn_str())
+
+    if has_freetds:
+        logger.info("Using FreeTDS (tdsodbc) driver for SQL Server")
+        return pyodbc.connect(_build_conn_str_freetds())
+
+    raise RuntimeError(
+        "No suitable ODBC driver found. Install Microsoft ODBC Driver 18 or FreeTDS (tdsodbc). "
+        "On Streamlit Cloud, add 'tdsodbc' in packages.txt."
+    )
 
 
 def fetch_operation_codes(email: str | None = None) -> List[str]:
@@ -170,24 +245,12 @@ def wait_for_postprocess_completion(
 
     Executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` and then checks
     ``POST_PROCESS_COMPLETE_DTTM`` every ``poll_interval`` seconds. After
-    ten polls (5 minutes with the default 30‑second interval) without a
+    ten polls (5 minutes with the default 30-second interval) without a
     completion timestamp, the stored procedure is invoked again. The cycle
     repeats until ``max_attempts`` is reached. The connection is committed
     after each poll so subsequent ``SELECT`` statements read freshly
     committed data.
-
-    Parameters
-    ----------
-    process_guid:
-        Mapping process GUID.
-    operation_cd:
-        Operation code associated with the process.
-    poll_interval:
-        Seconds between polling attempts. Defaults to ``30`` seconds.
-    max_attempts:
-        Maximum number of stored procedure executions. Defaults to ``2``.
     """
-
     logger = logging.getLogger(__name__)
     checks_per_attempt = 10
     with _connect() as conn:
@@ -207,9 +270,7 @@ def wait_for_postprocess_completion(
             )
             conn.commit()
             for _ in range(checks_per_attempt):
-                logger.info(
-                    "Sleeping %s seconds before next poll", poll_interval
-                )
+                logger.info("Sleeping %s seconds before next poll", poll_interval)
                 time.sleep(poll_interval)
                 cur.execute(
                     "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
@@ -217,15 +278,11 @@ def wait_for_postprocess_completion(
                 )
                 row = cur.fetchone()
                 conn.commit()
-                logger.debug(
-                    "Committed transaction to start a new polling transaction"
-                )
+                logger.debug("Committed transaction to start a new polling transaction")
                 complete = row[0] if row else None
                 if complete is not None:
                     logger.info(
-                        "Post-process complete for %s at %s",
-                        process_guid,
-                        complete,
+                        "Post-process complete for %s at %s", process_guid, complete
                     )
                     return
             if attempt < max_attempts - 1:
@@ -265,7 +322,6 @@ def get_operational_scac(operation_cd: str) -> str:
 
 def derive_adhoc_headers(df: pd.DataFrame) -> Dict[str, str]:
     """Return mapping of ``ADHOC_INFO`` slots to original column headers."""
-
     base_columns = [
         "OPERATION_CD",
         "CUSTOMER_NAME",
@@ -352,7 +408,6 @@ def insert_pit_bid_rows(
     currently unused but accepted so callers can persist the mapping via
     :func:`log_mapping_process`.
     """
-
     base_columns = [
         "OPERATION_CD",
         "CUSTOMER_NAME",
@@ -543,12 +598,13 @@ def insert_pit_bid_rows(
                 with tempfile.NamedTemporaryFile("w", newline="", delete=False) as tmp:
                     csv.writer(tmp).writerows(rows)
                     tmp_path = tmp.name
+                finally_path = tmp_path
                 try:
                     cur.execute(
-                        f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{tmp_path}' WITH (FORMAT = 'CSV')"
+                        f"BULK INSERT dbo.RFP_OBJECT_DATA FROM '{finally_path}' WITH (FORMAT = 'CSV')"
                     )
                 finally:
-                    os.unlink(tmp_path)
+                    os.unlink(finally_path)
             else:
                 query = (
                     f"INSERT INTO dbo.RFP_OBJECT_DATA ({','.join(columns)}) VALUES ({placeholders})"
