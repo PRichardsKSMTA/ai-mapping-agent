@@ -403,7 +403,9 @@ def main():
                 "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
             dest_site = os.getenv("CLIENT_DEST_SITE")
-            dest_folder = os.getenv("CLIENT_DEST_FOLDER_PATH")
+            dest_folder = os.getenv(
+                "CLIENT_DEST_FOLDER_PATH", "/Client Downloads/Pricing Tools/Customer Bids"
+            )
             if dest_site:
                 href = dest_site.rstrip("/")
                 if dest_folder:
