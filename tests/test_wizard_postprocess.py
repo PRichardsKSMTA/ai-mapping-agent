@@ -202,17 +202,13 @@ def test_postprocess_runner_called(monkeypatch):
     assert called.get("log_friendly") == "PIT BID"
     assert called.get("log_file") == "pit-bid.json"
     assert state["final_json"].get("process_guid") == called.get("guid")
-    assert state.get("postprocess_payload") == {
-        "p": 1,
-        "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
-        "DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
-    }
 
-def test_sharepoint_link_displayed(monkeypatch):
+    assert "postprocess_payload" not in state
+
+def test_no_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
-    link = "https://tenant.sharepoint.com/sites/demo/docs/folder"
-    assert any(link in m for m in st.markdown_calls)
+    assert not st.markdown_calls
 
 
 def test_back_before_export(monkeypatch):
@@ -230,7 +226,6 @@ def test_back_after_export(monkeypatch):
         "export_complete",
         "export_logs",
         "final_json",
-        "postprocess_payload",
         "mapped_csv",
     ]:
         assert key not in state
