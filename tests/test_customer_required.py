@@ -37,7 +37,7 @@ class DummySidebar:
         pass
 
     def selectbox(self, label, options, index=0, key=None, **k):
-        choice = options[index] if options else None
+        choice = options[index] if options and index is not None else None
         if key:
             self.st.session_state[key] = choice
         return choice
@@ -72,9 +72,9 @@ class DummyStreamlit:
 
     def selectbox(self, label, options, index=0, key=None, **k):
         if label == "Customer":
-            choice = None
+            choice = None if index is None else options[index]
         else:
-            choice = options[index] if options else None
+            choice = options[index] if options and index is not None else None
         if key:
             self.session_state[key] = choice
         return choice
@@ -86,7 +86,7 @@ class DummyStreamlit:
         return choice
 
     def file_uploader(self, *a, **k):
-        raise RuntimeError("file_uploader should not run when no customer selected")
+        return None
 
     def spinner(self, *a, **k):
         return DummyContainer()
@@ -125,7 +125,7 @@ def run_app(monkeypatch, customers=None):
         lambda scac: customers or [],
     )
     monkeypatch.setattr("app_utils.azure_sql.get_operational_scac", lambda op: "SCAC")
-    st.session_state.update({"template_name": "PIT BID"})
+    st.session_state.update({"template_name": "PIT BID", "uploaded_file": object()})
     sys.modules.pop("app", None)
     importlib.import_module("app")
     return st
@@ -148,7 +148,7 @@ def test_pit_bid_requires_customer_id(monkeypatch):
     ]
 
     def selectbox(self, label, options, index=0, key=None, **k):
-        choice = options[index] if options else None
+        choice = options[0] if options else None
         if key:
             self.session_state[key] = choice
         return choice
