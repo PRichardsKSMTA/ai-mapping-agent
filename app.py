@@ -362,7 +362,7 @@ def main():
             st.rerun()
 
         if not st.session_state.get("export_complete"):
-            st.header("Step — Run Export")
+            st.header("Step — Generate BID")
 
             sheet = st.session_state.get("upload_sheet", 0)
             df, _ = read_tabular_file(
@@ -378,7 +378,7 @@ def main():
             tmp_path.unlink()
             st.dataframe(mapped_df)
 
-            if st.button("Run Export"):
+            if st.button("Generate BID"):
                 with st.spinner("Gathering mileage and toll data…"):
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
