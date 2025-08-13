@@ -411,106 +411,6 @@
     "type": "direct",
     "formula": null,
     "columns": [
-      "GL_ID"
-    ],
-    "display": "GL_ID"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Origin City",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "GL_ID"
-    ],
-    "display": "GL_ID"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Orig State",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "DETAIL_LEVEL"
-    ],
-    "display": "DETAIL_LEVEL"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Orig Zip (5 or 3)",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "GL_NAME"
-    ],
-    "display": "GL_NAME"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Destination City",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "2025-05-01"
-    ],
-    "display": "2025-05-01"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Dest State",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "2025-04-01"
-    ],
-    "display": "2025-04-01"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Dest Zip (5 or 3)",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "2025-03-01"
-    ],
-    "display": "2025-03-01"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Bid Volume",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "2025-02-01"
-    ],
-    "display": "2025-02-01"
-  },
-  {
-    "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "2025-01-01"
-    ],
-    "display": "2025-01-01"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Bid Miles",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "2024-12-01"
-    ],
-    "display": "2024-12-01"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Lane ID",
-    "type": "direct",
-    "formula": null,
-    "columns": [
       "Lane Code"
     ],
     "display": "Lane Code"
@@ -534,16 +434,6 @@
       "Origin 5-Digit Zip"
     ],
     "display": "Origin 5-Digit Zip"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Dest State",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Origin State"
-    ],
-    "display": "Origin State"
   },
   {
     "template": "PIT BID",
@@ -594,164 +484,6 @@
       "Destination State"
     ],
     "display": "Destination State"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Origin City",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 1"
-    ],
-    "display": "Unnamed: 1"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Orig State",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 2"
-    ],
-    "display": "Unnamed: 2"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Orig Zip (5 or 3)",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "1603214684"
-    ],
-    "display": "1603214684"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Destination City",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "1431"
-    ],
-    "display": "1431"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Orig Zip (5 or 3)",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Origin (Live/Drop)"
-    ],
-    "display": "Origin (Live/Drop)"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Bid Volume",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Bid 3 - Delete"
-    ],
-    "display": "Bid 3 - Delete"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Lane ID",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Item ID"
-    ],
-    "display": "Item ID"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Origin City",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 1"
-    ],
-    "display": "Unnamed: 1",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Orig State",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 2"
-    ],
-    "display": "Unnamed: 2",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Orig Zip (5 or 3)",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "1603214684"
-    ],
-    "display": "1603214684",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Destination City",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "1431"
-    ],
-    "display": "1431",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Dest State",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 1"
-    ],
-    "display": "Unnamed: 1",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Dest Zip (5 or 3)",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Unnamed: 2"
-    ],
-    "display": "Unnamed: 2",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Bid Volume",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "1603214684"
-    ],
-    "display": "1603214684",
-    "header_id": "6f036dfb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "1431"
-    ],
-    "display": "1431",
-    "header_id": "6f036dfb"
   },
   {
     "template": "PIT BID",
@@ -1628,7 +1360,7 @@
     "columns": [
       "Destination State"
     ],
-    "display": "Origin State",
+    "display": "Destination State",
     "header_id": "58f3a111"
   },
   {
@@ -1674,5 +1406,236 @@
     ],
     "display": "Lane",
     "header_id": "58f3a111"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Lane ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Lane ID"
+    ],
+    "display": "Lane ID",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Origin City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin City"
+    ],
+    "display": "Origin City",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin State"
+    ],
+    "display": "Origin State",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Destination City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination City"
+    ],
+    "display": "Destination City",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination State"
+    ],
+    "display": "Destination State",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO1",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Lane Name"
+    ],
+    "display": "Lane Name",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO7",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination Country"
+    ],
+    "display": "Destination Country",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig Zip (5 or 3)",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin Zip"
+    ],
+    "display": "Origin Zip",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest Zip (5 or 3)",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination Zip"
+    ],
+    "display": "Destination Zip",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Volume",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Quantity to Bid (Annual)"
+    ],
+    "display": "Quantity to Bid (Annual)",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Miles",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "HHG Miles Version 19 SM"
+    ],
+    "display": "HHG Miles Version 19 SM",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Freight Type",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Move Type"
+    ],
+    "display": "Move Type",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Breakthrough Fuel",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "TL Break Through Fuel Estimate"
+    ],
+    "display": "TL Break Through Fuel Estimate",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO2",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Column1"
+    ],
+    "display": "Column1",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO3",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Method of Delivery"
+    ],
+    "display": "Method of Delivery",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO4",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Method of Loading"
+    ],
+    "display": "Method of Loading",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO5",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination/Customer Name"
+    ],
+    "display": "Destination/Customer Name",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO6",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination Corporate ID"
+    ],
+    "display": "Destination Corporate ID",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO8",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin Zone"
+    ],
+    "display": "Origin Zone",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO9",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination Zone"
+    ],
+    "display": "Destination Zone",
+    "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO10",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin Corporate ID"
+    ],
+    "display": "Origin Corporate ID",
+    "header_id": "837981a4"
   }
 ]
