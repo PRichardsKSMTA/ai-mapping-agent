@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import os
 import streamlit as st
 from pydantic import ValidationError
 import auth
@@ -190,73 +191,7 @@ def main():
         st.rerun()
 
     # ---------------------------------------------------------------------------
-    # 3. Customer selection (PIT BID only)
-    # ---------------------------------------------------------------------------
-
-    if (
-        st.session_state.get("template_name") == "PIT BID"
-        and st.session_state.get("operational_scac")
-    ):
-        scac = st.session_state["operational_scac"]
-        if (
-            st.session_state.get("customer_options") is None
-            or st.session_state.get("customer_scac") != scac
-        ):
-            try:
-                st.session_state["customer_options"] = fetch_customers(scac)
-                st.session_state["customer_scac"] = scac
-            except RuntimeError as err:
-                st.error(f"Customer lookup failed: {err}")
-                return
-        cust_records = [
-            {**c, "BILLTO_NAME": c["BILLTO_NAME"].strip().title()}
-            for c in st.session_state["customer_options"]
-        ]
-        st.session_state["customer_options"] = cust_records
-        cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
-        if cust_names:
-            prev_name = st.session_state.get("customer_name")
-            prev_name_norm = prev_name.strip().title() if prev_name else None
-            idx = cust_names.index(prev_name_norm) if prev_name_norm in cust_names else 0
-            selected_name = st.selectbox(
-                "Customer", cust_names, index=idx, key="customer_name"
-            )
-            if selected_name != prev_name_norm:
-                st.session_state["customer_ids"] = []
-            st.session_state["selected_customer"] = next(
-                c for c in cust_records if c["BILLTO_NAME"] == selected_name
-            )
-            billto_ids: list[str] = [
-                c["BILLTO_ID"] for c in cust_records if c["BILLTO_NAME"] == selected_name
-            ]
-            st.session_state["customer_id_options"] = billto_ids
-            if billto_ids:
-                def select_all_ids() -> None:
-                    st.session_state["customer_ids"] = billto_ids[:5]
-
-                def deselect_all_ids() -> None:
-                    st.session_state["customer_ids"] = []
-
-                st.multiselect(
-                    "Customer ID",
-                    billto_ids,
-                    key="customer_ids",
-                    max_selections=5,
-                )
-                btn_col1, btn_col2 = st.columns(2)
-                btn_col1.button("Select all", on_click=select_all_ids)
-                btn_col2.button("Deselect all", on_click=deselect_all_ids)
-        else:
-            st.warning("No customers found for selected operation.")
-        if not st.session_state.get("customer_name"):
-            st.error("Please select a customer to proceed.")
-            return
-        if not st.session_state.get("customer_ids"):
-            st.error("Select at least one Customer ID.")
-            return
-
-    # ---------------------------------------------------------------------------
-    # 4. Upload client data file
+    # 3. Upload client data file
     # ---------------------------------------------------------------------------
 
     uploaded_file = st.file_uploader(
@@ -274,6 +209,89 @@ def main():
             st.selectbox("Select sheet", sheets, key=sheet_key)
         else:
             st.session_state[sheet_key] = sheets[0]
+
+    # ---------------------------------------------------------------------------
+    # 4. Customer selection (PIT BID only)
+    # ---------------------------------------------------------------------------
+    if st.session_state.get("uploaded_file"):
+        if (
+            st.session_state.get("template_name") == "PIT BID"
+            and st.session_state.get("operational_scac")
+        ):
+            scac = st.session_state["operational_scac"]
+            if (
+                st.session_state.get("customer_options") is None
+                or st.session_state.get("customer_scac") != scac
+            ):
+                try:
+                    st.session_state["customer_options"] = fetch_customers(scac)
+                    st.session_state["customer_scac"] = scac
+                except RuntimeError as err:
+                    st.error(f"Customer lookup failed: {err}")
+                    return
+            cust_records = [
+                {**c, "BILLTO_NAME": c["BILLTO_NAME"].strip().title()}
+                for c in st.session_state["customer_options"]
+            ]
+            st.session_state["customer_options"] = cust_records
+            cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
+            if cust_names:
+                prev_name = st.session_state.get("customer_name")
+                prev_name_norm = prev_name.strip().title() if prev_name else None
+                idx = (
+                    cust_names.index(prev_name_norm)
+                    if prev_name_norm in cust_names
+                    else None
+                )
+                selected_name = st.selectbox(
+                    "Customer",
+                    cust_names,
+                    index=idx,
+                    key="customer_name",
+                    placeholder="Select a customer",
+                )
+                if selected_name and selected_name != prev_name_norm:
+                    st.session_state["customer_ids"] = []
+                if selected_name:
+                    st.session_state["selected_customer"] = next(
+                        c for c in cust_records if c["BILLTO_NAME"] == selected_name
+                    )
+                    billto_ids: list[str] = [
+                        c["BILLTO_ID"]
+                        for c in cust_records
+                        if c["BILLTO_NAME"] == selected_name
+                    ]
+                    st.session_state["customer_id_options"] = billto_ids
+                    if billto_ids:
+                        def select_all_ids() -> None:
+                            st.session_state["customer_ids"] = billto_ids[:5]
+
+                        def deselect_all_ids() -> None:
+                            st.session_state["customer_ids"] = []
+
+                        st.multiselect(
+                            "Customer ID",
+                            billto_ids,
+                            key="customer_ids",
+                            max_selections=5,
+                        )
+                        btn_col1, btn_col2 = st.columns(2)
+                        btn_col1.button("Select all", on_click=select_all_ids)
+                        btn_col2.button("Deselect all", on_click=deselect_all_ids)
+                    else:
+                        st.warning("No customers found for selected operation.")
+                else:
+                    st.info("Select a customer to view IDs.")
+            else:
+                st.warning("No customers found for selected operation.")
+            if not st.session_state.get("customer_name"):
+                st.error("Please select a customer to proceed.")
+                return
+            if st.session_state.get("customer_name") and not st.session_state.get(
+                "customer_ids"
+            ):
+                st.error("Select at least one Customer ID.")
+                return
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
@@ -366,11 +384,6 @@ def main():
                         st.session_state.get("operation_code"),
                     )
                     st.session_state["postprocess_payload"] = payload
-                    site = payload.get("CLIENT_DEST_SITE", "").rstrip("/")
-                    folder = payload.get("CLIENT_DEST_FOLDER_PATH", "")
-                    if site:
-                        href = f"{site}/{folder.lstrip('/')}" if folder else site
-                        st.session_state["sharepoint_url"] = href
                     logs.extend(logs_post)
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
@@ -384,11 +397,19 @@ def main():
                     st.session_state.update(state_updates)
                     st.rerun()
         else:
-            href = st.session_state.get("sharepoint_url")
-            link = f"\n\n[Open SharePoint site]({href})" if href else ""
             st.success(
-                "Generating your BID file; it will be uploaded to SharePoint in about 5 minutes." + link
+                "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
+            dest_site = os.getenv("CLIENT_DEST_SITE")
+            dest_folder = os.getenv("CLIENT_DEST_FOLDER_PATH")
+            if dest_site:
+                href = dest_site.rstrip("/")
+                if dest_folder:
+                    href = f"{href}/{dest_folder.lstrip('/')}"
+                st.markdown(
+                    f'<a href="{href}" target="_blank">Open SharePoint site</a>',
+                    unsafe_allow_html=True,
+                )
             for line in st.session_state.get("export_logs", []):
                 st.write(line)
             if template_obj.postprocess:

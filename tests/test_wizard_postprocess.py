@@ -66,7 +66,7 @@ class DummyStreamlit:
     def success(self, msg, *a, **k):
         self.success_messages.append(msg)
     def selectbox(self, label, options, index=0, key=None, **k):
-        choice = options[index]
+        choice = options[index] if options and index is not None else None
         if key:
             self.session_state[key] = choice
         return choice
@@ -110,6 +110,8 @@ def run_app(monkeypatch):
     st = DummyStreamlit()
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
+    monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
+    monkeypatch.setenv("CLIENT_DEST_FOLDER_PATH", "docs/folder")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
@@ -198,6 +200,5 @@ def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
     link = "https://tenant.sharepoint.com/sites/demo/docs/folder"
-    messages = st.success_messages + st.info_messages
-    assert any(link in m for m in messages)
+    assert any(link in m for m in st.markdown_calls)
 

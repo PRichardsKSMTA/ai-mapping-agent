@@ -43,8 +43,8 @@ class DummySidebar:
     def subheader(self, *a: Any, **k: Any) -> None:
         pass
 
-    def selectbox(self, label: str, options: list[str], index: int = 0, key: str | None = None, **k: Any) -> str | None:
-        choice = options[index] if options else None
+    def selectbox(self, label: str, options: list[str], index: int | None = 0, key: str | None = None, **k: Any) -> str | None:
+        choice = options[index] if options and index is not None else None
         if key:
             self.st.session_state[key] = choice
         return choice
@@ -78,10 +78,10 @@ class DummyStreamlit:
     def markdown(self, *a: Any, **k: Any) -> None:
         pass
 
-    def selectbox(self, label: str, options: list[str], index: int = 0, key: str | None = None, **k: Any) -> str | None:
+    def selectbox(self, label: str, options: list[str], index: int | None = 0, key: str | None = None, **k: Any) -> str | None:
         if label == "Customer":
             self.customer_options = options
-        choice = options[index] if options else None
+        choice = options[index] if options and index is not None else None
         if key:
             self.session_state[key] = choice
         return choice
@@ -146,7 +146,7 @@ def run_app(monkeypatch):
     ]
     monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: customers)
     monkeypatch.setattr("app_utils.azure_sql.get_operational_scac", lambda op: "SCAC")
-    st.session_state.update({"template_name": "PIT BID"})
+    st.session_state.update({"template_name": "PIT BID", "uploaded_file": object()})
     sys.modules.pop("app", None)
     importlib.import_module("app")
     return st
@@ -155,4 +155,4 @@ def run_app(monkeypatch):
 def test_customer_grouping(monkeypatch):
     st = run_app(monkeypatch)
     assert st.customer_options == ["Boise Cascade"]
-    assert st.session_state["customer_id_options"] == ["A", "B"]
+    assert "customer_id_options" not in st.session_state
