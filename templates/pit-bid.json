@@ -19,7 +19,7 @@
         },
         {
           "key": "Orig Zip (5 or 3)",
-          "required": true
+          "required": false
         },
         {
           "key": "Destination City",
@@ -31,7 +31,7 @@
         },
         {
           "key": "Dest Zip (5 or 3)",
-          "required": true
+          "required": false
         },
         {
           "key": "Bid Volume",

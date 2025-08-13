@@ -1300,5 +1300,280 @@
     ],
     "display": "Currency",
     "header_id": "ed64196f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Lane ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "acbf936d"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Origin City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "acbf936d"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 2"
+    ],
+    "display": "Unnamed: 2",
+    "header_id": "acbf936d"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "acbf936d"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest Zip (5 or 3)",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 2"
+    ],
+    "display": "Unnamed: 2",
+    "header_id": "acbf936d"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Miles",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "acbf936d"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Lane ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unique Lane Identifier"
+    ],
+    "display": "Unique Lane Identifier",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Origin City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin City"
+    ],
+    "display": "Origin City",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin State"
+    ],
+    "display": "Origin State",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Destination City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination City"
+    ],
+    "display": "Destination City",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin State"
+    ],
+    "display": "Origin State",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Freight Type",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Mode"
+    ],
+    "display": "Mode",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO1",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Lane Name"
+    ],
+    "display": "Lane Name",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Volume",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Annual Volume"
+    ],
+    "display": "Annual Volume",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "LH Rate",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Target Rate"
+    ],
+    "display": "Target Rate",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Miles",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Average Distance (Miles)"
+    ],
+    "display": "Average Distance (Miles)",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO2",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Equipment"
+    ],
+    "display": "Equipment",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO3",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Average Number of Pickups"
+    ],
+    "display": "Average Number of Pickups",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO4",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Average Number of Stops"
+    ],
+    "display": "Average Number of Stops",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO5",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Bid Currency*"
+    ],
+    "display": "Bid Currency*",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO6",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Average Weight (Lbs)"
+    ],
+    "display": "Average Weight (Lbs)",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO7",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "$ Per Mile*"
+    ],
+    "display": "$ Per Mile*",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO8",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Transit Time (Days)*"
+    ],
+    "display": "Transit Time (Days)*",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO9",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Origin Drop Capability (Y/N)*"
+    ],
+    "display": "Origin Drop Capability (Y/N)*",
+    "header_id": "dcd0231f"
+  },
+  {
+    "template": "PIT BID",
+    "field": "ADHOC_INFO10",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Destination Drop Capability (Y/N)*"
+    ],
+    "display": "Destination Drop Capability (Y/N)*",
+    "header_id": "dcd0231f"
   }
 ]
