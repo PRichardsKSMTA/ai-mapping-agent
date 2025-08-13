@@ -28,7 +28,7 @@ def test_wait_for_postprocess_completion_reexec(
         def fetchone(self) -> tuple[Any, ...] | None:
             if "SELECT" in self._last_sql:
                 self._select_count += 1
-                if self._select_count == 1:
+                if self._select_count <= 3:
                     return (None,)
                 return ("2024-01-02",)
             return None
@@ -59,11 +59,12 @@ def test_wait_for_postprocess_completion_reexec(
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
     sleeps = [c for c in calls if c[0] == "sleep"]
-    assert len(selects) == 2
-    assert len(execs) == 2
-    assert len(sleeps) == 2
+    assert len(selects) == 4
+    assert len(execs) == 3
+    assert len(sleeps) == 3
+    assert [s[1][0] for s in sleeps] == [30, 1, 1]
     assert all(params == (process_guid, operation_cd) for _, params in execs)
-    assert any("still running" in m for m in caplog.messages)
+    assert any("Post-process complete" in m for m in caplog.messages)
 
 
 def test_wait_for_postprocess_completion_max_attempts(
@@ -109,8 +110,50 @@ def test_wait_for_postprocess_completion_max_attempts(
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
     sleeps = [c for c in calls if c[0] == "sleep"]
-    assert len(selects) == 2
-    assert len(execs) == 2
-    assert len(sleeps) == 2
+    assert len(selects) == 4
+    assert len(execs) == 3
+    assert len(sleeps) == 3
     assert any("did not complete" in m for m in caplog.messages)
+
+
+def test_wait_for_postprocess_completion_exits_when_done(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Returns immediately when postprocess is already complete."""
+
+    calls: list[tuple[str, tuple[Any, ...]]] = []
+
+    class DummyCursor:
+        def execute(self, sql: str, *params: Any) -> None:
+            calls.append((sql, params))
+            self._last_sql = sql
+
+        def fetchone(self) -> tuple[Any, ...] | None:
+            if "SELECT" in self._last_sql:
+                return ("2024-01-02",)
+            return None
+
+    class DummyConn:
+        def __enter__(self) -> "DummyConn":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def cursor(self) -> DummyCursor:
+            return DummyCursor()
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: DummyConn())
+    monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
+
+    caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
+    azure_sql.wait_for_postprocess_completion("pg", "OP", poll_interval=1, max_attempts=2)
+
+    selects = [c for c in calls if c[0].startswith("SELECT")]
+    execs = [c for c in calls if c[0].startswith("EXEC")]
+    sleeps = [c for c in calls if c[0] == "sleep"]
+    assert len(selects) == 1
+    assert not execs
+    assert not sleeps
+    assert any("Post-process complete" in m for m in caplog.messages)
 

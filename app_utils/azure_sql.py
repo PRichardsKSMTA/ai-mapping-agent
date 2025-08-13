@@ -187,20 +187,8 @@ def wait_for_postprocess_completion(
     logger = logging.getLogger(__name__)
     with _connect() as conn:
         cur = conn.cursor()
-        for attempt in range(max_attempts):
-            logger.info(
-                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
-                operation_cd,
-                process_guid,
-            )
-            cur.execute(
-                "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
-                process_guid,
-                operation_cd,
-            )
-            conn.commit()
-            logger.info("Sleeping %s seconds before next poll", poll_interval)
-            time.sleep(poll_interval)
+        intervals = [30] + [poll_interval] * max_attempts
+        for interval in intervals:
             cur.execute(
                 "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
                 process_guid,
@@ -214,12 +202,37 @@ def wait_for_postprocess_completion(
                     complete,
                 )
                 return
-            logger.info("Post-process still running for %s", process_guid)
-    logger.warning(
-        "Post-process did not complete for %s after %s attempts",
-        process_guid,
-        max_attempts,
-    )
+            logger.info(
+                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s",
+                operation_cd,
+                process_guid,
+            )
+            cur.execute(
+                "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
+                process_guid,
+                operation_cd,
+            )
+            conn.commit()
+            logger.info("Sleeping %s seconds before next poll", interval)
+            time.sleep(interval)
+        cur.execute(
+            "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
+            process_guid,
+        )
+        row = cur.fetchone()
+        complete = row[0] if row else None
+        if complete is not None:
+            logger.info(
+                "Post-process complete for %s at %s",
+                process_guid,
+                complete,
+            )
+            return
+        logger.warning(
+            "Post-process did not complete for %s after %s attempts",
+            process_guid,
+            max_attempts,
+        )
 
 
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
