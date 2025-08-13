@@ -215,6 +215,18 @@ def main():
         else:
             st.session_state[sheet_key] = sheets[0]
 
+    if (
+        st.session_state.get("uploaded_file")
+        and st.session_state.get("upload_sheet")
+        and hasattr(st.session_state["uploaded_file"], "name")
+    ):
+        df, _ = read_tabular_file(
+            st.session_state["uploaded_file"],
+            sheet_name=st.session_state["upload_sheet"],
+        )
+        st.caption("Source data preview – first 5 rows")
+        st.dataframe(df.head())
+
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
     # ---------------------------------------------------------------------------
