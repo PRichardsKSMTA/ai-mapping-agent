@@ -1637,5 +1637,71 @@
     ],
     "display": "Origin Corporate ID",
     "header_id": "837981a4"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Lane ID",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "044bcb90"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Origin City",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "044bcb90"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Orig State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 2"
+    ],
+    "display": "Unnamed: 2",
+    "header_id": "044bcb90"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest State",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "044bcb90"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Dest Zip (5 or 3)",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 2"
+    ],
+    "display": "Unnamed: 2",
+    "header_id": "044bcb90"
+  },
+  {
+    "template": "PIT BID",
+    "field": "Bid Miles",
+    "type": "direct",
+    "formula": null,
+    "columns": [
+      "Unnamed: 1"
+    ],
+    "display": "Unnamed: 1",
+    "header_id": "044bcb90"
   }
 ]

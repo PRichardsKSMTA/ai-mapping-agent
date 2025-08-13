@@ -38,11 +38,14 @@ load_dotenv()
 # 1.  Dev bypass mode                                                         #
 # --------------------------------------------------------------------------- #
 DISABLE_AUTH = os.getenv("DISABLE_AUTH", "0") == "1"
+CLIENT_ID = os.getenv("AAD_CLIENT_ID")
+TENANT_ID = os.getenv("AAD_TENANT_ID")
+REDIRECT_URI = os.getenv("AAD_REDIRECT_URI")
 
 if DISABLE_AUTH:
     # Seed fake session values
     st.session_state.setdefault(
-        "user_email", os.getenv("DEV_USER_EMAIL", "pete.richards@ksmta.com")
+        "user_email", os.getenv("DEV_USER_EMAIL", "")
     )
     st.session_state.setdefault("is_employee", True)
     st.session_state.setdefault("is_ksmta", True)
@@ -68,10 +71,6 @@ else:
     # 2.  Real MSAL authentication                                            #
     # ----------------------------------------------------------------------- #
     import msal  # only when auth enabled
-
-    CLIENT_ID = os.getenv("AAD_CLIENT_ID")
-    TENANT_ID = os.getenv("AAD_TENANT_ID")
-    REDIRECT_URI = os.getenv("AAD_REDIRECT_URI")
 
     if not all([CLIENT_ID, TENANT_ID, REDIRECT_URI]):
         raise RuntimeError(
