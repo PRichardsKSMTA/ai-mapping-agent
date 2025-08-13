@@ -215,11 +215,11 @@ def wait_for_postprocess_completion(
                     "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
                     process_guid,
                 )
-                row = cur.fetchone()
                 conn.commit()
                 logger.debug(
                     "Committed transaction to start a new polling transaction"
                 )
+                row = cur.fetchone()
                 complete = row[0] if row else None
                 if complete is not None:
                     logger.info(
