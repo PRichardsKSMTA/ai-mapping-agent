@@ -159,6 +159,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         payload = {
             "p": 1,
             "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
+            "CLIENT_DEST_FOLDER_PATH": "/docs/folder",
             "DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
         }
         return ["ok"], payload
@@ -206,10 +207,13 @@ def test_postprocess_runner_called(monkeypatch):
     assert "final_json" not in state
 
 
-def test_no_sharepoint_link_displayed(monkeypatch):
+def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
-    assert not st.markdown_calls
+    assert any(
+        "https://tenant.sharepoint.com/sites/demo/docs/folder" in m
+        for m in st.markdown_calls
+    )
 
 
 def test_back_before_export(monkeypatch):

@@ -426,7 +426,7 @@ def main():
                         template_obj.template_guid,
                         adhoc_headers,
                     )
-                    run_postprocess_if_configured(
+                    _, payload = run_postprocess_if_configured(
                         template_obj,
                         df,
                         guid,
@@ -440,6 +440,7 @@ def main():
                         {
                             "export_complete": True,
                             "mapped_csv": csv_bytes,
+                            "postprocess_payload": payload,
                         }
                     )
                     st.rerun()
@@ -447,6 +448,12 @@ def main():
             st.success(
                 "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
+            payload = st.session_state.get("postprocess_payload") or {}
+            dest_site = payload.get("CLIENT_DEST_SITE")
+            dest_path = payload.get("CLIENT_DEST_FOLDER_PATH")
+            if dest_site and dest_path:
+                sharepoint_url = f"{dest_site.rstrip('/')}{dest_path}"
+                st.markdown(f"[Open SharePoint folder]({sharepoint_url})")
             csv_data = st.session_state.get("mapped_csv")
 
             if csv_data:
