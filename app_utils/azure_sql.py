@@ -172,7 +172,9 @@ def wait_for_postprocess_completion(
     ``POST_PROCESS_COMPLETE_DTTM`` every ``poll_interval`` seconds. After
     ten polls (5 minutes with the default 30‑second interval) without a
     completion timestamp, the stored procedure is invoked again. The cycle
-    repeats until ``max_attempts`` is reached.
+    repeats until ``max_attempts`` is reached. The connection is committed
+    after each poll so subsequent ``SELECT`` statements read freshly
+    committed data.
 
     Parameters
     ----------
@@ -214,6 +216,10 @@ def wait_for_postprocess_completion(
                     process_guid,
                 )
                 row = cur.fetchone()
+                conn.commit()
+                logger.debug(
+                    "Committed transaction to start a new polling transaction"
+                )
                 complete = row[0] if row else None
                 if complete is not None:
                     logger.info(
