@@ -16,7 +16,7 @@ def run_postprocess(
 ) -> None:
     """Send mapped data to ``cfg.url`` via HTTP POST."""
     if log is not None:
-        log.append(f"POST {cfg.url}")
+        log.append("POST request sent")
     try:
         import requests  # type: ignore
         requests.post(cfg.url, json=df.to_dict(orient="records"), timeout=10)
@@ -69,14 +69,14 @@ def run_postprocess_if_configured(
         finally:
             logger.removeHandler(handler)
             logger.setLevel(old_level)
-        logs.append(f"POST {template.postprocess.url}")
+        logs.append("POST request sent")
         try:
             payload = get_pit_url_payload(operation_cd)
         except RuntimeError as err:  # pragma: no cover - exercised in integration
             logs.append(f"Payload error: {err}")
             raise
         payload["DEST_FOLDER_PATH"] = "/Client Downloads/Pricing Tools/Customer Bids"
-        logs.append(f"Payload: {json.dumps(payload)}")
+        logs.append("Payload loaded")
         fname = f"{operation_cd} - BID - {customer_name}.xlsm"
         payload.setdefault("item/In_dtInputData", [{}])
         if not payload["item/In_dtInputData"]:
@@ -86,7 +86,7 @@ def run_postprocess_if_configured(
             payload["BID-Payload"] = process_guid
         else:
             logs.append("Missing BID-Payload in payload")
-        logs.append(f"Payload: {json.dumps(payload)}")
+        logs.append("Payload finalized")
         try:
             import requests  # type: ignore
 
@@ -95,7 +95,6 @@ def run_postprocess_if_configured(
             )
             if resp is not None:
                 logs.append(f"Status: {resp.status_code}")
-                logs.append(f"Body: {resp.text[:200]}")
                 resp.raise_for_status()
             else:
                 logs.append("Status: no response")

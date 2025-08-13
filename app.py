@@ -109,8 +109,6 @@ def main():
             "current_template",
             "auto_computed_confirm",
             "export_complete",
-            "export_logs",
-            "final_json",
             "customer_name",
             "selected_customer",
         ]:
@@ -355,8 +353,6 @@ def main():
         if st.button("Back to mappings"):
             for key in [
                 "export_complete",
-                "export_logs",
-                "final_json",
                 "mapped_csv",
             ]:
                 st.session_state.pop(key, None)
@@ -390,7 +386,7 @@ def main():
                         st.session_state.get("header_adhoc_headers")
                         or azure_sql.derive_adhoc_headers(mapped_df)
                     )
-                    rows = insert_pit_bid_rows(
+                    insert_pit_bid_rows(
                         mapped_df,
                         st.session_state["operation_code"],
                         st.session_state["customer_name"],
@@ -398,9 +394,6 @@ def main():
                         guid,
                         adhoc_headers,
                     )
-                    logs = [
-                        f"Inserted {rows} rows into RFP_OBJECT_DATA"
-                    ]
                     azure_sql.log_mapping_process(
                         guid,
                         slugify(template_obj.template_name),
@@ -411,24 +404,22 @@ def main():
                         template_obj.template_guid,
                         adhoc_headers,
                     )
-                    logs_post, _ = run_postprocess_if_configured(
+                    run_postprocess_if_configured(
                         template_obj,
                         df,
                         guid,
                         st.session_state.get("customer_name", ""),
                         st.session_state.get("operation_code"),
                     )
-                    logs.extend(logs_post)
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
 
-                    state_updates = {
-                        "export_complete": True,
-                        "export_logs": logs,
-                        "final_json": final_json,
-                        "mapped_csv": csv_bytes,
-                    }
-                    st.session_state.update(state_updates)
+                    st.session_state.update(
+                        {
+                            "export_complete": True,
+                            "mapped_csv": csv_bytes,
+                        }
+                    )
                     st.rerun()
         else:
             st.success(
