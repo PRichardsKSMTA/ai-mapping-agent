@@ -348,8 +348,6 @@ def main():
                 st.stop()
 
         # All layers confirmed - run export step
-        st.success("✅ All layers confirmed! Proceed to export.")
-
         last_idx = len(template_obj.layers) - 1
         if st.button("Back to mappings"):
             for key in [
@@ -361,8 +359,14 @@ def main():
             st.session_state["current_step"] = compute_current_step()
             st.rerun()
 
+            
         if not st.session_state.get("export_complete"):
-            st.header("Step — Generate BID")
+            header_text: str = "Step — Run Export"
+            button_text: str = "Run Export"
+            if template_obj.template_name == "PIT BID":
+                header_text = "Step 2 - Generate BID File"
+                button_text = "Generate BID"
+            st.header(header_text)
 
             sheet = st.session_state.get("upload_sheet", 0)
             df, _ = read_tabular_file(
@@ -378,7 +382,8 @@ def main():
             tmp_path.unlink()
             st.dataframe(mapped_df)
 
-            if st.button("Generate BID"):
+
+            if st.button(button_text):
                 with st.spinner("Gathering mileage and toll data…"):
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
