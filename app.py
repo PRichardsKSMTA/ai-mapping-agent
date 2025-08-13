@@ -21,14 +21,14 @@ import tempfile
 from pathlib import Path
 import streamlit as st
 from pydantic import ValidationError
-import auth
+# import auth
 try:
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - optional dependency
     def load_dotenv() -> None:
         return None
 
-from auth import require_login, logout_button, get_user_email
+# from auth import require_login, logout_button, get_user_email
 from app_utils.user_prefs import get_last_template, set_last_template
 from app_utils.azure_sql import (
     fetch_operation_codes,
@@ -56,7 +56,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 # 0. Page config & helpers
 # ---------------------------------------------------------------------------
-@require_login
+# @require_login
 def main():
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
     st.title("AI Mapping Agent")
@@ -77,11 +77,11 @@ def main():
     TEMPLATES_DIR = Path("templates")
     TEMPLATES_DIR.mkdir(exist_ok=True)
 
-    user_email = get_user_email()
-    if user_email and "selected_template_file" not in st.session_state:
-        last = get_last_template(user_email)
-        if last:
-            st.session_state["selected_template_file"] = last
+    # user_email = get_user_email()
+    # if user_email and "selected_template_file" not in st.session_state:
+    #     last = get_last_template(user_email)
+    #     if last:
+    #         st.session_state["selected_template_file"] = last
 
     def reset_layer_confirmations() -> None:
         """Remove all layer_confirmed_* flags from session state."""
@@ -117,8 +117,8 @@ def main():
         st.session_state["upload_data_file"] = None
         st.session_state.pop("upload_data_file", None)
         st.session_state["current_step"] = 0
-        if user_email:
-            set_last_template(user_email, "")
+        # if user_email:
+        #     set_last_template(user_email, "")
         st.session_state["_reset_triggered"] = True
 
     # ---------------------------------------------------------------------------
@@ -159,8 +159,8 @@ def main():
         template_obj: Template | None = None
         if selected_file:
             st.session_state["selected_template_file"] = selected_file
-            if user_email:
-                set_last_template(user_email, selected_file)
+            # if user_email:
+            #     set_last_template(user_email, selected_file)
             with st.spinner("Loading template..."):
                 raw_template = json.loads((TEMPLATES_DIR / selected_file).read_text())
                 try:
@@ -418,7 +418,7 @@ def main():
                         guid,
                         slugify(template_obj.template_name),
                         template_obj.template_name,
-                        auth.get_user_email(),
+                        # auth.get_user_email(),
                         selected_file,
                         json.dumps(final_json),
                         template_obj.template_guid,
@@ -461,4 +461,4 @@ def main():
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
 main()
-logout_button()
+# logout_button()
