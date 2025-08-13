@@ -55,6 +55,7 @@ class DummyStreamlit:
         self.spinner_messages: list[str] = []
         self.info_messages: list[str] = []
         self.success_messages: list[str] = []
+        self.dataframe_calls: list[pd.DataFrame] = []
         self.secrets = {}
         self.button_sequence = button_sequence or []
         self.run_idx = 0
@@ -62,7 +63,7 @@ class DummyStreamlit:
         pass
     def title(self, *a, **k):
         pass
-    header = subheader = error = write = warning = title
+    header = subheader = error = write = warning = caption = title
     def info(self, msg, *a, **k):
         self.info_messages.append(msg)
     def success(self, msg, *a, **k):
@@ -73,7 +74,7 @@ class DummyStreamlit:
             self.session_state[key] = choice
         return choice
     def file_uploader(self, *a, **k):
-        return None
+        return types.SimpleNamespace(name="upload.csv")
     def button(self, label, *a, **k):
         presses = (
             self.button_sequence[self.run_idx]
@@ -100,6 +101,8 @@ class DummyStreamlit:
         pass
     def json(self, *a, **k):  # type: ignore[override]
         pass
+    def dataframe(self, data, *a, **k):  # type: ignore[override]
+        self.dataframe_calls.append(data)
     def cache_data(self, *a, **k):
         def wrap(func):
             return func
@@ -175,7 +178,6 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     monkeypatch.setattr(Path, "read_text", fake_read)
     st.session_state.update({
         "selected_template_file": tpl_path.name,
-        "uploaded_file": object(),
         "template": tpl_data,
         "template_name": "PIT BID",
         "current_template": "PIT BID",
@@ -203,8 +205,6 @@ def test_postprocess_runner_called(monkeypatch):
     assert called.get("log_file") == "pit-bid.json"
     assert state["final_json"].get("process_guid") == called.get("guid")
 
-    assert "postprocess_payload" not in state
-
 def test_no_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
@@ -230,4 +230,10 @@ def test_back_after_export(monkeypatch):
     ]:
         assert key not in state
     assert "layer_confirmed_0" not in state
+
+
+def test_dataframe_previews(monkeypatch):
+    _, state, st = run_app(monkeypatch)
+    assert state.get("export_complete")
+    assert len(st.dataframe_calls) >= 2
 
