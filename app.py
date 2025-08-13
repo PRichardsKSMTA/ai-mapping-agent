@@ -348,8 +348,6 @@ def main():
                 st.stop()
 
         # All layers confirmed - run export step
-        st.success("✅ All layers confirmed! Proceed to export.")
-
         last_idx = len(template_obj.layers) - 1
         if st.button("Back to mappings"):
             for key in [
@@ -368,6 +366,7 @@ def main():
                 header_text = "Step 2 - Generate BID File"
                 button_text = "Generate BID"
             st.header(header_text)
+
 
             sheet = st.session_state.get("upload_sheet", 0)
             df, _ = read_tabular_file(
