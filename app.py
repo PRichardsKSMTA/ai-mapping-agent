@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import os
 import streamlit as st
 from pydantic import ValidationError
 import auth
@@ -358,7 +357,6 @@ def main():
                 "export_complete",
                 "export_logs",
                 "final_json",
-                "postprocess_payload",
                 "mapped_csv",
             ]:
                 st.session_state.pop(key, None)
@@ -413,14 +411,13 @@ def main():
                         template_obj.template_guid,
                         adhoc_headers,
                     )
-                    logs_post, payload = run_postprocess_if_configured(
+                    logs_post, _ = run_postprocess_if_configured(
                         template_obj,
                         df,
                         guid,
                         st.session_state.get("customer_name", ""),
                         st.session_state.get("operation_code"),
                     )
-                    st.session_state["postprocess_payload"] = payload
                     logs.extend(logs_post)
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
@@ -437,35 +434,9 @@ def main():
             st.success(
                 "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
-            dest_site = os.getenv("CLIENT_DEST_SITE")
-            dest_folder = os.getenv(
-                "CLIENT_DEST_FOLDER_PATH", "/Client Downloads/Pricing Tools/Customer Bids"
-            )
-            if dest_site:
-                href = dest_site.rstrip("/")
-                if dest_folder:
-                    href = f"{href}/{dest_folder.lstrip('/')}"
-                st.markdown(
-                    f'<a href="{href}" target="_blank">Open SharePoint site</a>',
-                    unsafe_allow_html=True,
-                )
-            for line in st.session_state.get("export_logs", []):
-                st.write(line)
-            if template_obj.postprocess:
-                st.write(template_obj.postprocess.url)
-            st.json(st.session_state.get("postprocess_payload"))
-            st.json(st.session_state.get("final_json"))
             csv_data = st.session_state.get("mapped_csv")
 
             if csv_data:
-                import pandas as pd
-                import io
-
-                preview_df = pd.read_csv(io.BytesIO(csv_data))
-                if hasattr(st, "dataframe"):
-                    st.dataframe(preview_df.head())
-                else:  # pragma: no cover - fallback for test stubs
-                    st.write(preview_df.head())
                 st.download_button(
                     "Download mapped CSV",
                     data=csv_data,
