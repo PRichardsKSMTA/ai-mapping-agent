@@ -20,6 +20,7 @@ import json
 import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 import streamlit as st
 from pydantic import ValidationError
 import auth
@@ -576,10 +577,8 @@ def main():
                         "CLIENT_DEST_FOLDER_PATH"
                     )
                     if dest_site and dest_path:
-                        sharepoint_url = f"{dest_site.rstrip('/')}{dest_path}"
-                        st.markdown(
-                            f"[Open SharePoint folder]({sharepoint_url})"
-                        )
+                        sharepoint_url = f"{dest_site.rstrip('/')}{quote(dest_path, safe='/')}"
+                        st.link_button("Open SharePoint folder", sharepoint_url)
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
                         st.session_state["uploaded_file"], sheet_name=sheet
@@ -650,8 +649,8 @@ def main():
                 dest_site = dest_site or nested.get("CLIENT_DEST_SITE")
                 dest_path = dest_path or nested.get("CLIENT_DEST_FOLDER_PATH")
             if dest_site and dest_path:
-                sharepoint_url = f"{dest_site.rstrip('/')}{dest_path}"
-                st.markdown(f"[Open SharePoint folder]({sharepoint_url})")
+                sharepoint_url = f"{dest_site.rstrip('/')}{quote(dest_path, safe='/')}"
+                st.link_button("Open SharePoint folder", sharepoint_url)
             preview_df = st.session_state.get("mapped_preview_df")
             if preview_df is not None:
                 st.dataframe(preview_df)

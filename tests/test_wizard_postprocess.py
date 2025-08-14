@@ -58,6 +58,7 @@ class DummyStreamlit:
         self.session_state = {}
         self.sidebar = DummySidebar(self)
         self.markdown_calls: list[str] = []
+        self.link_button_calls: list[tuple[str, str]] = []
         self.spinner_messages: list[str] = []
         self.info_messages: list[str] = []
         self.success_messages: list[str] = []
@@ -103,6 +104,9 @@ class DummyStreamlit:
         self.run_idx += 1
     def markdown(self, text, *a, **k):
         self.markdown_calls.append(text)
+    def link_button(self, label, url, *a, **k):
+        self.link_button_calls.append((label, url))
+        return False
     def download_button(self, *a, **k):
         pass
     def json(self, *a, **k):  # type: ignore[override]
@@ -133,7 +137,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
-    monkeypatch.setenv("CLIENT_DEST_FOLDER_PATH", "docs/folder")
+    monkeypatch.setenv("CLIENT_DEST_FOLDER_PATH", "docs/folder with spaces")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
@@ -160,7 +164,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
             "item/In_dtInputData": [
                 {
                     "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
-                    "CLIENT_DEST_FOLDER_PATH": "/docs/folder",
+                    "CLIENT_DEST_FOLDER_PATH": "/docs/folder with spaces",
                 }
             ]
         },
@@ -185,7 +189,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         payload = {
             "p": 1,
             "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
-            "CLIENT_DEST_FOLDER_PATH": "/docs/folder",
+            "CLIENT_DEST_FOLDER_PATH": "/docs/folder with spaces",
         }
         return ["ok"], payload
 
@@ -236,8 +240,9 @@ def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
     assert any(
-        "https://tenant.sharepoint.com/sites/demo/docs/folder" in m
-        for m in st.markdown_calls
+        url
+        == "https://tenant.sharepoint.com/sites/demo/docs/folder%20with%20spaces"
+        for _, url in st.link_button_calls
     )
 
 
