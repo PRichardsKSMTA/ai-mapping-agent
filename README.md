@@ -25,13 +25,17 @@ or add them to `.streamlit/secrets.toml`:
 Alternatively, a full connection string may be supplied via
 `AZURE_SQL_CONN_STRING`.
 
-### Customer ID selection
+### Customer selection
 
-After choosing a customer, the Streamlit app shows a **Customer IDs**
-multiselect only when the selected customer has ID values. At least one ID must
-be chosen in that case (up to five are supported), but if the customer has no
-IDs the field is skipped with an informational message. The chooser also
-includes a “+ New Customer” option to add a new record on the fly.
+After choosing an operation, the app lists matching customers and appends a “+
+New Customer” option for one-time bids. Selecting it reveals a plain text field
+to enter the customer name; the entry is transient and never written to the
+database.
+
+When an existing customer is chosen, a **Customer IDs** multiselect appears only
+if that customer has ID values. At least one ID must be selected in that
+scenario (up to five are supported). If the chosen customer lacks IDs or “+
+New Customer” is used, the ID selector is skipped entirely.
 
 ## Command Line Interface
 
