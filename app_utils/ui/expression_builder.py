@@ -58,10 +58,12 @@ def build_expression(df: pd.DataFrame, key_prefix: str = "") -> Tuple[str, bool]
             cols[0] = operand
 
     # --- Additional operand/operator rows ---
-    for i in range(1, len(cols)):
-        c_op, c_btn, c_paren = st.columns([3.5, 1, 1])
+    i: int = 1
+    while i < len(cols):
+        c_op, c_btn, c_add, c_del = st.columns([3.5, 1, 0.7, 0.7])
+
         # Operator
-        op_choice = st.session_state[parts_key]["ops"][i - 1]
+        op_choice: str = st.session_state[parts_key]["ops"][i - 1]
         selected_op = c_btn.selectbox(
             "",
             options=list(OPS.keys()),
@@ -82,9 +84,17 @@ def build_expression(df: pd.DataFrame, key_prefix: str = "") -> Tuple[str, bool]
         cols[i] = operand or None
 
         # Add more operands?
-        if c_paren.button("+", key=f"{key_prefix}_add_op_{i}"):
+        if c_add.button("+", key=f"{key_prefix}_add_op_{i}"):
             cols.append(None)
             ops.append(list(OPS.keys())[0])
+
+        # Remove this operand row?
+        if c_del.button("✕", key=f"{key_prefix}_del_op_{i}"):
+            del cols[i]
+            del ops[i - 1]
+            continue
+
+        i += 1
 
     # --- Parentheses row ---
     p1, p2, _ = st.columns([1, 1, 8])
