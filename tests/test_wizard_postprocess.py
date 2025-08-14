@@ -232,6 +232,13 @@ def test_back_after_export(monkeypatch):
     assert "layer_confirmed_0" not in state
 
 
+def test_preview_before_export(monkeypatch):
+    _, state, st = run_app(monkeypatch, button_sequence=[set()])
+    assert "export_complete" not in state
+    assert len(st.dataframe_calls) >= 2
+    assert "Lane ID" in st.dataframe_calls[1].columns
+
+
 def test_dataframe_previews(monkeypatch):
     _, state, st = run_app(monkeypatch)
     assert state.get("export_complete")
