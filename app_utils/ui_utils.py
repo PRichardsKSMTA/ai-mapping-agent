@@ -44,12 +44,14 @@ def apply_global_css() -> None:
 @contextmanager
 def section_card(title: str, caption: str | None = None) -> Iterator[None]:
     """Render a titled section with subtle styling."""
-    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
-    st.markdown(f"### {title}")
-    if caption:
-        st.caption(caption)
-    yield
-    st.markdown("</div>", unsafe_allow_html=True)
+    container = st.container()
+    with container:
+        container.markdown("<div class='section-card'>", unsafe_allow_html=True)
+        container.markdown(f"### {title}")
+        if caption:
+            container.caption(caption)
+        yield
+        container.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -117,9 +119,15 @@ def compute_current_step() -> int:
     idx += len(confirmed_dynamic)
 
     # legacy flags (will disappear once app.py is refactored)
-    if st.session_state.get("header_confirmed") and "layer_confirmed_0" not in st.session_state:
+    if (
+        st.session_state.get("header_confirmed")
+        and "layer_confirmed_0" not in st.session_state
+    ):
         idx += 1
-    if st.session_state.get("account_confirmed") and "layer_confirmed_1" not in st.session_state:
+    if (
+        st.session_state.get("account_confirmed")
+        and "layer_confirmed_1" not in st.session_state
+    ):
         idx += 1
 
     return idx
@@ -171,7 +179,7 @@ def render_progress(container: st.delta_generator.DeltaGenerator | None = None) 
                 st.markdown(
                     f'<div class="step todo">{step}</div>', unsafe_allow_html=True
                 )
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
