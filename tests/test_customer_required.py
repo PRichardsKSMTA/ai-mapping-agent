@@ -4,6 +4,8 @@ import sys
 import types
 from pathlib import Path
 
+import pytest
+
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 CUSTOMERS = [
     {
@@ -207,6 +209,7 @@ def test_no_error_when_customer_has_no_ids(monkeypatch):
     st = run_app(monkeypatch, customers)
     assert st.errors == []
     assert "Customer ID" not in st.multiselect_calls
+    assert st.session_state.get("customer_ids") is None
 
 
 def test_pit_bid_requires_customer_id(monkeypatch):
@@ -229,3 +232,43 @@ def test_pit_bid_requires_customer_id(monkeypatch):
     st = run_app(monkeypatch, customers)
     assert "Select at least one Customer ID." in st.errors
     assert "Customer ID" in st.multiselect_calls
+
+
+def test_new_customer_text_input_no_db_insert(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def selectbox(self, label, options, index=0, key=None, **k):
+        if label == "Customer":
+            choice = "+ New Customer"
+        else:
+            choice = options[index] if options else None
+        if key:
+            self.session_state[key] = choice
+        return choice
+
+    def text_input(self, label, value="", key=None, **k):
+        name = "Fresh Co" if label == "Customer Name" else value
+        if key:
+            self.session_state[key] = name
+        return name
+
+    monkeypatch.setattr(DummyStreamlit, "selectbox", selectbox)
+    monkeypatch.setattr(DummyStreamlit, "text_input", text_input)
+    monkeypatch.setattr(
+        "app_utils.azure_sql.insert_customer",
+        lambda *a, **k: pytest.fail("insert_customer should not be called"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "pages.steps.header",
+        types.SimpleNamespace(render=lambda *a, **k: None),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "pages.steps.lookup",
+        types.SimpleNamespace(render=lambda *a, **k: None),
+    )
+    st = run_app(monkeypatch, CUSTOMERS)
+    assert st.errors == []
+    assert "Customer ID" not in st.multiselect_calls
+    assert st.session_state.get("customer_ids") == []
