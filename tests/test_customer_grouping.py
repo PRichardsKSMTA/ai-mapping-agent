@@ -98,6 +98,9 @@ class DummyStreamlit:
     def spinner(self, *a: Any, **k: Any) -> DummyContainer:
         return DummyContainer()
 
+    def container(self) -> DummyContainer:
+        return DummyContainer()
+
     def empty(self) -> DummyContainer:
         return DummyContainer()
 
@@ -154,5 +157,5 @@ def run_app(monkeypatch):
 
 def test_customer_grouping(monkeypatch):
     st = run_app(monkeypatch)
-    assert st.customer_options == ["Boise Cascade"]
+    assert st.customer_options == ["Boise Cascade", "+ New Customer"]
     assert "customer_id_options" not in st.session_state

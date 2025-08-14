@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Optional
 
 USER_PREFS_FILE = Path("data/user_prefs.json")
+logger = logging.getLogger(__name__)
 
 
 def _load() -> Dict[str, str]:
     if not USER_PREFS_FILE.exists():
         return {}
-    return json.loads(USER_PREFS_FILE.read_text())
+    try:
+        return json.loads(USER_PREFS_FILE.read_text())
+    except json.JSONDecodeError:
+        logger.warning("user prefs file %s is not valid JSON", USER_PREFS_FILE)
+        return {}
 
 
 def _save(data: Dict[str, str]) -> None:

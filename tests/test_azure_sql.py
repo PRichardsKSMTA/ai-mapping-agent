@@ -128,6 +128,31 @@ def test_fetch_customers(monkeypatch):
     assert [c["BILLTO_NAME"] for c in customers] == ["Alpha", "Beta"]
 
 
+def test_insert_customer(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["query"] = query
+            captured["params"] = params
+            return self
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+    azure_sql.insert_customer("ADSJ", "NewCo", "123")
+    assert "INSERT INTO" in captured["query"]
+    assert captured["params"] == ("ADSJ", "NewCo", "123")
+
+
 def test_connect_requires_config(monkeypatch):
     original_import = builtins.__import__
 
@@ -275,6 +300,29 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
     assert captured["params"][10] is None  # BID_VOLUME
     assert captured["params"][11] is None  # LH_RATE
     assert captured["params"][25] is None  # RFP_MILES
+
+
+def test_insert_pit_bid_rows_no_ids(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame(
+        {
+            "Lane ID": ["L1"],
+            "Origin City": ["OC"],
+            "Orig State": ["OS"],
+            "Orig Zip (5 or 3)": ["11111"],
+            "Destination City": ["DC"],
+            "Dest State": ["DS"],
+            "Dest Zip (5 or 3)": ["22222"],
+            "Bid Volume": [5],
+            "LH Rate": [1.2],
+            "Bid Miles": [100],
+        }
+    )
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", None, "guid")
+    assert rows == 1
+    assert captured["params"][2] is None  # CUSTOMER_ID
 
 
 def test_insert_pit_bid_rows_with_db_columns(monkeypatch):

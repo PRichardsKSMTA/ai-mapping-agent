@@ -51,6 +51,7 @@ from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_cs
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.header_utils import save_current_template
+from app_utils.ui.customer_dialog import open_new_customer_dialog
 import uuid
 
 azure_sql._odbc_diag_log()
@@ -266,6 +267,7 @@ def main():
                 st.dataframe(df.head())
 
     customer_valid = True
+    st.session_state.setdefault("customer_ids", [])
 
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
@@ -285,18 +287,33 @@ def main():
                 try:
                     st.session_state["customer_options"] = fetch_customers(scac)
                     st.session_state["customer_scac"] = scac
+                    if (
+                        st.session_state["customer_options"]
+                        and "CLIENT_SCAC"
+                        in st.session_state["customer_options"][0]
+                    ):
+                        st.session_state["client_scac"] = st.session_state[
+                            "customer_options"
+                        ][0]["CLIENT_SCAC"]
                 except RuntimeError as err:
                     st.error(f"Customer lookup failed: {err}")
                     return
             cust_records = [
-                {**c, "BILLTO_NAME": c["BILLTO_NAME"].strip().title()}
-                for c in st.session_state["customer_options"]
+                c for c in st.session_state["customer_options"] if c["BILLTO_NAME"]
             ]
             st.session_state["customer_options"] = cust_records
-            cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
+            seen_names: set[str] = set()
+            cust_names: list[str] = []
+            for c in cust_records:
+                name = c["BILLTO_NAME"]
+                norm = name.strip().lower()
+                if norm not in seen_names:
+                    seen_names.add(norm)
+                    cust_names.append(name.title())
             if cust_names:
+                cust_names.append("+ New Customer")
                 prev_name = st.session_state.get("customer_name")
-                prev_name_norm = prev_name.strip().title() if prev_name else None
+                prev_name_norm = prev_name.title() if prev_name else None
                 idx = (
                     cust_names.index(prev_name_norm)
                     if prev_name_norm in cust_names
@@ -314,17 +331,26 @@ def main():
                     key="customer_name",
                     placeholder="Select a customer",
                 )
-                if selected_name and selected_name != prev_name_norm:
+                if selected_name == "+ New Customer":
+                    st.session_state["customer_name"] = prev_name_norm
+                    client_scac = st.session_state.get("client_scac")
+                    if client_scac:
+                        open_new_customer_dialog(client_scac, scac)
+                    else:
+                        st.error("Client SCAC unavailable; please refresh.")
+                elif selected_name and selected_name != prev_name_norm:
                     st.session_state["customer_ids"] = []
                 customer_name = st.session_state.get("customer_name")
                 if customer_name:
                     st.session_state["selected_customer"] = next(
-                        c for c in cust_records if c["BILLTO_NAME"] == customer_name
+                        c
+                        for c in cust_records
+                        if c["BILLTO_NAME"].strip().title() == customer_name
                     )
                     billto_ids: list[str] = [
                         c["BILLTO_ID"]
                         for c in cust_records
-                        if c["BILLTO_NAME"] == customer_name
+                        if c["BILLTO_NAME"].strip().title() == customer_name
                     ]
                     st.session_state["customer_id_options"] = billto_ids
                     if billto_ids:
@@ -387,7 +413,8 @@ def main():
                                     unsafe_allow_html=True,
                                 )
                     else:
-                        st.warning("No customers found for selected operation.")
+                        st.session_state["customer_ids"] = []
+                        st.info("Selected customer has no Customer IDs.")
                 else:
                     st.info("Select a customer to view ID options.")
             else:
@@ -395,9 +422,11 @@ def main():
             if not st.session_state.get("customer_name"):
                 st.error("Please select a customer to proceed.")
                 customer_valid = False
-            elif not st.session_state.get("customer_ids"):
-                st.error("Select at least one Customer ID.")
-                customer_valid = False
+            else:
+                id_opts: list[str] = st.session_state.get("customer_id_options") or []
+                if id_opts and not st.session_state.get("customer_ids"):
+                    st.error("Select at least one Customer ID.")
+                    customer_valid = False
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
@@ -510,7 +539,7 @@ def main():
                         mapped_df,
                         st.session_state["operation_code"],
                         st.session_state["customer_name"],
-                        st.session_state["customer_ids"],
+                        st.session_state.get("customer_ids"),
                         guid,
                         adhoc_headers,
                     )

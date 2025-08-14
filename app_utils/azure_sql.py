@@ -256,9 +256,29 @@ def fetch_customers(operational_scac: str) -> List[Dict[str, str]]:
         rows: List[Dict[str, str]] = []
         for raw in cur.fetchall():
             row = dict(zip(cols, raw))
-            row["BILLTO_NAME"] = row["BILLTO_NAME"].strip().title()
+            name = row.get("BILLTO_NAME")
+            if isinstance(name, str):
+                row["BILLTO_NAME"] = name.strip().title()
+            else:
+                row["BILLTO_NAME"] = ""
             rows.append(row)
     return sorted(rows, key=lambda r: r["BILLTO_NAME"])
+
+
+def insert_customer(client_scac: str, name: str, billto_id: str | None = None) -> None:
+    """Insert a customer record."""
+    try:
+        conn = _connect()
+    except RuntimeError as err:  # pragma: no cover - exercised in integration
+        raise RuntimeError(f"Customer insert failed: {err}") from err
+    with conn:
+        conn.cursor().execute(
+            (
+                "INSERT INTO dbo.SPOQ_BILLTO_XREF "
+                "(CLIENT_SCAC, BILLTO_NAME, BILLTO_ID) VALUES (?, ?, ?)"
+            ),
+            (client_scac, name, billto_id),
+        )
 
 
 def fetch_freight_type(operation_cd: str) -> str | None:
@@ -432,7 +452,7 @@ def insert_pit_bid_rows(
     df: pd.DataFrame,
     operation_cd: str,
     customer_name: str,
-    customer_ids: Sequence[str],
+    customer_ids: Sequence[str] | None = None,
     process_guid: str | None = None,
     adhoc_headers: Dict[str, str] | None = None,
     *,
@@ -446,11 +466,12 @@ def insert_pit_bid_rows(
     Each field is mapped explicitly to its target database column via
     ``PIT_BID_FIELD_MAP``. Columns that remain unmapped are stored sequentially
     in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
-    ``customer_name`` and ``customer_ids`` are required and applied to every
-    inserted row regardless of any ``CUSTOMER_NAME`` or ``CUSTOMER_ID`` column
-    in ``df``. ``customer_ids`` may contain up to five entries. ``adhoc_headers``
-    maps ``ADHOC_INFO`` slot names to their source column headers. It is
-    currently unused but accepted so callers can persist the mapping via
+    ``customer_name`` is required and applied to every inserted row regardless
+    of any ``CUSTOMER_NAME`` column in ``df``. ``customer_ids`` may be ``None``
+    or contain up to five entries. If ``customer_ids`` is ``None`` or an empty
+    sequence, ``CUSTOMER_ID`` is inserted as ``NULL``. ``adhoc_headers`` maps
+    ``ADHOC_INFO`` slot names to their source column headers. It is currently
+    unused but accepted so callers can persist the mapping via
     :func:`log_mapping_process`.
     """
     base_columns = [
@@ -547,7 +568,7 @@ def insert_pit_bid_rows(
     else:
         default_freight = fetch_freight_type(operation_cd)
 
-    ids = list(customer_ids)
+    ids = list(customer_ids or [])
     if len(ids) > 5:
         raise ValueError("Up to 5 customer IDs supported")
 
