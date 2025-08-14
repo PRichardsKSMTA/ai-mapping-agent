@@ -175,7 +175,6 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
             "p": 1,
             "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
             "CLIENT_DEST_FOLDER_PATH": "/docs/folder",
-            "DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
         }
         return ["ok"], payload
 
