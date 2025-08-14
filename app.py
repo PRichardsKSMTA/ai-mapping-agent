@@ -43,6 +43,7 @@ from app_utils.ui_utils import (
     render_progress,
     set_steps_from_template,
     compute_current_step,
+    render_required_label,
 )
 from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
 from app_utils.postprocess_runner import run_postprocess_if_configured
@@ -149,14 +150,21 @@ def main():
         op_idx = 0
         if st.session_state.get("operation_code") in op_codes:
             op_idx = op_codes.index(st.session_state["operation_code"])
-        st.selectbox("Operation Code:", op_codes, index=op_idx, key="operation_code")
+        render_required_label("Operation Code")
+        st.selectbox(
+            "Operation Code",
+            op_codes,
+            index=op_idx,
+            key="operation_code",
+            label_visibility="collapsed",
+        )
         st.session_state["operational_scac"] = get_operational_scac(
             st.session_state["operation_code"]
         )
 
         st.subheader("Select Template")
         template_files = sorted(p.name for p in TEMPLATES_DIR.glob("*.json"))
-
+        render_required_label("Template JSON")
         selected_file = st.selectbox(
             "Template JSON",
             options=template_files,
@@ -165,6 +173,7 @@ def main():
                 if st.session_state.get("selected_template_file") in template_files
                 else 0 if template_files else None
             ),
+            label_visibility="collapsed",
         )
 
         template_obj: Template | None = None
@@ -208,10 +217,12 @@ def main():
     # 3. Upload client data file
     # ---------------------------------------------------------------------------
 
+    render_required_label("Upload client data file (Excel or CSV)")
     uploaded_file = st.file_uploader(
         "Upload client data file (Excel or CSV)",
         type=["csv", "xls", "xlsx"],
         key="upload_data_file",
+        label_visibility="collapsed",
     )
     if uploaded_file:
         st.session_state["uploaded_file"] = uploaded_file
@@ -221,8 +232,13 @@ def main():
         sheet_key = "upload_sheet"
         default_idx = default_sheet_index(sheets)
         if len(sheets) > 1:
+            render_required_label("Select sheet")
             st.selectbox(
-                "Select sheet", sheets, index=default_idx, key=sheet_key
+                "Select sheet",
+                sheets,
+                index=default_idx,
+                key=sheet_key,
+                label_visibility="collapsed",
             )
         if sheet_key not in st.session_state:
             st.session_state[sheet_key] = sheets[default_idx]
@@ -272,12 +288,14 @@ def main():
                     if prev_name_norm in cust_names
                     else None
                 )
+                render_required_label("Customer")
                 selected_name = st.selectbox(
                     "Customer",
                     cust_names,
                     index=idx,
                     key="customer_name",
                     placeholder="Select a customer",
+                    label_visibility="collapsed",
                 )
                 if selected_name and selected_name != prev_name_norm:
                     st.session_state["customer_ids"] = []
@@ -304,11 +322,13 @@ def main():
                             def deselect_all_ids() -> None:
                                 st.session_state["customer_ids"] = []
 
+                            render_required_label("Customer ID")
                             st.multiselect(
                                 "Customer ID",
                                 billto_ids,
                                 key="customer_ids",
                                 max_selections=5,
+                                label_visibility="collapsed",
                             )
                             btn_col1, btn_col2 = st.columns(2)
                             btn_col1.button("Select all", on_click=select_all_ids)
