@@ -235,7 +235,7 @@ def main():
         st.session_state["upload_sheets"] = sheets
 
     if st.session_state.get("uploaded_file"):
-        with section_card("Sheet selection", "Choose worksheet and preview data"):
+        with render_required_label("Sheet selection", "Choose worksheet and preview data"):
             sheets = st.session_state.get("upload_sheets", [])
             sheet_key = "upload_sheet"
             default_idx = default_sheet_index(sheets) if sheets else 0
