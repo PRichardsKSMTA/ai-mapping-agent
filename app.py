@@ -331,9 +331,9 @@ def main():
                                 st.session_state["customer_ids"] = []
 
                             try:
-                                cid_col, btn_col = st.columns([2, 1])
+                                cid_col, select_col, clear_col = st.columns([2, 1, 1])
                             except TypeError:
-                                cid_col, btn_col = st.columns(2)
+                                cid_col, select_col, clear_col = st.columns(3)
                             multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
                             multiselect_fn(
                                 "Customer ID",
@@ -341,12 +341,12 @@ def main():
                                 key="customer_ids",
                                 max_selections=5,
                             )
-                            btn_col.button(
+                            select_col.button(
                                 "Select all",
                                 on_click=select_all_ids,
                                 key="cid_select_all",
                             )
-                            btn_col.button(
+                            clear_col.button(
                                 "Deselect all",
                                 on_click=deselect_all_ids,
                                 key="cid_clear_all",
