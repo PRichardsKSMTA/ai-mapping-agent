@@ -27,7 +27,7 @@ share/python-wheels/
 MANIFEST
 
 # Secrets
-.streamlit/
+secrets.toml
 
 # File Structure
 file_structure.md
