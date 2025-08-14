@@ -249,7 +249,7 @@ def main():
                     sheet_col, _ = st.columns(2)
                 selectbox_fn = getattr(sheet_col, "selectbox", st.selectbox)
                 selectbox_fn(
-                    "Select sheet",
+                    "",
                     sheets,
                     index=default_idx,
                     key=sheet_key,
