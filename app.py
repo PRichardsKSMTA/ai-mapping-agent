@@ -532,15 +532,21 @@ def main():
             display_df = mapped_df.rename(columns=adhoc_headers)
             st.session_state["mapped_preview_df"] = display_df
             st.dataframe(display_df)
+            st.markdown(
+                "<div style='margin-bottom: 60px'></div>",
+                unsafe_allow_html=True,
+            )
 
             st.markdown(
                 """
                 <style>
                 div[data-testid="stButton"][key="postprocess_run"] > button {
-                    background-color: #ff8800;
+                    background-color: #0d6efd;
+                    color: white;
                 }
                 div[data-testid="stButton"][key="postprocess_run"] > button:hover {
-                    background-color: #cc6600;
+                    background-color: #0b5ed7;
+                    color: white;
                 }
                 </style>
                 """,
