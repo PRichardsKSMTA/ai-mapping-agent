@@ -51,6 +51,7 @@ from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_cs
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.header_utils import save_current_template
+from app_utils.ui.customer_dialog import open_new_customer_dialog
 import uuid
 
 azure_sql._odbc_diag_log()
@@ -283,6 +284,14 @@ def main():
                 try:
                     st.session_state["customer_options"] = fetch_customers(scac)
                     st.session_state["customer_scac"] = scac
+                    if (
+                        st.session_state["customer_options"]
+                        and "CLIENT_SCAC"
+                        in st.session_state["customer_options"][0]
+                    ):
+                        st.session_state["client_scac"] = st.session_state[
+                            "customer_options"
+                        ][0]["CLIENT_SCAC"]
                 except RuntimeError as err:
                     st.error(f"Customer lookup failed: {err}")
                     return
@@ -293,6 +302,7 @@ def main():
             st.session_state["customer_options"] = cust_records
             cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
             if cust_names:
+                cust_names.append("+ New Customer")
                 prev_name = st.session_state.get("customer_name")
                 prev_name_norm = prev_name.strip().title() if prev_name else None
                 idx = (
@@ -312,7 +322,14 @@ def main():
                     key="customer_name",
                     placeholder="Select a customer",
                 )
-                if selected_name and selected_name != prev_name_norm:
+                if selected_name == "+ New Customer":
+                    st.session_state["customer_name"] = prev_name_norm
+                    client_scac = st.session_state.get("client_scac")
+                    if client_scac:
+                        open_new_customer_dialog(client_scac, scac)
+                    else:
+                        st.error("Client SCAC unavailable; please refresh.")
+                elif selected_name and selected_name != prev_name_norm:
                     st.session_state["customer_ids"] = []
                 customer_name = st.session_state.get("customer_name")
                 if customer_name:

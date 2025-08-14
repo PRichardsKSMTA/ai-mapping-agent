@@ -139,9 +139,9 @@ class DummyStreamlit:
     def stop(self):
         return None
 
-    def columns(self, n):
+    def columns(self, n, **kwargs):
         count = n if isinstance(n, int) else len(n)
-        return (self,) * count
+        return (DummyContainer(),) * count
 
     def rerun(self):
         pass
