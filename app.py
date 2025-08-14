@@ -336,7 +336,7 @@ def main():
                                 st.session_state["customer_ids"] = []
 
                             # Single label for the joint row
-                            st.markdown("**Customer ID**")
+                            # st.markdown("**Customer ID**")
 
                             # One row: [ multiselect | Select all | Deselect all ]
                             try:
