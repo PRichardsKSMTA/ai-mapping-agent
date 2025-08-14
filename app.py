@@ -276,7 +276,7 @@ def main():
         and st.session_state.get("operational_scac")
     ):
         with section_card("Customer filters", ""):
-            render_required_label("Select customer and customer Id")
+            render_required_label("Select Customer and Customer ID")
             scac = st.session_state["operational_scac"]
             if (
                 st.session_state.get("customer_options") is None
