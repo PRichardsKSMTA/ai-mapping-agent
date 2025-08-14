@@ -452,7 +452,7 @@ def insert_pit_bid_rows(
     df: pd.DataFrame,
     operation_cd: str,
     customer_name: str,
-    customer_ids: Sequence[str],
+    customer_ids: Sequence[str] | None = None,
     process_guid: str | None = None,
     adhoc_headers: Dict[str, str] | None = None,
     *,
@@ -466,11 +466,12 @@ def insert_pit_bid_rows(
     Each field is mapped explicitly to its target database column via
     ``PIT_BID_FIELD_MAP``. Columns that remain unmapped are stored sequentially
     in ``ADHOC_INFO1`` … ``ADHOC_INFO10``.
-    ``customer_name`` and ``customer_ids`` are required and applied to every
-    inserted row regardless of any ``CUSTOMER_NAME`` or ``CUSTOMER_ID`` column
-    in ``df``. ``customer_ids`` may contain up to five entries. ``adhoc_headers``
-    maps ``ADHOC_INFO`` slot names to their source column headers. It is
-    currently unused but accepted so callers can persist the mapping via
+    ``customer_name`` is required and applied to every inserted row regardless
+    of any ``CUSTOMER_NAME`` column in ``df``. ``customer_ids`` may be ``None``
+    or contain up to five entries. If ``customer_ids`` is ``None`` or an empty
+    sequence, ``CUSTOMER_ID`` is inserted as ``NULL``. ``adhoc_headers`` maps
+    ``ADHOC_INFO`` slot names to their source column headers. It is currently
+    unused but accepted so callers can persist the mapping via
     :func:`log_mapping_process`.
     """
     base_columns = [
@@ -567,7 +568,7 @@ def insert_pit_bid_rows(
     else:
         default_freight = fetch_freight_type(operation_cd)
 
-    ids = list(customer_ids)
+    ids = list(customer_ids or [])
     if len(ids) > 5:
         raise ValueError("Up to 5 customer IDs supported")
 
