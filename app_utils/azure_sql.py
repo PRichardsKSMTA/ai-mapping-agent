@@ -615,7 +615,7 @@ def insert_pit_bid_rows(
         df_db = df_db.where(pd.notna(df_db), None)
         df_db["OPERATION_CD"] = operation_cd
         df_db["CUSTOMER_NAME"] = customer_name
-        df_db["CUSTOMER_ID"] = ",".join(ids) or None
+        df_db["CUSTOMER_ID"] = ",".join(ids) if ids else None
         df_db["PROCESS_GUID"] = process_guid
         df_db["INSERTED_DTTM"] = now
         if default_freight is not None:
