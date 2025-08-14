@@ -267,6 +267,7 @@ def main():
                 st.dataframe(df.head())
 
     customer_valid = True
+    st.session_state.setdefault("customer_ids", [])
 
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
@@ -426,10 +427,6 @@ def main():
                 if id_opts and not st.session_state.get("customer_ids"):
                     st.error("Select at least one Customer ID.")
                     customer_valid = False
-                else:
-                    st.session_state["customer_ids"] = (
-                        st.session_state.get("customer_ids") or []
-                    )
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
