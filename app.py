@@ -310,9 +310,30 @@ def main():
                                 key="customer_ids",
                                 max_selections=5,
                             )
-                            btn_col1, btn_col2 = st.columns(2)
-                            btn_col1.button("Select all", on_click=select_all_ids)
-                            btn_col2.button("Deselect all", on_click=deselect_all_ids)
+                            with st.container():
+                                btn_col1, btn_col2 = st.columns([1, 1])
+                                btn_col1.button(
+                                    "Select all",
+                                    on_click=select_all_ids,
+                                    key="cid_select_all",
+                                )
+                                btn_col2.button(
+                                    "Deselect all",
+                                    on_click=deselect_all_ids,
+                                    key="cid_clear_all",
+                                )
+                                st.markdown(
+                                    """
+                                    <style>
+                                    div[data-testid="stButton"]#cid_select_all button,
+                                    div[data-testid="stButton"]#cid_clear_all button {
+                                        padding: 0.25rem 0.5rem;
+                                        border: 1px solid #d4d4d4;
+                                    }
+                                    </style>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
                     else:
                         st.warning("No customers found for selected operation.")
                 else:

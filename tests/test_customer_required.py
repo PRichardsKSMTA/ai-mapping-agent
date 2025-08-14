@@ -119,6 +119,9 @@ class DummyStreamlit:
     def spinner(self, *a, **k):
         return DummyContainer()
 
+    def container(self) -> DummyContainer:
+        return DummyContainer()
+
     def empty(self):
         return DummyContainer()
 
