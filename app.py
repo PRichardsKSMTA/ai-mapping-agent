@@ -553,8 +553,10 @@ def main():
                 unsafe_allow_html=True,
             )
 
-            if st.button(button_text, key="postprocess_run"):
+            if st.button(button_text, key="postprocess_run", type="primary"):
                 with st.spinner("Gathering mileage and toll data…"):
+                    st.markdown('''
+                                :blue[This process can take up to 10 minutes...]''')
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
                         st.session_state["uploaded_file"], sheet_name=sheet
