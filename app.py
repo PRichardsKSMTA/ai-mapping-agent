@@ -301,10 +301,11 @@ def main():
                 c for c in st.session_state["customer_options"] if c["BILLTO_NAME"]
             ]
             st.session_state["customer_options"] = cust_records
-            cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
+            cust_names = sorted({c["BILLTO_NAME"].title() for c in cust_records})
             if cust_names:
                 cust_names.append("+ New Customer")
                 prev_name = st.session_state.get("customer_name")
+                prev_name_norm = prev_name.title() if prev_name else ""
                 idx = cust_names.index(prev_name) if prev_name in cust_names else None
                 try:
                     cust_col, _ = st.columns([3, 1])
@@ -398,7 +399,8 @@ def main():
                                     unsafe_allow_html=True,
                                 )
                     else:
-                        st.warning("No customers found for selected operation.")
+                        st.session_state["customer_ids"] = []
+                        st.info("Selected customer has no Customer IDs.")
                 else:
                     st.info("Select a customer to view ID options.")
             else:
@@ -406,9 +408,15 @@ def main():
             if not st.session_state.get("customer_name"):
                 st.error("Please select a customer to proceed.")
                 customer_valid = False
-            elif not st.session_state.get("customer_ids"):
-                st.error("Select at least one Customer ID.")
-                customer_valid = False
+            else:
+                id_opts: list[str] = st.session_state.get("customer_id_options") or []
+                if id_opts and not st.session_state.get("customer_ids"):
+                    st.error("Select at least one Customer ID.")
+                    customer_valid = False
+                else:
+                    st.session_state["customer_ids"] = (
+                        st.session_state.get("customer_ids") or []
+                    )
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
