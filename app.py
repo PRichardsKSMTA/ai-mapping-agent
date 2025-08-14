@@ -376,6 +376,7 @@ def main():
 
                             # The input itself (label collapsed so tops align)
                             multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
+                            section_card("Customer ID", "")
                             multiselect_fn(
                                 "Customer ID",
                                 billto_ids,
