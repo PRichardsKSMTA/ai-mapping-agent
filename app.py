@@ -338,6 +338,7 @@ def main():
                     customer_name = new_name.strip().title() if new_name else ""
                     st.session_state["customer_name"] = customer_name
                     st.session_state["customer_id_options"] = []
+                    st.session_state["customer_ids"] = []
                     st.session_state["selected_customer"] = (
                         {"BILLTO_NAME": customer_name} if customer_name else {}
                     )
@@ -425,7 +426,8 @@ def main():
                         st.session_state["customer_ids"] = []
                         st.info("Selected customer has no Customer IDs.")
                 else:
-                    st.info("Select a customer to view ID options.")
+                    if st.session_state.get("customer_choice") != "+ New Customer":
+                        st.info("Select a customer to view ID options.")
             else:
                 st.warning("No customers found for selected operation.")
             if not st.session_state.get("customer_name"):
@@ -433,9 +435,13 @@ def main():
                 customer_valid = False
             else:
                 id_opts: list[str] = st.session_state.get("customer_id_options") or []
-                if id_opts and not st.session_state.get("customer_ids"):
-                    st.error("Select at least one Customer ID.")
-                    customer_valid = False
+                customer_choice = st.session_state.get("customer_choice")
+                if id_opts and customer_choice != "+ New Customer":
+                    if not st.session_state.get("customer_ids"):
+                        st.error("Select at least one Customer ID.")
+                        customer_valid = False
+                else:
+                    st.session_state["customer_ids"] = []
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
