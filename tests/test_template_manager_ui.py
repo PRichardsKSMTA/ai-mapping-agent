@@ -176,13 +176,13 @@ def run_manager(
 
 def test_no_name_field_before_upload(monkeypatch):
     dummy = run_manager(monkeypatch, uploaded=None)
-    assert dummy.text_input_calls == 0
+    assert dummy.text_input_calls == 1
 
 
 def test_name_field_after_upload(monkeypatch):
     dummy_file = types.SimpleNamespace(name="demo.csv")
     dummy = run_manager(monkeypatch, uploaded=dummy_file)
-    assert dummy.text_input_calls == 1
+    assert dummy.text_input_calls == 2
 
 
 def test_postprocess_field_shown(monkeypatch):
@@ -225,6 +225,30 @@ def test_postprocess_caption_displayed(monkeypatch):
     dummy_file = types.SimpleNamespace(name="demo.csv")
     dummy = run_manager(monkeypatch, uploaded=dummy_file, cols=["A"])
     assert any("POST mapped data" in c for c in dummy.captions)
+
+
+def test_filter_templates(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    tdir = tmp_path / "templates"
+    tdir.mkdir()
+    (tdir / "foo.json").write_text("{}")
+    (tdir / "bar.json").write_text("{}")
+
+    captured: list[str] = []
+
+    def capture_button(label, *a, **k):
+        captured.append(label)
+        return False
+
+    run_manager(
+        monkeypatch,
+        uploaded=None,
+        button_patch=capture_button,
+        session_state={"tm_filter": "foo"},
+    )
+
+    assert "foo" in captured
+    assert "bar" not in captured
 
 
 def test_suggest_required_fields_without_file(monkeypatch):
