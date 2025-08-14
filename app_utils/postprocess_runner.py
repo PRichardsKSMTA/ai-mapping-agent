@@ -75,13 +75,20 @@ def run_postprocess_if_configured(
         except RuntimeError as err:  # pragma: no cover - exercised in integration
             logs.append(f"Payload error: {err}")
             raise
+<<<<<<< HEAD
         payload["DEST_FOLDER_PATH"] = "/Client Downloads/Pricing Tools"
+=======
+        dest_path: str = "/Client Downloads/Pricing Tools/Customer Bids"
+        payload["CLIENT_DEST_FOLDER_PATH"] = dest_path
+>>>>>>> 4654018593263a31a57780746684da85bab849d6
         logs.append("Payload loaded")
         fname = f"{operation_cd} - BID - {customer_name}.xlsm"
         payload.setdefault("item/In_dtInputData", [{}])
         if not payload["item/In_dtInputData"]:
             payload["item/In_dtInputData"].append({})
         payload["item/In_dtInputData"][0]["NEW_EXCEL_FILENAME"] = fname
+        for entry in payload.get("item/In_dtInputData", []):
+            entry["CLIENT_DEST_FOLDER_PATH"] = dest_path
         if "BID-Payload" in payload:
             payload["BID-Payload"] = process_guid
         else:
