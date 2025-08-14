@@ -301,11 +301,16 @@ def main():
                 c for c in st.session_state["customer_options"] if c["BILLTO_NAME"]
             ]
             st.session_state["customer_options"] = cust_records
-            cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
+            cust_names = sorted({c["BILLTO_NAME"].strip().title() for c in cust_records})
             if cust_names:
                 cust_names.append("+ New Customer")
                 prev_name = st.session_state.get("customer_name")
-                idx = cust_names.index(prev_name) if prev_name in cust_names else None
+                prev_name_norm = prev_name.strip() if prev_name else ""
+                idx = (
+                    cust_names.index(prev_name_norm)
+                    if prev_name_norm in cust_names
+                    else None
+                )
                 try:
                     cust_col, _ = st.columns([3, 1])
                 except TypeError:
@@ -330,12 +335,14 @@ def main():
                 customer_name = st.session_state.get("customer_name")
                 if customer_name:
                     st.session_state["selected_customer"] = next(
-                        c for c in cust_records if c["BILLTO_NAME"] == customer_name
+                        c
+                        for c in cust_records
+                        if c["BILLTO_NAME"].strip().title() == customer_name
                     )
                     billto_ids: list[str] = [
                         c["BILLTO_ID"]
                         for c in cust_records
-                        if c["BILLTO_NAME"] == customer_name
+                        if c["BILLTO_NAME"].strip().title() == customer_name
                     ]
                     st.session_state["customer_id_options"] = billto_ids
                     if billto_ids:
