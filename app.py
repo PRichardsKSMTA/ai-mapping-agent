@@ -333,9 +333,12 @@ def main():
                                 st.session_state["customer_ids"] = []
 
                             try:
-                                cid_col, select_col, clear_col = st.columns([2, 1, 1])
+                                cid_col, actions_col = st.columns([3, 1], gap="small")
                             except TypeError:
-                                cid_col, select_col, clear_col = st.columns(3)
+                                try:
+                                    cid_col, actions_col = st.columns([3, 1])
+                                except TypeError:
+                                    cid_col, actions_col = st.columns(2)
                             multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
                             multiselect_fn(
                                 "Customer ID",
@@ -343,6 +346,13 @@ def main():
                                 key="customer_ids",
                                 max_selections=5,
                             )
+                            markdown_fn = getattr(actions_col, "markdown", st.markdown)
+                            markdown_fn(" ", unsafe_allow_html=True)
+                            columns_fn = getattr(actions_col, "columns", st.columns)
+                            try:
+                                select_col, clear_col = columns_fn(2, gap="small")
+                            except TypeError:
+                                select_col, clear_col = columns_fn(2)
                             select_col.button(
                                 "Select all",
                                 on_click=select_all_ids,
