@@ -301,11 +301,23 @@ def main():
                 c for c in st.session_state["customer_options"] if c["BILLTO_NAME"]
             ]
             st.session_state["customer_options"] = cust_records
-            cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
+            seen_names: set[str] = set()
+            cust_names: list[str] = []
+            for c in cust_records:
+                name = c["BILLTO_NAME"]
+                norm = name.strip().lower()
+                if norm not in seen_names:
+                    seen_names.add(norm)
+                    cust_names.append(name.title())
             if cust_names:
                 cust_names.append("+ New Customer")
                 prev_name = st.session_state.get("customer_name")
-                idx = cust_names.index(prev_name) if prev_name in cust_names else None
+                prev_name_norm = prev_name.title() if prev_name else None
+                idx = (
+                    cust_names.index(prev_name_norm)
+                    if prev_name_norm in cust_names
+                    else None
+                )
                 try:
                     cust_col, _ = st.columns([3, 1])
                 except TypeError:
@@ -521,7 +533,7 @@ def main():
                         mapped_df,
                         st.session_state["operation_code"],
                         st.session_state["customer_name"],
-                        st.session_state["customer_ids"],
+                        st.session_state.get("customer_ids"),
                         guid,
                         adhoc_headers,
                     )
