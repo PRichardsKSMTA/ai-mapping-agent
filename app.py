@@ -639,7 +639,7 @@ def main():
             st.info("Please upload a client data file to continue.")
             
     st.markdown(
-        "<div style='margin-bottom: 60px'></div>",
+        "<div style='margin-bottom: 120px'></div>",
         unsafe_allow_html=True,
     )
 main()
