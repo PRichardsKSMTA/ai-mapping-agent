@@ -326,9 +326,7 @@ def main():
                     ]
                     st.session_state["customer_id_options"] = billto_ids
                     if billto_ids:
-                        if len(billto_ids) == 1 and not st.session_state.get(
-                            "customer_ids"
-                        ):
+                        if len(billto_ids) == 1 and not st.session_state.get("customer_ids"):
                             st.session_state["customer_ids"] = billto_ids[:1]
                         else:
                             def select_all_ids() -> None:
@@ -337,6 +335,9 @@ def main():
                             def deselect_all_ids() -> None:
                                 st.session_state["customer_ids"] = []
 
+                            # Single label row for both columns keeps tops aligned
+                            st.markdown("**Customer ID**")
+
                             try:
                                 cid_col, actions_col = st.columns([3, 1], gap="small")
                             except TypeError:
@@ -344,29 +345,44 @@ def main():
                                     cid_col, actions_col = st.columns([3, 1])
                                 except TypeError:
                                     cid_col, actions_col = st.columns(2)
+
                             multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
                             multiselect_fn(
                                 "Customer ID",
                                 billto_ids,
                                 key="customer_ids",
                                 max_selections=5,
+                                label_visibility="collapsed",  # hide internal label so tops align
                             )
-                            container_fn = getattr(actions_col, "container", lambda: actions_col)
-                            action_box = container_fn()
-                            if not hasattr(action_box, "markdown"):
-                                action_box = st.container()
-                            action_box.markdown(
-                                """
-                                <style>
-                                    div[data-testid=\"stVerticalBlock\"]:has(#cid_select_all) {
+
+                            # Buttons container with an anchor we can target for bottom alignment
+                            with actions_col:
+                                anchor_id = f"cid_actions_{uuid.uuid4().hex[:6]}"
+                                st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
+
+                                b1, b2 = st.columns(2, gap="small")
+                                b1.button("Select all", on_click=select_all_ids, key="cid_select_all")
+                                b2.button("Deselect all", on_click=deselect_all_ids, key="cid_clear_all")
+
+                                # Bottom-align the whole buttons column to the multiselect
+                                st.markdown(
+                                    f"""
+                                    <style>
+                                    div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) {{
                                         height: 100%;
                                         display: flex;
-                                        align-items: flex-end;
-                                    }
-                                </style>
-                                """,
-                                unsafe_allow_html=True,
-                            )
+                                        align-items: end;        /* bottom-align */
+                                        justify-content: flex-start;
+                                    }}
+                                    /* Compact button padding (scoped to this column) */
+                                    div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) button {{
+                                        padding: 0.25rem 0.5rem;
+                                        border: 1px solid rgba(212,212,212,0.65);
+                                    }}
+                                    </style>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
                             columns_fn = getattr(action_box, "columns", st.columns)
                             try:
                                 select_col, clear_col = columns_fn(2, gap="small")
