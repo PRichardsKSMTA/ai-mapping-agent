@@ -155,7 +155,7 @@ def main():
         op_idx = 0
         if st.session_state.get("operation_code") in op_codes:
             op_idx = op_codes.index(st.session_state["operation_code"])
-        render_required_label("Operation Code")
+        # render_required_label("Operation Code")
         st.selectbox(
             "Operation Code",
             op_codes,
@@ -169,7 +169,7 @@ def main():
 
         st.subheader("Select Template")
         template_files = sorted(p.name for p in TEMPLATES_DIR.glob("*.json"))
-        render_required_label("Template JSON")
+        # render_required_label("Template JSON")
         selected_file = st.selectbox(
             "Template JSON",
             options=template_files,
