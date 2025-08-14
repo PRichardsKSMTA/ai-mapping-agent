@@ -390,6 +390,7 @@ def main():
                                     key="customer_ids",
                                     max_selections=5,
                                     label_visibility="collapsed",
+                                    placeholder="Select Customer ID"
                                 )
 
                                 # Buttons column, vertically centered to the input row
