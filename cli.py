@@ -96,11 +96,13 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    ids: list[str] = []
+    collected_ids: list[str] = []
     if args.customer_ids:
         for value in args.customer_ids:
-            ids.extend([cid.strip() for cid in value.split(",") if cid.strip()])
-    args.customer_ids = ids or None
+            collected_ids.extend(
+                [cid.strip() for cid in value.split(",") if cid.strip()]
+            )
+    args.customer_ids = collected_ids if collected_ids else None
 
     template = load_template(args.template)
     if template.template_name == "PIT BID" and not args.customer_name:
