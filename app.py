@@ -278,7 +278,7 @@ def main():
         and st.session_state.get("template_name") == "PIT BID"
         and st.session_state.get("operational_scac")
     ):
-        with section_card("Customer filters", ""):
+        with section_card("Customer selection", ""):
             render_required_label("Select Customer and Customer ID")
             scac = st.session_state["operational_scac"]
             if (
