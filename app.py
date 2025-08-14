@@ -45,6 +45,7 @@ from app_utils.ui_utils import (
     compute_current_step,
     render_required_label,
     apply_global_css,
+    section_card,
 )
 from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
 from app_utils.postprocess_runner import run_postprocess_if_configured
@@ -216,60 +217,64 @@ def main():
         st.rerun()
 
     # ---------------------------------------------------------------------------
-    # 3. Upload client data file
+    # 3. Upload & sheet selection
     # ---------------------------------------------------------------------------
 
-    render_required_label("Upload client data file (Excel or CSV)")
-    uploaded_file = st.file_uploader(
-        "Upload client data file (Excel or CSV)",
-        type=["csv", "xls", "xlsx"],
-        key="upload_data_file",
-        label_visibility="collapsed",
-    )
+    with section_card("Upload", "Upload client data file (Excel or CSV)"):
+        render_required_label("Upload client data file (Excel or CSV)")
+        uploaded_file = st.file_uploader(
+            "Upload client data file (Excel or CSV)",
+            type=["csv", "xls", "xlsx"],
+            key="upload_data_file",
+            label_visibility="collapsed",
+        )
     if uploaded_file:
         st.session_state["uploaded_file"] = uploaded_file
         with st.spinner("Reading file..."):
             sheets = list_sheets(uploaded_file)
         st.session_state["upload_sheets"] = sheets
-        sheet_key = "upload_sheet"
-        default_idx = default_sheet_index(sheets)
-        if len(sheets) > 1:
-            try:
-                sheet_col, _ = st.columns([3, 1])
-            except TypeError:
-                sheet_col, _ = st.columns(2)
-            selectbox_fn = getattr(sheet_col, "selectbox", st.selectbox)
-            selectbox_fn(
-                "Select sheet",
-                sheets,
-                index=default_idx,
-                key=sheet_key,
-            )
-        if sheet_key not in st.session_state:
-            st.session_state[sheet_key] = sheets[default_idx]
 
-    if (
-        st.session_state.get("uploaded_file")
-        and st.session_state.get("upload_sheet")
-        and hasattr(st.session_state["uploaded_file"], "name")
-    ):
-        df, _ = read_tabular_file(
-            st.session_state["uploaded_file"],
-            sheet_name=st.session_state["upload_sheet"],
-        )
-        st.caption("Source data preview – first 5 rows")
-        st.dataframe(df.head())
+    if st.session_state.get("uploaded_file"):
+        with section_card("Sheet selection", "Choose worksheet and preview data"):
+            sheets = st.session_state.get("upload_sheets", [])
+            sheet_key = "upload_sheet"
+            default_idx = default_sheet_index(sheets) if sheets else 0
+            if len(sheets) > 1:
+                try:
+                    sheet_col, _ = st.columns([3, 1])
+                except TypeError:
+                    sheet_col, _ = st.columns(2)
+                selectbox_fn = getattr(sheet_col, "selectbox", st.selectbox)
+                selectbox_fn(
+                    "Select sheet",
+                    sheets,
+                    index=default_idx,
+                    key=sheet_key,
+                )
+            if sheet_key not in st.session_state and sheets:
+                st.session_state[sheet_key] = sheets[default_idx]
+            if (
+                st.session_state.get("upload_sheet")
+                and hasattr(st.session_state["uploaded_file"], "name")
+            ):
+                df, _ = read_tabular_file(
+                    st.session_state["uploaded_file"],
+                    sheet_name=st.session_state["upload_sheet"],
+                )
+                st.caption("Source data preview – first 5 rows")
+                st.dataframe(df.head())
 
     customer_valid = True
 
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
     # ---------------------------------------------------------------------------
-    if st.session_state.get("uploaded_file"):
-        if (
-            st.session_state.get("template_name") == "PIT BID"
-            and st.session_state.get("operational_scac")
-        ):
+    if (
+        st.session_state.get("uploaded_file")
+        and st.session_state.get("template_name") == "PIT BID"
+        and st.session_state.get("operational_scac")
+    ):
+        with section_card("Customer filters", "Select customer and ID filters"):
             scac = st.session_state["operational_scac"]
             if (
                 st.session_state.get("customer_options") is None
@@ -397,26 +402,25 @@ def main():
             layer_flag = f"layer_confirmed_{idx}"
 
             if not st.session_state.get(layer_flag):
+                with section_card("Mapping", "Map source data to template fields"):
+                    if layer.type == "header":
+                        from pages.steps import header as header_step
 
-                if layer.type == "header":
-                    from pages.steps import header as header_step
+                        header_step.render(layer, idx)
 
-                    header_step.render(layer, idx)
+                    elif layer.type == "lookup":
+                        from pages.steps import lookup as lookup_step
 
-                elif layer.type == "lookup":
-                    from pages.steps import lookup as lookup_step
+                        lookup_step.render(layer, idx)
 
-                    lookup_step.render(layer, idx)
+                    elif layer.type == "computed":
+                        from pages.steps import computed as computed_step
 
-                elif layer.type == "computed":
-                    from pages.steps import computed as computed_step
+                        computed_step.render(layer, idx)
 
-                    computed_step.render(layer, idx)
-
-                else:
-                    st.error(f"Unsupported layer type: {layer.type}")
-                    st.stop()
-
+                    else:
+                        st.error(f"Unsupported layer type: {layer.type}")
+                        st.stop()
                 # Each layer page should set layer_confirmed_<idx> then rerun,
                 # so halt execution after rendering the current step.
                 st.stop()

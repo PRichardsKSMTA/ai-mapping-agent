@@ -16,7 +16,8 @@ Import signature (back-compat):
 from __future__ import annotations
 
 import streamlit as st
-from typing import List
+from contextlib import contextmanager
+from typing import Iterator, List
 
 # ---------------------------------------------------------------------------
 # 0. Global CSS helpers
@@ -38,6 +39,17 @@ def apply_global_css() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+@contextmanager
+def section_card(title: str, caption: str | None = None) -> Iterator[None]:
+    """Render a titled section with subtle styling."""
+    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+    st.markdown(f"### {title}")
+    if caption:
+        st.caption(caption)
+    yield
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
