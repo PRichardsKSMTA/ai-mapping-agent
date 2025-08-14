@@ -256,7 +256,11 @@ def fetch_customers(operational_scac: str) -> List[Dict[str, str]]:
         rows: List[Dict[str, str]] = []
         for raw in cur.fetchall():
             row = dict(zip(cols, raw))
-            row["BILLTO_NAME"] = row["BILLTO_NAME"].strip().title()
+            name = row.get("BILLTO_NAME")
+            if isinstance(name, str):
+                row["BILLTO_NAME"] = name.strip().title()
+            else:
+                row["BILLTO_NAME"] = ""
             rows.append(row)
     return sorted(rows, key=lambda r: r["BILLTO_NAME"])
 

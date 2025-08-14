@@ -236,7 +236,8 @@ def main():
         st.session_state["upload_sheets"] = sheets
 
     if st.session_state.get("uploaded_file"):
-        with section_card("Sheet selection", "Choose worksheet and preview data"):
+        with section_card("Sheet selection", ""):
+            render_required_label("Choose worksheet and preview data")
             sheets = st.session_state.get("upload_sheets", [])
             sheet_key = "upload_sheet"
             default_idx = default_sheet_index(sheets) if sheets else 0
@@ -275,7 +276,8 @@ def main():
         and st.session_state.get("template_name") == "PIT BID"
         and st.session_state.get("operational_scac")
     ):
-        with section_card("Customer filters", "Select customer and ID filters"):
+        with section_card("Customer filters", ""):
+            render_required_label("Select customer and customer Id")
             scac = st.session_state["operational_scac"]
             if (
                 st.session_state.get("customer_options") is None
@@ -296,20 +298,14 @@ def main():
                     st.error(f"Customer lookup failed: {err}")
                     return
             cust_records = [
-                {**c, "BILLTO_NAME": c["BILLTO_NAME"].strip().title()}
-                for c in st.session_state["customer_options"]
+                c for c in st.session_state["customer_options"] if c["BILLTO_NAME"]
             ]
             st.session_state["customer_options"] = cust_records
             cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
             if cust_names:
                 cust_names.append("+ New Customer")
                 prev_name = st.session_state.get("customer_name")
-                prev_name_norm = prev_name.strip().title() if prev_name else None
-                idx = (
-                    cust_names.index(prev_name_norm)
-                    if prev_name_norm in cust_names
-                    else None
-                )
+                idx = cust_names.index(prev_name) if prev_name in cust_names else None
                 try:
                     cust_col, _ = st.columns([3, 1])
                 except TypeError:
