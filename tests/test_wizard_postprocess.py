@@ -118,6 +118,9 @@ class DummyStreamlit:
         n = len(spec) if isinstance(spec, (list, tuple)) else spec
         return [DummyColumn() for _ in range(n)]
 
+    def container(self) -> DummyContainer:
+        return DummyContainer()
+
 
 def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     st = DummyStreamlit(button_sequence or [{"Generate BID"}])
