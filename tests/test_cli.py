@@ -170,7 +170,7 @@ def test_cli_sql_insert_no_ids(monkeypatch, tmp_path: Path, capsys):
     out = capsys.readouterr().out
     data = json.loads(out_json.read_text())
     assert 'Inserted 1 rows into RFP_OBJECT_DATA' in out
-    assert captured['ids'] == []
+    assert captured['ids'] is None
     assert data['process_guid']
 
 def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
@@ -281,5 +281,5 @@ def test_cli_sql_insert_without_customer_id(
     cli.main()
     out = capsys.readouterr().out
     assert 'Inserted 1 rows into RFP_OBJECT_DATA' in out
-    assert captured['ids'] == []
+    assert captured['ids'] is None
 
