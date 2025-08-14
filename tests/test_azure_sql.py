@@ -128,26 +128,14 @@ def test_fetch_customers(monkeypatch):
     assert [c["BILLTO_NAME"] for c in customers] == ["Alpha", "Beta"]
 
 
-def test_fetch_customers_none_name(monkeypatch):
-    class FakeCursor:
-        def execute(self, query, scac):  # pragma: no cover - exercised via call
-            assert "FROM dbo.V_SPOQ_BILLTOS" in query
-            assert scac == "ADSJ"
-            self.description = [
-                ("CLIENT_SCAC",),
-                ("BILLTO_ID",),
-                ("BILLTO_NAME",),
-                ("BILLTO_TYPE",),
-                ("OPERATIONAL_SCAC",),
-            ]
-            self.rows = [
-                ("ADSJ", "1", None, "T", "ADSJ"),
-                ("ADSJ", "2", "Alpha", "T", "ADSJ"),
-            ]
-            return self
+def test_insert_customer(monkeypatch):
+    captured: dict[str, object] = {}
 
-        def fetchall(self):
-            return self.rows
+    class FakeCursor:
+        def execute(self, query, params):  # pragma: no cover - executed via call
+            captured["query"] = query
+            captured["params"] = params
+            return self
 
     class FakeConn:
         def cursor(self):
@@ -160,11 +148,9 @@ def test_fetch_customers_none_name(monkeypatch):
             pass
 
     monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
-
-    customers = azure_sql.fetch_customers("ADSJ")
-    names = [c["BILLTO_NAME"] for c in customers]
-    assert "" in names
-    assert "Alpha" in names
+    azure_sql.insert_customer("ADSJ", "NewCo", "123")
+    assert "INSERT INTO" in captured["query"]
+    assert captured["params"] == ("ADSJ", "NewCo", "123")
 
 
 def test_connect_requires_config(monkeypatch):

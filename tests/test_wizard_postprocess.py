@@ -17,6 +17,12 @@ class DummyContainer:
 
 
 class DummyColumn:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        pass
+
     def button(self, *a, **k):
         return False
 
@@ -114,7 +120,7 @@ class DummyStreamlit:
         if key:
             self.session_state[key] = sel
         return sel
-    def columns(self, spec):
+    def columns(self, spec, **kwargs):
         n = len(spec) if isinstance(spec, (list, tuple)) else spec
         return [DummyColumn() for _ in range(n)]
 
@@ -140,7 +146,13 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     )
     monkeypatch.setattr(
         "app_utils.azure_sql.fetch_customers",
-        lambda scac: [{"BILLTO_NAME": "Cust", "BILLTO_ID": "1"}],
+        lambda scac: [
+            {
+                "CLIENT_SCAC": "ADSJ",
+                "BILLTO_NAME": "Cust",
+                "BILLTO_ID": "1",
+            }
+        ],
     )
     monkeypatch.setattr(
         "app_utils.azure_sql.insert_pit_bid_rows",
