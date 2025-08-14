@@ -335,49 +335,55 @@ def main():
                             def deselect_all_ids() -> None:
                                 st.session_state["customer_ids"] = []
 
-                            # Single label for the joint row
-                            # st.markdown("**Customer ID**")
+                            # Single label for both columns keeps the row visually grouped
+                            st.markdown("**Customer ID**")
 
-                            # One row: [ multiselect | Select all | Deselect all ]
                             try:
-                                cid_left, col_sel, col_desel = st.columns([6, 1, 1], gap="small")
+                                cid_col, actions_col = st.columns([3, 1], gap="small")
                             except TypeError:
-                                cid_left, col_sel, col_desel = st.columns(3)
+                                try:
+                                    cid_col, actions_col = st.columns([3, 1])
+                                except TypeError:
+                                    cid_col, actions_col = st.columns(2)
 
-                            # Unique anchor so we can vertically center THIS row only
-                            anchor_id = f"cidrow_{uuid.uuid4().hex[:6]}"
-
-                            with cid_left:
-                                st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
-                                st.multiselect(
-                                    "Customer ID",
-                                    billto_ids,
-                                    key="customer_ids",
-                                    max_selections=5,
-                                    label_visibility="collapsed",
-                                )
-
-                            col_sel.button("Select all", on_click=select_all_ids, key="cid_select_all")
-                            col_desel.button("Deselect all", on_click=deselect_all_ids, key="cid_clear_all")
-
-                            # Vertically center all three columns in this specific row
-                            st.markdown(
-                                f"""
-                                <style>
-                                /* The 'st.columns' row wrapper is a horizontal block.
-                                Center its children along the cross-axis for this row only. */
-                                div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] span#{anchor_id}) {{
-                                    align-items: center;   /* vertical centering */
-                                }}
-                                /* Optional: compact button padding */
-                                div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] span#{anchor_id}) button {{
-                                    padding: 0.25rem 0.5rem;
-                                    border: 1px solid rgba(212,212,212,0.65);
-                                }}
-                                </style>
-                                """,
-                                unsafe_allow_html=True,
+                            # The input itself (label collapsed so tops align)
+                            multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
+                            multiselect_fn(
+                                "Customer ID",
+                                billto_ids,
+                                key="customer_ids",
+                                max_selections=5,
+                                label_visibility="collapsed",
                             )
+
+                            # Buttons column, vertically centered to the input row
+                            with actions_col:
+                                anchor_id = f"cid_actions_{uuid.uuid4().hex[:6]}"
+                                st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
+
+                                b1, b2 = st.columns(2, gap="small")
+                                b1.button("Select all", on_click=select_all_ids, key="cid_select_all")
+                                b2.button("Deselect all", on_click=deselect_all_ids, key="cid_clear_all")
+
+                                st.markdown(
+                                    f"""
+                                    <style>
+                                    /* Make this column a flexbox and center the buttons vertically */
+                                    div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) {{
+                                        height: 100%;
+                                        display: flex;
+                                        align-items: center;   /* center relative to the multiselect height */
+                                        justify-content: flex-start;
+                                    }}
+                                    /* Compact button styling scoped to this column only */
+                                    div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) button {{
+                                        padding: 0.25rem 0.5rem;
+                                        border: 1px solid rgba(212,212,212,0.65);
+                                    }}
+                                    </style>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
                     else:
                         st.warning("No customers found for selected operation.")
                 else:
