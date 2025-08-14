@@ -174,9 +174,10 @@ def test_pit_bid_posts(monkeypatch):
     assert called['url'] == tpl.postprocess.url
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
-    assert returned['CLIENT_DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools"
+    expected_path = "/Client Downloads/Pricing Tools/Customer Bids"
+    assert returned['CLIENT_DEST_FOLDER_PATH'] == expected_path
     assert all(
-        item.get('CLIENT_DEST_FOLDER_PATH') == "/Client Downloads/Pricing Tools"
+        item.get('CLIENT_DEST_FOLDER_PATH') == expected_path
         for item in returned.get('item/In_dtInputData', [])
     )
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)

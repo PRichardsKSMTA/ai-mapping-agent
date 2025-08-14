@@ -155,6 +155,17 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         ],
     )
     monkeypatch.setattr(
+        "app_utils.azure_sql.get_pit_url_payload",
+        lambda op_cd: {
+            "item/In_dtInputData": [
+                {
+                    "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
+                    "CLIENT_DEST_FOLDER_PATH": "/docs/folder",
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
         "app_utils.azure_sql.insert_pit_bid_rows",
         lambda df, op, cust, ids, guid, adhoc: len(df),
     )

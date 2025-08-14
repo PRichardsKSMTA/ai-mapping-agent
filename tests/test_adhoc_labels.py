@@ -116,6 +116,17 @@ def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Di
         "app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["ADSJ_VAN"]
     )
     monkeypatch.setattr("app_utils.azure_sql.fetch_customers", lambda scac: [])
+    monkeypatch.setattr(
+        "app_utils.azure_sql.get_pit_url_payload",
+        lambda op_cd: {
+            "item/In_dtInputData": [
+                {
+                    "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
+                    "CLIENT_DEST_FOLDER_PATH": "/docs/folder",
+                }
+            ]
+        },
+    )
 
     captured: dict[str, object] = {}
 
