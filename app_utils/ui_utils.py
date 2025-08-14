@@ -27,20 +27,23 @@ def apply_global_css() -> None:
         <style>
         :root { --gap: 10px; --card-pad: 14px; --card-radius: 10px; }
 
-        /* Trim the overall page padding a bit */
-        .block-container { padding-top: 12px; padding-bottom: 12px; }
+        /* Give the page some breathing room so the title isn't clipped */
+        .block-container { padding-top: 36px; padding-bottom: 16px; }
 
-        /* Make all vertical blocks use a tighter, consistent gap */
+        /* Tighter, consistent vertical rhythm everywhere */
         [data-testid="stVerticalBlock"] { gap: var(--gap) !important; }
+
+        /* First H1 shouldn't crowd the header bar */
+        .block-container h1:first-of-type { margin-top: 0; }
 
         /* Buttons that live together should look like they do */
         .button-row { display:flex; gap:8px; flex-wrap:wrap; }
 
-        /* Tighter heading/caption rhythm inside cards */
+        /* Card typography */
         .card-title { margin: 0 0 6px 0; font-weight: 600; font-size: 1.05rem; }
         .card-caption { margin: 0 0 8px 0; opacity: .85; font-size: 0.9rem; }
 
-        /* Optional: rein in super-wide selects globally when desired */
+        /* Optional: narrower selects when you toggle a 'compact' class */
         .compact [data-testid="stSelectbox"] { max-width: 460px; }
         </style>
         """,
