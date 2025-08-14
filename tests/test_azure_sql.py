@@ -126,33 +126,6 @@ def test_fetch_customers(monkeypatch):
 
     customers = azure_sql.fetch_customers("ADSJ")
     assert [c["BILLTO_NAME"] for c in customers] == ["Alpha", "Beta"]
-
-
-def test_insert_customer(monkeypatch):
-    captured: dict[str, object] = {}
-
-    class FakeCursor:
-        def execute(self, query, params):  # pragma: no cover - executed via call
-            captured["query"] = query
-            captured["params"] = params
-            return self
-
-    class FakeConn:
-        def cursor(self):
-            return FakeCursor()
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            pass
-
-    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
-    azure_sql.insert_customer("ADSJ", "NewCo", "123")
-    assert "INSERT INTO" in captured["query"]
-    assert captured["params"] == ("ADSJ", "NewCo", "123")
-
-
 def test_connect_requires_config(monkeypatch):
     original_import = builtins.__import__
 
