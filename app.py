@@ -167,7 +167,7 @@ def main():
             st.session_state["operation_code"]
         )
 
-        st.subheader("Select Template")
+        st.subheader(render_required_label("Select Template"))
         template_files = sorted(p.name for p in TEMPLATES_DIR.glob("*.json"))
         # render_required_label("Template JSON")
         selected_file = st.selectbox(
