@@ -400,7 +400,21 @@ def main():
             st.session_state["mapped_preview_df"] = display_df
             st.dataframe(display_df)
 
-            if st.button(button_text):
+            st.markdown(
+                """
+                <style>
+                div[data-testid="stButton"][key="postprocess_run"] > button {
+                    background-color: #ff8800;
+                }
+                div[data-testid="stButton"][key="postprocess_run"] > button:hover {
+                    background-color: #cc6600;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if st.button(button_text, key="postprocess_run"):
                 with st.spinner("Gathering mileage and toll data…"):
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
