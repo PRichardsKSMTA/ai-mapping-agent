@@ -506,7 +506,9 @@ def main():
             st.session_state.pop(f"layer_confirmed_{last_idx}", None)
             st.session_state["current_step"] = compute_current_step()
             st.rerun()
-
+        
+        st.divider()
+        
         if not st.session_state.get("export_complete"):
             header_text: str = "Step — Run Export"
             button_text: str = "Run Export"
@@ -532,10 +534,6 @@ def main():
             display_df = mapped_df.rename(columns=adhoc_headers)
             st.session_state["mapped_preview_df"] = display_df
             st.dataframe(display_df)
-            st.markdown(
-                "<div style='margin-bottom: 60px'></div>",
-                unsafe_allow_html=True,
-            )
 
             st.markdown(
                 """
@@ -553,8 +551,10 @@ def main():
                 unsafe_allow_html=True,
             )
 
-            if st.button(button_text, key="postprocess_run"):
+            if st.button(button_text, key="postprocess_run", type="primary"):
                 with st.spinner("Gathering mileage and toll data…"):
+                    st.markdown('''
+                                :blue[This process can take up to 10 minutes...]''')
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
                         st.session_state["uploaded_file"], sheet_name=sheet
@@ -639,5 +639,10 @@ def main():
             st.info("Please select a template to begin.")
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
+            
+    st.markdown(
+        "<div style='margin-bottom: 240px'></div>",
+        unsafe_allow_html=True,
+    )
 main()
 logout_button()

@@ -266,7 +266,7 @@ def render(layer, idx: int) -> None:
         )
         for f in layer.fields  # type: ignore
     )
-    if st.button("Confirm Header Mapping", disabled=not ready, key=f"confirm_{idx}"):
+    if st.button("Confirm Header Mapping", disabled=not ready, key=f"confirm_{idx}", type="primary"):
         persist_suggestions_from_mapping(layer, mapping, source_cols)
         st.session_state[f"layer_confirmed_{idx}"] = True
         st.rerun()

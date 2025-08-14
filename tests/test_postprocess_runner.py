@@ -88,6 +88,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
+        "CLIENT_DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
     }
 
     monkeypatch.setattr(
@@ -137,6 +138,7 @@ def test_pit_bid_posts(monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
+        "CLIENT_DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
     }
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
