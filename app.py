@@ -114,6 +114,7 @@ def main():
             "export_complete",
             "customer_name",
             "selected_customer",
+            "mapped_preview_df",
         ]:
             st.session_state.pop(k, None)
         st.session_state["upload_data_file"] = None
@@ -355,6 +356,7 @@ def main():
             for key in [
                 "export_complete",
                 "mapped_csv",
+                "mapped_preview_df",
             ]:
                 st.session_state.pop(key, None)
             st.session_state.pop(f"layer_confirmed_{last_idx}", None)
@@ -384,6 +386,7 @@ def main():
             tmp_path.unlink()
             adhoc_headers = st.session_state.get("header_adhoc_headers", {})
             display_df = mapped_df.rename(columns=adhoc_headers)
+            st.session_state["mapped_preview_df"] = display_df
             st.dataframe(display_df)
 
             if st.button(button_text):
@@ -454,6 +457,9 @@ def main():
             if dest_site and dest_path:
                 sharepoint_url = f"{dest_site.rstrip('/')}{dest_path}"
                 st.markdown(f"[Open SharePoint folder]({sharepoint_url})")
+            preview_df = st.session_state.get("mapped_preview_df")
+            if preview_df is not None:
+                st.dataframe(preview_df)
             csv_data = st.session_state.get("mapped_csv")
 
             if csv_data:

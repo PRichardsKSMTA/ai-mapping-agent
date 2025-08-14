@@ -177,7 +177,7 @@ def _connect() -> "pyodbc.Connection":
     try:
         import pyodbc  # type: ignore
     except ImportError as exc:
-        raise RuntimeError("pyodbc not installed") from exc
+        raise RuntimeError("pyodbc import failed") from exc
 
     # Explicit connection string still wins if you provide one.
     user_conn_str = os.getenv("AZURE_SQL_CONN_STRING")
@@ -185,7 +185,7 @@ def _connect() -> "pyodbc.Connection":
         return pyodbc.connect(user_conn_str)
 
     # Probe available ODBC drivers and pick the best Microsoft one.
-    drivers = pyodbc.drivers()
+    drivers = getattr(pyodbc, "drivers", lambda: [])()
     drivers_lower = [d.lower() for d in drivers]
     if "odbc driver 18 for sql server" in drivers_lower:
         driver_name = "ODBC Driver 18 for SQL Server"
