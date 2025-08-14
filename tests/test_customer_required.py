@@ -177,6 +177,38 @@ def test_error_when_no_customer_after_upload(monkeypatch):
     assert "Customer ID" not in st.multiselect_calls
 
 
+def test_no_error_when_customer_has_no_ids(monkeypatch):
+    def selectbox(self, label, options, index=0, key=None, **k):
+        choice = options[0] if options else None
+        if key:
+            self.session_state[key] = choice
+        return choice
+
+    monkeypatch.setattr(DummyStreamlit, "selectbox", selectbox)
+    customers = [
+        {
+            "CLIENT_SCAC": "ADSJ",
+            "BILLTO_ID": "",
+            "BILLTO_NAME": "Acme",
+            "BILLTO_TYPE": "T",
+            "OPERATIONAL_SCAC": "ADSJ",
+        }
+    ]
+    monkeypatch.setitem(
+        sys.modules,
+        "pages.steps.header",
+        types.SimpleNamespace(render=lambda *a, **k: None),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "pages.steps.lookup",
+        types.SimpleNamespace(render=lambda *a, **k: None),
+    )
+    st = run_app(monkeypatch, customers)
+    assert st.errors == []
+    assert "Customer ID" not in st.multiselect_calls
+
+
 def test_pit_bid_requires_customer_id(monkeypatch):
     def selectbox(self, label, options, index=0, key=None, **k):
         choice = options[0] if options else None

@@ -221,30 +221,26 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     assert data['process_guid'] == captured['guid']
 
 
-def test_cli_requires_customer_name_for_pit_bid(monkeypatch, tmp_path: Path):
+def test_cli_runs_without_customer_id(monkeypatch, tmp_path: Path):
     tpl = Path('templates/pit-bid.json')
     src = tmp_path / 'src.csv'
     src.write_text('Lane ID,Bid Volume\nL1,5\n')
     out_json = tmp_path / 'out.json'
-    out_csv = tmp_path / 'out.csv'
 
     monkeypatch.setattr(azure_sql, 'log_mapping_process', lambda *a, **k: None)
-    monkeypatch.setattr(azure_sql, 'derive_adhoc_headers', lambda df: {})
     monkeypatch.setattr(sys, 'argv', [
         'cli.py',
         str(tpl),
         str(src),
         str(out_json),
-        '--csv-output',
-        str(out_csv),
         '--operation-code',
         'OP',
-        '--customer-id',
-        '1',
+        '--customer-name',
+        'Cust',
     ])
 
-    with pytest.raises(SystemExit):
-        cli.main()
+    cli.main()
+    assert out_json.exists()
 
 def test_cli_sql_insert_without_customer_id(
     monkeypatch, tmp_path: Path, capsys
