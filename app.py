@@ -384,33 +384,6 @@ def main():
                                     """,
                                     unsafe_allow_html=True,
                                 )
-                            columns_fn = getattr(action_box, "columns", st.columns)
-                            try:
-                                select_col, clear_col = columns_fn(2, gap="small")
-                            except TypeError:
-                                select_col, clear_col = columns_fn(2)
-                            select_col.button(
-                                "Select all",
-                                on_click=select_all_ids,
-                                key="cid_select_all",
-                            )
-                            clear_col.button(
-                                "Deselect all",
-                                on_click=deselect_all_ids,
-                                key="cid_clear_all",
-                            )
-                            st.markdown(
-                                """
-                                <style>
-                                div[data-testid=\"stButton\"]#cid_select_all button,
-                                div[data-testid=\"stButton\"]#cid_clear_all button {
-                                    padding: 0.25rem 0.5rem;
-                                    border: 1px solid #d4d4d4;
-                                }
-                                </style>
-                                """,
-                                unsafe_allow_html=True,
-                            )
                     else:
                         st.warning("No customers found for selected operation.")
                 else:
