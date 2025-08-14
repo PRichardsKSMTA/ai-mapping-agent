@@ -51,7 +51,6 @@ from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_cs
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.header_utils import save_current_template
-from app_utils.ui.customer_dialog import open_new_customer_dialog
 import uuid
 
 azure_sql._odbc_diag_log()
@@ -126,7 +125,9 @@ def main():
             "auto_computed_confirm",
             "export_complete",
             "customer_name",
+            "customer_choice",
             "selected_customer",
+            "new_customer_name",
             "mapped_preview_df",
         ]:
             st.session_state.pop(k, None)
@@ -312,13 +313,14 @@ def main():
                     cust_names.append(name.title())
             if cust_names:
                 cust_names.append("+ New Customer")
-                prev_name = st.session_state.get("customer_name")
-                prev_name_norm = prev_name.title() if prev_name else None
-                idx = (
-                    cust_names.index(prev_name_norm)
-                    if prev_name_norm in cust_names
-                    else None
-                )
+                prev_choice = st.session_state.get("customer_choice")
+                if (
+                    prev_choice is None
+                    and st.session_state.get("customer_name") in cust_names
+                ):
+                    prev_choice = st.session_state["customer_name"]
+                    st.session_state["customer_choice"] = prev_choice
+                idx = cust_names.index(prev_choice) if prev_choice in cust_names else None
                 try:
                     cust_col, _ = st.columns([3, 1])
                 except TypeError:
@@ -328,91 +330,98 @@ def main():
                     "Customer",
                     cust_names,
                     index=idx,
-                    key="customer_name",
+                    key="customer_choice",
                     placeholder="Select a customer",
                 )
                 if selected_name == "+ New Customer":
-                    st.session_state["customer_name"] = prev_name_norm
-                    client_scac = st.session_state.get("client_scac")
-                    if client_scac:
-                        open_new_customer_dialog(client_scac, scac)
-                    else:
-                        st.error("Client SCAC unavailable; please refresh.")
-                elif selected_name and selected_name != prev_name_norm:
-                    st.session_state["customer_ids"] = []
-                customer_name = st.session_state.get("customer_name")
+                    new_name: str = st.text_input("Customer Name", key="new_customer_name")
+                    customer_name = new_name.strip().title() if new_name else ""
+                    st.session_state["customer_name"] = customer_name
+                    st.session_state["customer_id_options"] = []
+                    st.session_state["selected_customer"] = (
+                        {"BILLTO_NAME": customer_name} if customer_name else {}
+                    )
+                else:
+                    st.session_state.pop("new_customer_name", None)
+                    customer_name = selected_name
+                    st.session_state["customer_name"] = customer_name
+                    if selected_name and selected_name != prev_choice:
+                        st.session_state["customer_ids"] = []
                 if customer_name:
-                    st.session_state["selected_customer"] = next(
+                    matches = [
                         c
                         for c in cust_records
                         if c["BILLTO_NAME"].strip().title() == customer_name
-                    )
-                    billto_ids: list[str] = [
-                        c["BILLTO_ID"]
-                        for c in cust_records
-                        if c["BILLTO_NAME"].strip().title() == customer_name
                     ]
-                    st.session_state["customer_id_options"] = billto_ids
-                    if billto_ids:
-                        if len(billto_ids) == 1 and not st.session_state.get("customer_ids"):
-                            st.session_state["customer_ids"] = billto_ids[:1]
-                        else:
-                            def select_all_ids() -> None:
-                                st.session_state["customer_ids"] = billto_ids[:5]
+                    if matches:
+                        st.session_state["selected_customer"] = matches[0]
+                        billto_ids: list[str] = [
+                            c["BILLTO_ID"]
+                            for c in cust_records
+                            if c["BILLTO_NAME"].strip().title() == customer_name
+                        ]
+                        st.session_state["customer_id_options"] = billto_ids
+                        if billto_ids:
+                            if len(billto_ids) == 1 and not st.session_state.get("customer_ids"):
+                                st.session_state["customer_ids"] = billto_ids[:1]
+                            else:
+                                def select_all_ids() -> None:
+                                    st.session_state["customer_ids"] = billto_ids[:5]
 
-                            def deselect_all_ids() -> None:
-                                st.session_state["customer_ids"] = []
+                                def deselect_all_ids() -> None:
+                                    st.session_state["customer_ids"] = []
 
-                            # Single label for both columns keeps the row visually grouped
-                            st.markdown("**Customer ID**")
+                                # Single label for both columns keeps the row visually grouped
+                                st.markdown("**Customer ID**")
 
-                            try:
-                                cid_col, actions_col = st.columns([3, 1], gap="small")
-                            except TypeError:
                                 try:
-                                    cid_col, actions_col = st.columns([3, 1])
+                                    cid_col, actions_col = st.columns([3, 1], gap="small")
                                 except TypeError:
-                                    cid_col, actions_col = st.columns(2)
+                                    try:
+                                        cid_col, actions_col = st.columns([3, 1])
+                                    except TypeError:
+                                        cid_col, actions_col = st.columns(2)
 
-                            # The input itself (label collapsed so tops align)
-                            multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
-                            multiselect_fn(
-                                "Customer ID",
-                                billto_ids,
-                                key="customer_ids",
-                                max_selections=5,
-                                label_visibility="collapsed",
-                            )
-
-                            # Buttons column, vertically centered to the input row
-                            with actions_col:
-                                anchor_id = f"cid_actions_{uuid.uuid4().hex[:6]}"
-                                st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
-
-                                b1, b2 = st.columns(2, gap="small")
-                                b1.button("Select all", on_click=select_all_ids, key="cid_select_all")
-                                b2.button("Deselect all", on_click=deselect_all_ids, key="cid_clear_all")
-
-                                st.markdown(
-                                    f"""
-                                    <style>
-                                    /* Make this column a flexbox and center the buttons vertically */
-                                    div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) {{
-                                        height: 100%;
-                                        display: flex;
-                                        align-items: center;   /* center relative to the multiselect height */
-                                        justify-content: flex-start;
-                                    }}
-                                    /* Compact button styling scoped to this column only */
-                                    div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) button {{
-                                        padding: 0.25rem 0.5rem;
-                                        border: 1px solid rgba(212,212,212,0.65);
-                                    }}
-                                    </style>
-                                    """,
-                                    unsafe_allow_html=True,
+                                # The input itself (label collapsed so tops align)
+                                multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
+                                multiselect_fn(
+                                    "Customer ID",
+                                    billto_ids,
+                                    key="customer_ids",
+                                    max_selections=5,
+                                    label_visibility="collapsed",
                                 )
+
+                                # Buttons column, vertically centered to the input row
+                                with actions_col:
+                                    anchor_id = f"cid_actions_{uuid.uuid4().hex[:6]}"
+                                    st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
+
+                                    b1, b2 = st.columns(2, gap="small")
+                                    b1.button("Select all", on_click=select_all_ids, key="cid_select_all")
+                                    b2.button("Deselect all", on_click=deselect_all_ids, key="cid_clear_all")
+
+                                    st.markdown(
+                                        f"""
+                                        <style>
+                                        /* Make this column a flexbox and center the buttons vertically */
+                                        div[data-testid=\"stVerticalBlock\"]:has(> span#{anchor_id}) {{
+                                            height: 100%;
+                                            display: flex;
+                                            align-items: center;   /* center relative to the multiselect height */
+                                            justify-content: flex-start;
+                                        }}
+                                        /* Compact button styling scoped to this column only */
+                                        div[data-testid=\"stVerticalBlock\"]:has(> span#{anchor_id}) button {{
+                                            padding: 0.25rem 0.5rem;
+                                            border: 1px solid rgba(212,212,212,0.65);
+                                        }}
+                                        </style>
+                                        """,
+                                        unsafe_allow_html=True,
+                                    )
                     else:
+                        st.session_state["customer_id_options"] = []
                         st.session_state["customer_ids"] = []
                         st.info("Selected customer has no Customer IDs.")
                 else:
