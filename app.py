@@ -372,7 +372,7 @@ def main():
                                     st.session_state["customer_ids"] = []
 
                                 # Single label for both columns keeps the row visually grouped
-                                st.markdown("Customer ID")
+                                st.markdown("**Customer ID**")
 
                                 try:
                                     cid_col, actions_col = st.columns([3, 1], gap="small")
