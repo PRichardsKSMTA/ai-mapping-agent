@@ -75,7 +75,7 @@ def run_postprocess_if_configured(
         except RuntimeError as err:  # pragma: no cover - exercised in integration
             logs.append(f"Payload error: {err}")
             raise
-        dest_path: str = "/Client Downloads/Pricing Tools/Customer Bids"
+        dest_path: str = "/Client  Downloads/Pricing Tools/Customer Bids"
         payload["CLIENT_DEST_FOLDER_PATH"] = dest_path
         logs.append("Payload loaded")
         fname = f"{operation_cd} - BID - {customer_name}.xlsm"
