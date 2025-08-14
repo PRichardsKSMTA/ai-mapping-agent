@@ -409,7 +409,7 @@ def main():
                                         div[data-testid=\"stVerticalBlock\"]:has(> span#{anchor_id}) {{
                                             height: 100%;
                                             display: flex;
-                                            align-items: center;   /* center relative to the multiselect height */
+                                            align-items: top;   /* center relative to the multiselect height */
                                             justify-content: flex-start;
                                         }}
                                         /* Compact button styling scoped to this column only */
