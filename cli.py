@@ -83,10 +83,10 @@ def main() -> None:
         "--customer-id",
         dest="customer_ids",
         action="append",
-        default=[],
+        default=None,
         help=(
-            "Customer ID(s) for SQL insert (repeatable or comma-separated, up to 5). "
-            "Required only if the chosen customer has IDs"
+            "Customer IDs (if any) for the selected customer. Omit for '+ New Customer' or "
+            "customers without IDs."
         ),
     )
     parser.add_argument(
@@ -97,9 +97,10 @@ def main() -> None:
     args = parser.parse_args()
 
     ids: list[str] = []
-    for value in args.customer_ids:
-        ids.extend([cid.strip() for cid in value.split(",") if cid.strip()])
-    args.customer_ids = ids
+    if args.customer_ids:
+        for value in args.customer_ids:
+            ids.extend([cid.strip() for cid in value.split(",") if cid.strip()])
+    args.customer_ids = ids or None
 
     template = load_template(args.template)
     if template.template_name == "PIT BID" and not args.customer_name:
