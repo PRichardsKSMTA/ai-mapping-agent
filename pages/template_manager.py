@@ -20,7 +20,11 @@ from app_utils.template_builder import (
     apply_field_choices,
     gpt_field_suggestions,
 )
-from app_utils.ui_utils import render_progress, compute_current_step
+from app_utils.ui_utils import (
+    render_progress,
+    compute_current_step,
+    render_required_label,
+)
 
 
 def persist_template(tpl: dict) -> str:
@@ -52,11 +56,12 @@ def show() -> None:
     # Create new template from sample file
     # ------------------------------------------------------------------
     st.header("Create New Template")
-
+    render_required_label("Upload CSV/Excel sample or Template JSON")
     uploaded = st.file_uploader(
         "Upload CSV/Excel sample or Template JSON",
         type=["csv", "xls", "xlsx", "xlsm", "json"],
         key="tm_file",
+        label_visibility="collapsed",
     )
     if uploaded is not None:
         if uploaded.name.lower().endswith(".json"):
@@ -71,12 +76,23 @@ def show() -> None:
             except Exception as e:  # noqa: BLE001
                 st.error(f"Failed to read JSON: {e}")
         else:
-            st.text_input("Template Name", key="tm_name")
+            render_required_label("Template Name")
+            st.text_input(
+                "Template Name",
+                key="tm_name",
+                label_visibility="collapsed",
+            )
             with st.spinner("Loading file..."):
                 sheets = list_sheets(uploaded)
             sheet_key = "tm_sheet"
             if len(sheets) > 1:
-                sheet = st.selectbox("Select sheet", sheets, key=sheet_key)
+                render_required_label("Select sheet")
+                sheet = st.selectbox(
+                    "Select sheet",
+                    sheets,
+                    key=sheet_key,
+                    label_visibility="collapsed",
+                )
             else:
                 sheet = sheets[0]
                 st.session_state[sheet_key] = sheet

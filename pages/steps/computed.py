@@ -6,6 +6,7 @@ import streamlit as st
 from app_utils.excel_utils import read_tabular_file
 from app_utils.mapping.computed_layer import gpt_formula_suggestion
 from app_utils.ui.expression_builder import build_expression
+from app_utils.ui_utils import render_required_label
 from schemas.template_v2 import Template
 
 
@@ -42,6 +43,7 @@ def render(layer, idx: int):
 
     # 2A. Direct mapping UI
     if mode.startswith("Direct") and strategy != "user_defined":
+        render_required_label("Select source column")
         col = st.selectbox(
             "Select source column",
             options=[""] + list(df.columns),
@@ -50,6 +52,7 @@ def render(layer, idx: int):
                 if result.get("source_cols")
                 else 0
             ),
+            label_visibility="collapsed",
         )
 
         if col:

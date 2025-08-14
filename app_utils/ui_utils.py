@@ -138,3 +138,13 @@ def render_progress(container: st.delta_generator.DeltaGenerator | None = None) 
                     f'<div class="step todo">{step}</div>', unsafe_allow_html=True
                 )
         st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
+# 3. Field label helpers
+# ---------------------------------------------------------------------------
+
+
+def render_required_label(text: str) -> None:
+    """Render a field label with a red asterisk."""
+    st.markdown(f"{text} <span style='color:red'>*</span>", unsafe_allow_html=True)

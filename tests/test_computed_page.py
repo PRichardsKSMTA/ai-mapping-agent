@@ -28,8 +28,11 @@ class DummyStreamlit:
     def radio(self, label, options, key=None):  # noqa: D401 - doc string not needed
         return options[0]
 
-    def selectbox(self, label, options, index=0, key=None):
+    def selectbox(self, label, options, index=0, key=None, **k):
         return options[index]
+
+    def markdown(self, *a, **k):
+        pass
 
     def button(self, *a, **k):
         return False
