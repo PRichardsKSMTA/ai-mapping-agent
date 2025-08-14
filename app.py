@@ -506,7 +506,9 @@ def main():
             st.session_state.pop(f"layer_confirmed_{last_idx}", None)
             st.session_state["current_step"] = compute_current_step()
             st.rerun()
-
+        
+        st.divider()
+        
         if not st.session_state.get("export_complete"):
             header_text: str = "Step — Run Export"
             button_text: str = "Run Export"
