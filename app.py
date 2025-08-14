@@ -55,6 +55,14 @@ azure_sql._odbc_diag_log()
 load_dotenv()
 
 
+def default_sheet_index(sheets: list[str]) -> int:
+    """Return index of first sheet not labeled as instructions."""
+    for idx, name in enumerate(sheets):
+        if "instruction" not in name.lower():
+            return idx
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # 0. Page config & helpers
 # ---------------------------------------------------------------------------
@@ -211,10 +219,13 @@ def main():
             sheets = list_sheets(uploaded_file)
         st.session_state["upload_sheets"] = sheets
         sheet_key = "upload_sheet"
+        default_idx = default_sheet_index(sheets)
         if len(sheets) > 1:
-            st.selectbox("Select sheet", sheets, key=sheet_key)
-        else:
-            st.session_state[sheet_key] = sheets[0]
+            st.selectbox(
+                "Select sheet", sheets, index=default_idx, key=sheet_key
+            )
+        if sheet_key not in st.session_state:
+            st.session_state[sheet_key] = sheets[default_idx]
 
     if (
         st.session_state.get("uploaded_file")
