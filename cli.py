@@ -84,7 +84,10 @@ def main() -> None:
         dest="customer_ids",
         action="append",
         default=[],
-        help="Customer ID(s) for SQL insert (repeatable or comma-separated, up to 5)",
+        help=(
+            "Customer ID(s) for SQL insert (repeatable or comma-separated, up to 5). "
+            "Required only if the chosen customer has IDs"
+        ),
     )
     parser.add_argument(
         "--user-email",

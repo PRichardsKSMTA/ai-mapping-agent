@@ -1,4 +1,5 @@
 import json
+import json
 from pathlib import Path
 import sys
 
@@ -207,8 +208,6 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
         'OP',
         '--customer-name',
         'Cust',
-        '--customer-id',
-        '1',
     ])
 
     cli.main()
@@ -247,4 +246,44 @@ def test_cli_requires_customer_name_for_pit_bid(monkeypatch, tmp_path: Path):
     with pytest.raises(SystemExit):
         cli.main()
 
+def test_cli_sql_insert_without_customer_id(
+    monkeypatch, tmp_path: Path, capsys
+) -> None:
+    tpl = Path('templates/pit-bid.json')
+    src = tmp_path / 'src.csv'
+    src.write_text('Lane ID,Bid Volume\nL1,5\n')
+    out_json = tmp_path / 'out.json'
+    out_csv = tmp_path / 'out.csv'
+
+    captured: dict[str, object] = {}
+
+    def fake_insert(df, op, cust, ids, guid, adhoc_headers):
+        captured['ids'] = ids
+        return len(df)
+
+    monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
+    monkeypatch.setattr(azure_sql, 'derive_adhoc_headers', lambda df: {})
+    monkeypatch.setattr(
+        cli,
+        'run_postprocess_if_configured',
+        lambda tpl_obj, df, guid, customer_name, operation_code=None: ([], None),
+    )
+    monkeypatch.setattr(azure_sql, 'log_mapping_process', lambda *a, **k: None)
+    monkeypatch.setattr(sys, 'argv', [
+        'cli.py',
+        str(tpl),
+        str(src),
+        str(out_json),
+        '--csv-output',
+        str(out_csv),
+        '--operation-code',
+        'OP',
+        '--customer-name',
+        'Cust',
+    ])
+
+    cli.main()
+    out = capsys.readouterr().out
+    assert 'Inserted 1 rows into RFP_OBJECT_DATA' in out
+    assert captured['ids'] == []
 
