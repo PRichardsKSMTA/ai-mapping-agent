@@ -532,10 +532,6 @@ def main():
             display_df = mapped_df.rename(columns=adhoc_headers)
             st.session_state["mapped_preview_df"] = display_df
             st.dataframe(display_df)
-            st.markdown(
-                "<div style='margin-bottom: 60px'></div>",
-                unsafe_allow_html=True,
-            )
 
             st.markdown(
                 """
@@ -641,5 +637,10 @@ def main():
             st.info("Please select a template to begin.")
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
+            
+    st.markdown(
+        "<div style='margin-bottom: 60px'></div>",
+        unsafe_allow_html=True,
+    )
 main()
 logout_button()
