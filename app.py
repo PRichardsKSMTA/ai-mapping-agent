@@ -351,35 +351,37 @@ def main():
                                 key="customer_ids",
                                 max_selections=5,
                             )
-                            container_fn = getattr(actions_col, "container", st.container)
-                            with container_fn() as action_box:
-                                action_box.markdown(
-                                    """
-                                    <style>
-                                        div[data-testid=\"stVerticalBlock\"]:has(#cid_select_all) {
-                                            height: 100%;
-                                            display: flex;
-                                            align-items: flex-end;
-                                        }
-                                    </style>
-                                    """,
-                                    unsafe_allow_html=True,
-                                )
-                                columns_fn = getattr(action_box, "columns", st.columns)
-                                try:
-                                    select_col, clear_col = columns_fn(2, gap="small")
-                                except TypeError:
-                                    select_col, clear_col = columns_fn(2)
-                                select_col.button(
-                                    "Select all",
-                                    on_click=select_all_ids,
-                                    key="cid_select_all",
-                                )
-                                clear_col.button(
-                                    "Deselect all",
-                                    on_click=deselect_all_ids,
-                                    key="cid_clear_all",
-                                )
+                            container_fn = getattr(actions_col, "container", lambda: actions_col)
+                            action_box = container_fn()
+                            if not hasattr(action_box, "markdown"):
+                                action_box = st.container()
+                            action_box.markdown(
+                                """
+                                <style>
+                                    div[data-testid=\"stVerticalBlock\"]:has(#cid_select_all) {
+                                        height: 100%;
+                                        display: flex;
+                                        align-items: flex-end;
+                                    }
+                                </style>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                            columns_fn = getattr(action_box, "columns", st.columns)
+                            try:
+                                select_col, clear_col = columns_fn(2, gap="small")
+                            except TypeError:
+                                select_col, clear_col = columns_fn(2)
+                            select_col.button(
+                                "Select all",
+                                on_click=select_all_ids,
+                                key="cid_select_all",
+                            )
+                            clear_col.button(
+                                "Deselect all",
+                                on_click=deselect_all_ids,
+                                key="cid_clear_all",
+                            )
                             st.markdown(
                                 """
                                 <style>
