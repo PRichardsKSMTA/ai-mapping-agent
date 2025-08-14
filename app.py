@@ -414,7 +414,7 @@ def main():
                                         }}
                                         /* Compact button styling scoped to this column only */
                                         div[data-testid=\"stVerticalBlock\"]:has(> span#{anchor_id}) button {{
-                                            padding: 0rem 0.5rem;
+                                            padding: 0rem 0rem;
                                             border: 1px solid rgba(212,212,212,0.65);
                                         }}
                                         </style>
