@@ -269,6 +269,8 @@ def main():
 
     customer_valid = True
     st.session_state.setdefault("customer_ids", None)
+    
+    st.divider()
 
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
