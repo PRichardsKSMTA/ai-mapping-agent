@@ -181,7 +181,11 @@ def test_error_when_no_customer_after_upload(monkeypatch):
 
 def test_no_error_when_customer_has_no_ids(monkeypatch):
     def selectbox(self, label, options, index=0, key=None, **k):
-        choice = options[0] if options else None
+        # Skip the prepended "+ New Customer" option
+        if options and options[0] == "+ New Customer":
+            choice = options[1] if len(options) > 1 else options[0]
+        else:
+            choice = options[0] if options else None
         if key:
             self.session_state[key] = choice
         return choice
@@ -214,7 +218,11 @@ def test_no_error_when_customer_has_no_ids(monkeypatch):
 
 def test_pit_bid_requires_customer_id(monkeypatch):
     def selectbox(self, label, options, index=0, key=None, **k):
-        choice = options[0] if options else None
+        # Skip the prepended "+ New Customer" option
+        if options and options[0] == "+ New Customer":
+            choice = options[1] if len(options) > 1 else options[0]
+        else:
+            choice = options[0] if options else None
         if key:
             self.session_state[key] = choice
         return choice

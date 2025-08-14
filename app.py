@@ -284,7 +284,8 @@ def main():
     customer_valid = True
     st.session_state.setdefault("customer_ids", None)
     
-    st.divider()
+    if hasattr(st, "divider"):
+        st.divider()
 
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
@@ -328,7 +329,7 @@ def main():
                     seen_names.add(norm)
                     cust_names.append(name.title())
             if cust_names:
-                cust_names.append("+ New Customer")
+                cust_names.insert(0, "+ New Customer")
                 prev_choice = st.session_state.get("customer_choice")
                 if (
                     prev_choice is None

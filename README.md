@@ -27,8 +27,7 @@ Alternatively, a full connection string may be supplied via
 
 ### Customer selection
 
-After choosing an operation, the app lists matching customers and appends a “+
-New Customer” option for one-time bids. Selecting it reveals a plain text field
+After choosing an operation, the app lists matching customers and prepends a “+ New Customer” option for one-time bids. Selecting it reveals a plain text field
 to enter the customer name; the entry is transient and never written to the
 database.
 
