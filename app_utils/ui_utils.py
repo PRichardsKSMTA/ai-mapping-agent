@@ -29,8 +29,8 @@ def apply_global_css() -> None:
     st.markdown(
         """
         <style>
-        :root { --gap: 10px; --card-pad: 14px; --card-radius: 10px; }
-        .block-container { padding-top: 12px; }
+        :root { --gap: 16px; --card-pad: 14px; --card-radius: 10px; }
+        .block-container { padding-top: 2rem; padding-bottom: 2rem; }
         [data-testid="stVerticalBlock"] { gap: var(--gap) !important; }
         .section-card { border:1px solid rgba(255,255,255,.08); border-radius:var(--card-radius); padding:var(--card-pad); margin-bottom:14px; background:rgba(255,255,255,.02); }
         .compact [data-testid="stSelectbox"] { max-width: 460px; }
