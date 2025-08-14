@@ -168,7 +168,20 @@ def main():
         )
 
         st.subheader("Select Template")
-        template_files = sorted(p.name for p in TEMPLATES_DIR.glob("*.json"))
+        template_entries: list[tuple[str, str]] = []
+        for path in TEMPLATES_DIR.glob("*.json"):
+            try:
+                data = json.loads(path.read_text())
+                name = data.get("template_name")
+                if not isinstance(name, str) or not name.strip():
+                    raise ValueError
+                friendly = name
+            except Exception:
+                friendly = path.stem
+            template_entries.append((path.name, friendly))
+        template_entries.sort(key=lambda t: t[1])
+        template_files = [fname for fname, _ in template_entries]
+        template_names = {fname: label for fname, label in template_entries}
         # render_required_label("Template JSON")
         selected_file = st.selectbox(
             "Template JSON",
@@ -179,6 +192,7 @@ def main():
                 else 0 if template_files else None
             ),
             label_visibility="collapsed",
+            format_func=lambda f: template_names.get(f, f),
         )
 
         template_obj: Template | None = None
