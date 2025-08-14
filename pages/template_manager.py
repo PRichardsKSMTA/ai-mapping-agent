@@ -167,7 +167,24 @@ def show() -> None:
     # ------------------------------------------------------------------
     st.header("Existing Templates")
     os.makedirs("templates", exist_ok=True)
-    tmpl_files = [f for f in os.listdir("templates") if f.endswith(".json")]
+    filter_text: str = st.text_input("Filter templates", key="tm_filter")
+    sort_by: str
+    if hasattr(st, "selectbox"):
+        sort_by = st.selectbox("Sort by", ["Name", "Modified"], key="tm_sort")
+    elif hasattr(st, "radio"):
+        sort_by = st.radio("Sort by", ["Name", "Modified"], key="tm_sort")
+    else:  # pragma: no cover - fallback for tests without widgets
+        sort_by = "Name"
+    tmpl_files: List[str] = [f for f in os.listdir("templates") if f.endswith(".json")]
+    if filter_text:
+        tmpl_files = [f for f in tmpl_files if filter_text.lower() in f.lower()]
+    if sort_by == "Name":
+        tmpl_files.sort(key=str.lower)
+    else:
+        tmpl_files.sort(
+            key=lambda f: os.path.getmtime(os.path.join("templates", f)),
+            reverse=True,
+        )
     for tf in tmpl_files:
         path = os.path.join("templates", tf)
         with open(path) as f:
