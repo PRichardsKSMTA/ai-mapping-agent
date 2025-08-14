@@ -232,13 +232,16 @@ def main():
         sheet_key = "upload_sheet"
         default_idx = default_sheet_index(sheets)
         if len(sheets) > 1:
-            render_required_label("Select sheet")
-            st.selectbox(
+            try:
+                sheet_col, _ = st.columns([3, 1])
+            except TypeError:
+                sheet_col, _ = st.columns(2)
+            selectbox_fn = getattr(sheet_col, "selectbox", st.selectbox)
+            selectbox_fn(
                 "Select sheet",
                 sheets,
                 index=default_idx,
                 key=sheet_key,
-                label_visibility="collapsed",
             )
         if sheet_key not in st.session_state:
             st.session_state[sheet_key] = sheets[default_idx]
@@ -288,14 +291,17 @@ def main():
                     if prev_name_norm in cust_names
                     else None
                 )
-                render_required_label("Customer")
-                selected_name = st.selectbox(
+                try:
+                    cust_col, _ = st.columns([3, 1])
+                except TypeError:
+                    cust_col, _ = st.columns(2)
+                selectbox_fn = getattr(cust_col, "selectbox", st.selectbox)
+                selected_name = selectbox_fn(
                     "Customer",
                     cust_names,
                     index=idx,
                     key="customer_name",
                     placeholder="Select a customer",
-                    label_visibility="collapsed",
                 )
                 if selected_name and selected_name != prev_name_norm:
                     st.session_state["customer_ids"] = []
@@ -322,38 +328,39 @@ def main():
                             def deselect_all_ids() -> None:
                                 st.session_state["customer_ids"] = []
 
-                            render_required_label("Customer ID")
-                            st.multiselect(
+                            try:
+                                cid_col, btn_col = st.columns([2, 1])
+                            except TypeError:
+                                cid_col, btn_col = st.columns(2)
+                            multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
+                            multiselect_fn(
                                 "Customer ID",
                                 billto_ids,
                                 key="customer_ids",
                                 max_selections=5,
-                                label_visibility="collapsed",
                             )
-                            with st.container():
-                                btn_col1, btn_col2 = st.columns([1, 1])
-                                btn_col1.button(
-                                    "Select all",
-                                    on_click=select_all_ids,
-                                    key="cid_select_all",
-                                )
-                                btn_col2.button(
-                                    "Deselect all",
-                                    on_click=deselect_all_ids,
-                                    key="cid_clear_all",
-                                )
-                                st.markdown(
-                                    """
-                                    <style>
-                                    div[data-testid="stButton"]#cid_select_all button,
-                                    div[data-testid="stButton"]#cid_clear_all button {
-                                        padding: 0.25rem 0.5rem;
-                                        border: 1px solid #d4d4d4;
-                                    }
-                                    </style>
-                                    """,
-                                    unsafe_allow_html=True,
-                                )
+                            btn_col.button(
+                                "Select all",
+                                on_click=select_all_ids,
+                                key="cid_select_all",
+                            )
+                            btn_col.button(
+                                "Deselect all",
+                                on_click=deselect_all_ids,
+                                key="cid_clear_all",
+                            )
+                            st.markdown(
+                                """
+                                <style>
+                                div[data-testid=\"stButton\"]#cid_select_all button,
+                                div[data-testid=\"stButton\"]#cid_clear_all button {
+                                    padding: 0.25rem 0.5rem;
+                                    border: 1px solid #d4d4d4;
+                                }
+                                </style>
+                                """,
+                                unsafe_allow_html=True,
+                            )
                     else:
                         st.warning("No customers found for selected operation.")
                 else:
