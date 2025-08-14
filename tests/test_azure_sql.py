@@ -128,6 +128,45 @@ def test_fetch_customers(monkeypatch):
     assert [c["BILLTO_NAME"] for c in customers] == ["Alpha", "Beta"]
 
 
+def test_fetch_customers_none_name(monkeypatch):
+    class FakeCursor:
+        def execute(self, query, scac):  # pragma: no cover - exercised via call
+            assert "FROM dbo.V_SPOQ_BILLTOS" in query
+            assert scac == "ADSJ"
+            self.description = [
+                ("CLIENT_SCAC",),
+                ("BILLTO_ID",),
+                ("BILLTO_NAME",),
+                ("BILLTO_TYPE",),
+                ("OPERATIONAL_SCAC",),
+            ]
+            self.rows = [
+                ("ADSJ", "1", None, "T", "ADSJ"),
+                ("ADSJ", "2", "Alpha", "T", "ADSJ"),
+            ]
+            return self
+
+        def fetchall(self):
+            return self.rows
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+
+    customers = azure_sql.fetch_customers("ADSJ")
+    names = [c["BILLTO_NAME"] for c in customers]
+    assert "" in names
+    assert "Alpha" in names
+
+
 def test_connect_requires_config(monkeypatch):
     original_import = builtins.__import__
 
