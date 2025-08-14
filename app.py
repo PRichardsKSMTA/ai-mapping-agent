@@ -386,7 +386,7 @@ def main():
                                 multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
                                 section_card("Customer ID", "")
                                 multiselect_fn(
-                                    "Customer ID",
+                                    "",
                                     billto_ids,
                                     key="customer_ids",
                                     max_selections=5,
