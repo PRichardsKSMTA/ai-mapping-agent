@@ -220,7 +220,7 @@ def main():
     # 3. Upload & sheet selection
     # ---------------------------------------------------------------------------
 
-    with section_card("Upload", "Upload client data file (Excel or CSV)"):
+    with section_card("Upload", ""):
         render_required_label("Upload client data file (Excel or CSV)")
         uploaded_file = st.file_uploader(
             "Upload client data file (Excel or CSV)",
