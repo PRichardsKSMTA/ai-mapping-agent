@@ -265,22 +265,6 @@ def fetch_customers(operational_scac: str) -> List[Dict[str, str]]:
     return sorted(rows, key=lambda r: r["BILLTO_NAME"])
 
 
-def insert_customer(client_scac: str, name: str, billto_id: str | None = None) -> None:
-    """Insert a customer record."""
-    try:
-        conn = _connect()
-    except RuntimeError as err:  # pragma: no cover - exercised in integration
-        raise RuntimeError(f"Customer insert failed: {err}") from err
-    with conn:
-        conn.cursor().execute(
-            (
-                "INSERT INTO dbo.SPOQ_BILLTO_XREF "
-                "(CLIENT_SCAC, BILLTO_NAME, BILLTO_ID) VALUES (?, ?, ?)"
-            ),
-            (client_scac, name, billto_id),
-        )
-
-
 def fetch_freight_type(operation_cd: str) -> str | None:
     """Return the default freight type for an operation code."""
     try:
