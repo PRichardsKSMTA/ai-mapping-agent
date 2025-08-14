@@ -6,11 +6,11 @@ import streamlit as st
 from app_utils.excel_utils import read_tabular_file
 from app_utils.mapping.computed_layer import gpt_formula_suggestion
 from app_utils.ui.expression_builder import build_expression
-from app_utils.ui_utils import render_required_label
+from contextlib import nullcontext
 from schemas.template_v2 import Template
 
 
-def render(layer, idx: int):
+def render(layer: Template, idx: int) -> None:
     st.header("Step — Configure Computed Field")
 
     sheet_name = getattr(layer, "sheet", None) or st.session_state.get(
@@ -43,25 +43,38 @@ def render(layer, idx: int):
 
     # 2A. Direct mapping UI
     if mode.startswith("Direct") and strategy != "user_defined":
-        render_required_label("Select source column")
-        col = st.selectbox(
-            "Select source column",
-            options=[""] + list(df.columns),
-            index=(
-                ([""] + list(df.columns)).index(result.get("source_cols", [""])[0])
-                if result.get("source_cols")
-                else 0
-            ),
-            label_visibility="collapsed",
-        )
+        column = st.columns([3, 1])[0] if hasattr(st, "columns") else nullcontext()
+        with column:
+            source_col = st.selectbox(
+                "Select source column",
+                options=[""] + list(df.columns),
+                index=(
+                    ([""] + list(df.columns)).index(
+                        result.get("source_cols", [""])[0]
+                    )
+                    if result.get("source_cols")
+                    else 0
+                ),
+            )
+            st.markdown(
+                """
+                <style>
+                    div[data-testid="stSelectbox"] > div {
+                        min-width: 420px;
+                        max-width: 520px;
+                    }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        if col:
-            st.success(f"`{col}` → **{layer.target_field}**")
+        if source_col:
+            st.success(f"`{source_col}` → **{layer.target_field}**")
             result.update(
                 {
                     "resolved": True,
                     "method": "direct",
-                    "source_cols": [col],
+                    "source_cols": [source_col],
                     "expression": None,
                 }
             )
