@@ -157,5 +157,5 @@ def run_app(monkeypatch):
 
 def test_customer_grouping(monkeypatch):
     st = run_app(monkeypatch)
-    assert st.customer_options == ["Boise Cascade", "+ New Customer"]
+    assert st.customer_options == ["+ New Customer", "Boise Cascade"]
     assert "customer_id_options" not in st.session_state
