@@ -87,7 +87,8 @@ def show() -> None:
             sheet_key = "tm_sheet"
             if len(sheets) > 1:
                 render_required_label("Select sheet")
-                sheet = st.selectbox(
+                col_sheet, _ = st.columns([3, 1])
+                sheet = col_sheet.selectbox(
                     "Select sheet",
                     sheets,
                     key=sheet_key,
@@ -184,9 +185,11 @@ def show() -> None:
     st.header("Existing Templates")
     os.makedirs("templates", exist_ok=True)
     filter_text: str = st.text_input("Filter templates", key="tm_filter")
-    sort_by: str
+    sort_col, _ = st.columns([3, 1])
     if hasattr(st, "selectbox"):
-        sort_by = st.selectbox("Sort by", ["Name", "Modified"], key="tm_sort")
+        sort_by: str = sort_col.selectbox(
+            "Sort by", ["Name", "Modified"], key="tm_sort"
+        )
     elif hasattr(st, "radio"):
         sort_by = st.radio("Sort by", ["Name", "Modified"], key="tm_sort")
     else:  # pragma: no cover - fallback for tests without widgets
