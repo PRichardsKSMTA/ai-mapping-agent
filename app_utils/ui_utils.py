@@ -15,26 +15,33 @@ Import signature (back-compat):
 
 from __future__ import annotations
 
+import uuid
 import streamlit as st
 from contextlib import contextmanager
 from typing import Iterator, List
 
-# ---------------------------------------------------------------------------
-# 0. Global CSS helpers
-# ---------------------------------------------------------------------------
-
 
 def apply_global_css() -> None:
-    """Inject shared spacing and layout tweaks."""
     st.markdown(
         """
         <style>
-        :root { --gap: 16px; --card-pad: 14px; --card-radius: 10px; }
-        .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+        :root { --gap: 10px; --card-pad: 14px; --card-radius: 10px; }
+
+        /* Trim the overall page padding a bit */
+        .block-container { padding-top: 12px; padding-bottom: 12px; }
+
+        /* Make all vertical blocks use a tighter, consistent gap */
         [data-testid="stVerticalBlock"] { gap: var(--gap) !important; }
-        .section-card { border:1px solid rgba(255,255,255,.08); border-radius:var(--card-radius); padding:var(--card-pad); margin-bottom:14px; background:rgba(255,255,255,.02); }
-        .compact [data-testid="stSelectbox"] { max-width: 460px; }
+
+        /* Buttons that live together should look like they do */
         .button-row { display:flex; gap:8px; flex-wrap:wrap; }
+
+        /* Tighter heading/caption rhythm inside cards */
+        .card-title { margin: 0 0 6px 0; font-weight: 600; font-size: 1.05rem; }
+        .card-caption { margin: 0 0 8px 0; opacity: .85; font-size: 0.9rem; }
+
+        /* Optional: rein in super-wide selects globally when desired */
+        .compact [data-testid="stSelectbox"] { max-width: 460px; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -43,15 +50,40 @@ def apply_global_css() -> None:
 
 @contextmanager
 def section_card(title: str, caption: str | None = None) -> Iterator[None]:
-    """Render a titled section with subtle styling."""
-    container = st.container()
-    with container:
-        container.markdown("<div class='section-card'>", unsafe_allow_html=True)
-        container.markdown(f"### {title}")
+    """
+    Render a titled, styled card. We place an invisible anchor inside a Streamlit
+    container and then style *that container* with CSS using :has().
+    """
+    card = st.container()
+    anchor_id = f"card_{uuid.uuid4().hex[:8]}"
+
+    with card:
+        st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-title'>{title}</div>", unsafe_allow_html=True)
         if caption:
-            container.caption(caption)
-        yield
-        container.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='card-caption'>{caption}</div>", unsafe_allow_html=True)
+
+        yield  # all st.* calls from the caller render inside this container
+
+        st.markdown(
+            f"""
+            <style>
+            /* Style the container that *contains* our unique anchor */
+            div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) {{
+                border: 1px solid rgba(255,255,255,.10);
+                border-radius: var(--card-radius);
+                padding: var(--card-pad);
+                background: rgba(255,255,255,.03);
+                margin-bottom: 12px;
+            }}
+            /* Slightly tighter gaps for blocks nested inside this card */
+            div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) [data-testid="stVerticalBlock"] {{
+                gap: 8px !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 # ---------------------------------------------------------------------------
