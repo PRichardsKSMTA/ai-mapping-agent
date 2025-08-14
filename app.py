@@ -44,6 +44,7 @@ from app_utils.ui_utils import (
     set_steps_from_template,
     compute_current_step,
     render_required_label,
+    apply_global_css,
 )
 from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
 from app_utils.postprocess_runner import run_postprocess_if_configured
@@ -70,6 +71,7 @@ def default_sheet_index(sheets: list[str]) -> int:
 @require_login
 def main():
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
+    apply_global_css()
     st.title("AI Mapping Agent")
 
     if st.session_state.get("unsaved_changes"):
