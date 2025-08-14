@@ -91,6 +91,12 @@ def compute_current_step() -> int:
     return idx
 
 
+def _jump_to_step(step_idx: int) -> None:
+    """Set current step and rerun the app."""
+    st.session_state["current_step"] = step_idx
+    st.rerun()
+
+
 def render_progress(container: st.delta_generator.DeltaGenerator | None = None) -> None:
     """
     Render a persistent sidebar progress indicator.
@@ -108,6 +114,9 @@ def render_progress(container: st.delta_generator.DeltaGenerator | None = None) 
     .step::before{content:"";position:absolute;left:-12px;top:4px;width:8px;height:8px;border-radius:50%;background:#ccc;}
     .step.completed::before{background:#28a745;}
     .step.current::before{background:#28a745;animation:pulse 2s infinite;}
+    .progress-list div[data-testid="stButton"]{position:relative;padding-left:12px;margin-bottom:0.5rem;}
+    .progress-list div[data-testid="stButton"]::before{content:"";position:absolute;left:-12px;top:4px;width:8px;height:8px;border-radius:50%;background:#28a745;}
+    .progress-list div[data-testid="stButton"]>button{color:#000;background:none;border:none;padding:0;text-align:left;}
     @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(40,167,69,0.7);}70%{box-shadow:0 0 0 8px rgba(40,167,69,0);}100%{box-shadow:0 0 0 0 rgba(40,167,69,0);}}
     </style>
     """
@@ -118,12 +127,14 @@ def render_progress(container: st.delta_generator.DeltaGenerator | None = None) 
         st.markdown('<div class="progress-list">', unsafe_allow_html=True)
         for i, step in enumerate(steps, start=1):
             if current > i:
-                cls = "completed"
+                if st.button(step, key=f"step_{i}"):
+                    _jump_to_step(i)
             elif current == i:
-                cls = "current"
+                st.markdown(
+                    f'<div class="step current">{step}</div>', unsafe_allow_html=True
+                )
             else:
-                cls = "todo"
-            st.markdown(
-                f'<div class="step {cls}">{step}</div>', unsafe_allow_html=True
-            )
+                st.markdown(
+                    f'<div class="step todo">{step}</div>', unsafe_allow_html=True
+                )
         st.markdown('</div>', unsafe_allow_html=True)
