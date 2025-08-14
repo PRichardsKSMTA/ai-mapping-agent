@@ -27,9 +27,11 @@ Alternatively, a full connection string may be supplied via
 
 ### Customer ID selection
 
-After choosing a customer, the Streamlit app presents a multiselect field for
-**Customer IDs**. Up to five IDs may be selected; any additional selections are
-ignored.
+After choosing a customer, the Streamlit app shows a **Customer IDs**
+multiselect only when the selected customer has ID values. At least one ID must
+be chosen in that case (up to five are supported), but if the customer has no
+IDs the field is skipped with an informational message. The chooser also
+includes a “+ New Customer” option to add a new record on the fly.
 
 ## Command Line Interface
 
