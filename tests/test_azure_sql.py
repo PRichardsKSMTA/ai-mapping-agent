@@ -302,6 +302,29 @@ def test_insert_pit_bid_rows_blanks(monkeypatch):
     assert captured["params"][25] is None  # RFP_MILES
 
 
+def test_insert_pit_bid_rows_no_ids(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame(
+        {
+            "Lane ID": ["L1"],
+            "Origin City": ["OC"],
+            "Orig State": ["OS"],
+            "Orig Zip (5 or 3)": ["11111"],
+            "Destination City": ["DC"],
+            "Dest State": ["DS"],
+            "Dest Zip (5 or 3)": ["22222"],
+            "Bid Volume": [5],
+            "LH Rate": [1.2],
+            "Bid Miles": [100],
+        }
+    )
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", None, "guid")
+    assert rows == 1
+    assert captured["params"][2] is None  # CUSTOMER_ID
+
+
 def test_insert_pit_bid_rows_with_db_columns(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))

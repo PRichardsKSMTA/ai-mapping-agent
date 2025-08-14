@@ -128,6 +128,50 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     assert data['process_guid'] == captured['guid']
 
 
+def test_cli_sql_insert_no_ids(monkeypatch, tmp_path: Path, capsys):
+    tpl = Path('templates/pit-bid.json')
+    src = tmp_path / 'src.csv'
+    src.write_text('Lane ID,Bid Volume\nL1,5\n')
+    out_json = tmp_path / 'out.json'
+    out_csv = tmp_path / 'out.csv'
+
+    captured: dict[str, object] = {}
+
+    def fake_insert(df, op, cust, ids, guid, adhoc_headers):
+        captured['ids'] = ids
+        return len(df)
+
+    monkeypatch.setattr(azure_sql, 'insert_pit_bid_rows', fake_insert)
+    monkeypatch.setattr(azure_sql, 'derive_adhoc_headers', lambda df: {})
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.get_pit_url_payload', lambda op_cd: {}
+    )
+    monkeypatch.setattr(
+        cli,
+        'run_postprocess_if_configured',
+        lambda tpl_obj, df, guid, customer_name, operation_code=None: ([], None),
+    )
+    monkeypatch.setattr(azure_sql, 'log_mapping_process', lambda *a, **k: None)
+    monkeypatch.setattr(sys, 'argv', [
+        'cli.py',
+        str(tpl),
+        str(src),
+        str(out_json),
+        '--csv-output',
+        str(out_csv),
+        '--operation-code',
+        'OP',
+        '--customer-name',
+        'Cust',
+    ])
+
+    cli.main()
+    out = capsys.readouterr().out
+    data = json.loads(out_json.read_text())
+    assert 'Inserted 1 rows into RFP_OBJECT_DATA' in out
+    assert captured['ids'] == []
+    assert data['process_guid']
+
 def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     tpl = Path('templates/pit-bid.json')
     src = tmp_path / 'src.csv'
@@ -203,29 +247,4 @@ def test_cli_requires_customer_name_for_pit_bid(monkeypatch, tmp_path: Path):
     with pytest.raises(SystemExit):
         cli.main()
 
-
-def test_cli_requires_customer_id_for_pit_bid(monkeypatch, tmp_path: Path):
-    tpl = Path('templates/pit-bid.json')
-    src = tmp_path / 'src.csv'
-    src.write_text('Lane ID,Bid Volume\nL1,5\n')
-    out_json = tmp_path / 'out.json'
-    out_csv = tmp_path / 'out.csv'
-
-    monkeypatch.setattr(azure_sql, 'log_mapping_process', lambda *a, **k: None)
-    monkeypatch.setattr(azure_sql, 'derive_adhoc_headers', lambda df: {})
-    monkeypatch.setattr(sys, 'argv', [
-        'cli.py',
-        str(tpl),
-        str(src),
-        str(out_json),
-        '--csv-output',
-        str(out_csv),
-        '--operation-code',
-        'OP',
-        '--customer-name',
-        'Cust',
-    ])
-
-    with pytest.raises(SystemExit):
-        cli.main()
 

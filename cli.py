@@ -101,8 +101,6 @@ def main() -> None:
     template = load_template(args.template)
     if template.template_name == "PIT BID" and not args.customer_name:
         parser.error("--customer-name is required for PIT BID templates")
-    if template.template_name == "PIT BID" and not args.customer_ids:
-        parser.error("At least one --customer-id is required for PIT BID templates")
     df = load_data(args.input_file)
     state = auto_map(template, df)
     process_guid = str(uuid.uuid4())
@@ -118,7 +116,6 @@ def main() -> None:
         if (
             args.operation_code
             and args.customer_name
-            and args.customer_ids
             and template.template_name == "PIT BID"
         ):
             rows = azure_sql.insert_pit_bid_rows(
