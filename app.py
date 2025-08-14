@@ -289,19 +289,13 @@ def main():
                     st.error(f"Customer lookup failed: {err}")
                     return
             cust_records = [
-                {**c, "BILLTO_NAME": c["BILLTO_NAME"].strip().title()}
-                for c in st.session_state["customer_options"]
+                c for c in st.session_state["customer_options"] if c["BILLTO_NAME"]
             ]
             st.session_state["customer_options"] = cust_records
             cust_names = sorted({c["BILLTO_NAME"] for c in cust_records})
             if cust_names:
                 prev_name = st.session_state.get("customer_name")
-                prev_name_norm = prev_name.strip().title() if prev_name else None
-                idx = (
-                    cust_names.index(prev_name_norm)
-                    if prev_name_norm in cust_names
-                    else None
-                )
+                idx = cust_names.index(prev_name) if prev_name in cust_names else None
                 try:
                     cust_col, _ = st.columns([3, 1])
                 except TypeError:
@@ -314,7 +308,7 @@ def main():
                     key="customer_name",
                     placeholder="Select a customer",
                 )
-                if selected_name and selected_name != prev_name_norm:
+                if selected_name and selected_name != prev_name:
                     st.session_state["customer_ids"] = []
                 customer_name = st.session_state.get("customer_name")
                 if customer_name:
