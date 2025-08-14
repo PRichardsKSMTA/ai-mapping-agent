@@ -69,7 +69,7 @@ class DummyStreamlit:
         pass
     def title(self, *a, **k):
         pass
-    header = subheader = error = write = warning = caption = title
+    header = subheader = error = write = warning = caption = divider = title
     def info(self, msg, *a, **k):
         self.info_messages.append(msg)
     def success(self, msg, *a, **k):
@@ -224,6 +224,7 @@ def test_postprocess_runner_called(monkeypatch):
 def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
+    assert any("Open SharePoint BID tracker" in m for m in st.markdown_calls)
     assert any(
         "https://tenant.sharepoint.com/sites/demo/docs/folder" in m
         for m in st.markdown_calls

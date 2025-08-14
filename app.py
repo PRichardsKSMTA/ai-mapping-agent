@@ -17,6 +17,7 @@ Key features
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 from pathlib import Path
 import streamlit as st
@@ -555,6 +556,15 @@ def main():
                 with st.spinner("Gathering mileage and toll data…"):
                     st.markdown('''
                                 :blue[This process can take up to 10 minutes...]''')
+                    dest_site = os.getenv("CLIENT_DEST_SITE")
+                    dest_path = os.getenv("CLIENT_DEST_FOLDER_PATH")
+                    if dest_site and dest_path:
+                        tracker_url = f"{dest_site.rstrip('/')}{dest_path}"
+                        st.markdown(
+                            f'<a href="{tracker_url}" target="_blank">'
+                            'Open SharePoint BID tracker</a>',
+                            unsafe_allow_html=True,
+                        )
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
                         st.session_state["uploaded_file"], sheet_name=sheet

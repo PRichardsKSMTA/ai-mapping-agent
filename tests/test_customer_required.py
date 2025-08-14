@@ -37,6 +37,23 @@ class DummyContainer:
     def button(self, *a, **k):
         return False
 
+    def selectbox(self, label, options, index=0, key=None, **k):
+        return options[index] if options and index is not None else None
+
+
+class DummyColumn:
+    def __init__(self, st: "DummyStreamlit") -> None:
+        self.st = st
+
+    def __enter__(self) -> "DummyColumn":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        return None
+
+    def __getattr__(self, name: str):
+        return getattr(self.st, name)
+
 
 class DummySidebar:
     def __init__(self, st):
@@ -81,7 +98,7 @@ class DummyStreamlit:
     def title(self, *a, **k):
         pass
 
-    header = subheader = success = warning = info = caption = title
+    header = subheader = success = warning = info = caption = divider = title
 
     def markdown(self, *a, **k):
         pass
@@ -143,7 +160,7 @@ class DummyStreamlit:
 
     def columns(self, n, **kwargs):
         count = n if isinstance(n, int) else len(n)
-        return (DummyContainer(),) * count
+        return [DummyColumn(self) for _ in range(count)]
 
     def rerun(self):
         pass
