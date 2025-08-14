@@ -260,6 +260,8 @@ def main():
         st.caption("Source data preview – first 5 rows")
         st.dataframe(df.head())
 
+    customer_valid = True
+
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
     # ---------------------------------------------------------------------------
@@ -371,18 +373,16 @@ def main():
                 st.warning("No customers found for selected operation.")
             if not st.session_state.get("customer_name"):
                 st.error("Please select a customer to proceed.")
-                return
-            if st.session_state.get("customer_name") and not st.session_state.get(
-                "customer_ids"
-            ):
+                customer_valid = False
+            elif not st.session_state.get("customer_ids"):
                 st.error("Select at least one Customer ID.")
-                return
+                customer_valid = False
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
     # ---------------------------------------------------------------------------
 
-    if st.session_state.get("uploaded_file") and template_obj:
+    if st.session_state.get("uploaded_file") and template_obj and customer_valid:
         for idx, layer in enumerate(template_obj.layers):
             layer_flag = f"layer_confirmed_{idx}"
 
