@@ -335,7 +335,7 @@ def main():
                             def deselect_all_ids() -> None:
                                 st.session_state["customer_ids"] = []
 
-                            # Single label row for both columns keeps tops aligned
+                            # Single label for both columns keeps the row visually grouped
                             st.markdown("**Customer ID**")
 
                             try:
@@ -346,16 +346,17 @@ def main():
                                 except TypeError:
                                     cid_col, actions_col = st.columns(2)
 
+                            # The input itself (label collapsed so tops align)
                             multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
                             multiselect_fn(
                                 "Customer ID",
                                 billto_ids,
                                 key="customer_ids",
                                 max_selections=5,
-                                label_visibility="collapsed",  # hide internal label so tops align
+                                label_visibility="collapsed",
                             )
 
-                            # Buttons container with an anchor we can target for bottom alignment
+                            # Buttons column, vertically centered to the input row
                             with actions_col:
                                 anchor_id = f"cid_actions_{uuid.uuid4().hex[:6]}"
                                 st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
@@ -364,17 +365,17 @@ def main():
                                 b1.button("Select all", on_click=select_all_ids, key="cid_select_all")
                                 b2.button("Deselect all", on_click=deselect_all_ids, key="cid_clear_all")
 
-                                # Bottom-align the whole buttons column to the multiselect
                                 st.markdown(
                                     f"""
                                     <style>
+                                    /* Make this column a flexbox and center the buttons vertically */
                                     div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) {{
                                         height: 100%;
                                         display: flex;
-                                        align-items: end;        /* bottom-align */
+                                        align-items: center;   /* center relative to the multiselect height */
                                         justify-content: flex-start;
                                     }}
-                                    /* Compact button padding (scoped to this column) */
+                                    /* Compact button styling scoped to this column only */
                                     div[data-testid="stVerticalBlock"]:has(> span#{anchor_id}) button {{
                                         padding: 0.25rem 0.5rem;
                                         border: 1px solid rgba(212,212,212,0.65);
