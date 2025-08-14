@@ -342,12 +342,14 @@ def main():
                 customer_name = st.session_state.get("customer_name")
                 if customer_name:
                     st.session_state["selected_customer"] = next(
-                        c for c in cust_records if c["BILLTO_NAME"] == customer_name
+                        c
+                        for c in cust_records
+                        if c["BILLTO_NAME"].strip().title() == customer_name
                     )
                     billto_ids: list[str] = [
                         c["BILLTO_ID"]
                         for c in cust_records
-                        if c["BILLTO_NAME"] == customer_name
+                        if c["BILLTO_NAME"].strip().title() == customer_name
                     ]
                     st.session_state["customer_id_options"] = billto_ids
                     if billto_ids:
@@ -410,7 +412,8 @@ def main():
                                     unsafe_allow_html=True,
                                 )
                     else:
-                        st.warning("No customers found for selected operation.")
+                        st.session_state["customer_ids"] = []
+                        st.info("Selected customer has no Customer IDs.")
                 else:
                     st.info("Select a customer to view ID options.")
             else:
@@ -418,9 +421,15 @@ def main():
             if not st.session_state.get("customer_name"):
                 st.error("Please select a customer to proceed.")
                 customer_valid = False
-            elif not st.session_state.get("customer_ids"):
-                st.error("Select at least one Customer ID.")
-                customer_valid = False
+            else:
+                id_opts: list[str] = st.session_state.get("customer_id_options") or []
+                if id_opts and not st.session_state.get("customer_ids"):
+                    st.error("Select at least one Customer ID.")
+                    customer_valid = False
+                else:
+                    st.session_state["customer_ids"] = (
+                        st.session_state.get("customer_ids") or []
+                    )
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
