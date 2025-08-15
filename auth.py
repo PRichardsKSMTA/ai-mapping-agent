@@ -256,7 +256,7 @@ else:
 
     def logout_button() -> None:
         with st.sidebar:
-            if st.button("↩️ Sign out"):
+            if st.button("↩ Sign out"):
                 for k in [
                     "user_email",
                     "user_name",
