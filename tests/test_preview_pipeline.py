@@ -51,3 +51,38 @@ def test_preview_pipeline_custom_label(tmp_path: Path) -> None:
     display_df = mapped_df.rename(columns=adhoc_headers)
     assert list(display_df.columns) == ["Name", "Value", "Custom"]
 
+
+def test_preview_pipeline_duplicate_mapping(tmp_path: Path) -> None:
+    """Single source column can map to multiple destination fields."""
+    template = Template.model_validate(
+        {
+            "template_name": "dup-template",
+            "layers": [
+                {
+                    "type": "header",
+                    "fields": [
+                        {"key": "Name"},
+                        {"key": "Value"},
+                        {"key": "ValueCopy"},
+                    ],
+                }
+            ],
+        }
+    )
+    with open("tests/fixtures/simple.csv", "rb") as f:
+        df, _ = read_tabular_file(f)
+    state = {
+        "header_mapping_0": {
+            "Name": {"src": "Name"},
+            "Value": {"src": "Value"},
+            "ValueCopy": {"src": "Value"},
+        }
+    }
+    preview_json = build_output_template(template, state, "dummy-guid")
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        mapped_df = save_mapped_csv(df, preview_json, tmp_path)
+    tmp_path.unlink()
+    assert list(mapped_df.columns) == ["Name", "Value", "ValueCopy"]
+    assert mapped_df["Value"].tolist() == mapped_df["ValueCopy"].tolist()
+
