@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import pandas as pd
+from app_utils import azure_sql
 
 class DummyContainer:
     def __enter__(self):
@@ -111,6 +112,8 @@ class DummyStreamlit:
         return False
     def download_button(self, *a, **k):
         pass
+    def divider(self, *a, **k):
+        pass
     def json(self, *a, **k):  # type: ignore[override]
         pass
     def dataframe(self, data, *a, **k):  # type: ignore[override]
@@ -138,9 +141,9 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     st = DummyStreamlit(button_sequence or [{"Generate BID"}])
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
-    monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
-    monkeypatch.setenv("CLIENT_DEST_FOLDER_PATH", "docs/folder with spaces")
-    monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
+    monkeypatch.setitem(
+        sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None)
+    )
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
     monkeypatch.setattr(
@@ -176,23 +179,44 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         lambda df, op, cust, ids, guid, adhoc: len(df),
     )
     monkeypatch.setattr("app_utils.azure_sql.derive_adhoc_headers", lambda df: {})
-    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, adhoc_headers=None):
+    monkeypatch.setattr(
+        "app_utils.azure_sql.get_pit_url_payload",
+        lambda op_cd, week_ct=12: {
+            "item/In_dtInputData": [
+                {
+                    "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
+                    "CLIENT_DEST_FOLDER_PATH": "/docs/folder",
+                }
+            ]
+        },
+    )
+
+    def fake_log(
+        process_guid,
+        template_name,
+        friendly_name,
+        user_email,
+        file_name_string,
+        process_json,
+        template_guid,
+        adhoc_headers=None,
+    ):
         called["log_guid"] = process_guid
         called["log_template"] = template_name
         called["log_friendly"] = friendly_name
         called["log_email"] = user_email
         called["log_file"] = file_name_string
+
     monkeypatch.setattr("app_utils.azure_sql.log_mapping_process", fake_log)
     called: dict[str, object] = {}
 
     def fake_runner(tpl, df, process_guid, *args):
         called["run"] = True
         called["guid"] = process_guid
-        payload = {
-            "p": 1,
-            "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
-            "CLIENT_DEST_FOLDER_PATH": "/docs/folder with spaces",
-        }
+        payload = azure_sql.get_pit_url_payload("OP")
+        entry = payload["item/In_dtInputData"][0]
+        payload["CLIENT_DEST_SITE"] = entry["CLIENT_DEST_SITE"]
+        payload["CLIENT_DEST_FOLDER_PATH"] = entry["CLIENT_DEST_FOLDER_PATH"]
         return ["ok"], payload
 
     monkeypatch.setattr(
