@@ -140,7 +140,7 @@ else:
         return _FLOW_CACHE[state]["auth_uri"]
 
     def _complete_flow() -> None:
-        query = st.query_params
+        query = st.query_params.to_dict()
         if "code" not in query or "state" not in query:
             return  # not an auth return
         state = query["state"]
