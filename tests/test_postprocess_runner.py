@@ -80,7 +80,8 @@ def test_if_configured_applies_header_mappings(load_env, monkeypatch):
     logs, _ = run_postprocess_if_configured(tpl, df, "guid", "Cust")
 
     assert captured['lane'] == 'L1'
-    assert captured['cols'] == ['LANE_ID']
+    # Original source column should remain alongside the mapped one
+    assert captured['cols'] == ['Lane Code', 'LANE_ID']
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)
 
 
