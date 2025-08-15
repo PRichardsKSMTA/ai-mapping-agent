@@ -200,6 +200,20 @@ else:
         st.query_params.clear()
 
     # -------------------- Decorators & helpers ---------------------------- #
+    def render_login_button(login_url: str) -> None:
+        """Render login link without opening a new tab."""
+        st.markdown(
+            f'<a href="{login_url}" target="_self">\N{LOCK WITH INK PEN} Sign in with Microsoft</a>',
+            unsafe_allow_html=True,
+        )
+        st.components.v1.html(
+            f"<script>const a=document.querySelector('a[href=\"{login_url}\"]');"
+            f"if(a){{a.addEventListener('click',e=>{{e.preventDefault();"
+            f"window.open('{login_url}','msal-login','width=600,height=600');}});}}"
+            "</script>",
+            height=0,
+        )
+
     def _ensure_user() -> None:
         if "user_email" in st.session_state:
             return
@@ -209,7 +223,7 @@ else:
             return
 
         login_url = _initiate_flow()
-        st.link_button("Sign in with Microsoft", login_url)
+        render_login_button(login_url)
         st.stop()
 
     def require_login(func):
