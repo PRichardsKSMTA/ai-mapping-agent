@@ -24,11 +24,14 @@ from urllib.parse import quote
 import streamlit as st
 from pydantic import ValidationError
 import auth
+
 try:
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - optional dependency
+
     def load_dotenv() -> None:
         return None
+
 
 from auth import require_login, logout_button, get_user_email
 from app_utils.user_prefs import get_last_template, set_last_template
@@ -120,9 +123,7 @@ def main():
         st.warning(
             "Unsaved template changes detected. Save before leaving to keep your work."
         )
-        st.caption(
-            "Template edits exist only in this session until you save them."
-        )
+        st.caption("Template edits exist only in this session until you save them.")
         save_col, mgr_col = st.columns(2)
         save_col.button("Save Template", on_click=save_current_template)
         mgr_col.page_link(
@@ -278,9 +279,8 @@ def main():
                 )
             if sheet_key not in st.session_state and sheets:
                 st.session_state[sheet_key] = sheets[default_idx]
-            if (
-                st.session_state.get("upload_sheet")
-                and hasattr(st.session_state["uploaded_file"], "name")
+            if st.session_state.get("upload_sheet") and hasattr(
+                st.session_state["uploaded_file"], "name"
             ):
                 df, _ = read_tabular_file(
                     st.session_state["uploaded_file"],
@@ -291,7 +291,7 @@ def main():
 
     customer_valid = True
     st.session_state.setdefault("customer_ids", None)
-    
+
     if hasattr(st, "divider"):
         if hasattr(st, "divider"):
             st.divider()
@@ -318,8 +318,7 @@ def main():
                     st.session_state["customer_scac"] = scac
                     if (
                         st.session_state["customer_options"]
-                        and "CLIENT_SCAC"
-                        in st.session_state["customer_options"][0]
+                        and "CLIENT_SCAC" in st.session_state["customer_options"][0]
                     ):
                         st.session_state["client_scac"] = st.session_state[
                             "customer_options"
@@ -348,7 +347,9 @@ def main():
                 ):
                     prev_choice = st.session_state["customer_name"]
                     st.session_state["customer_choice"] = prev_choice
-                idx = cust_names.index(prev_choice) if prev_choice in cust_names else None
+                idx = (
+                    cust_names.index(prev_choice) if prev_choice in cust_names else None
+                )
                 try:
                     cust_col, _ = st.columns([3, 1])
                 except TypeError:
@@ -362,7 +363,9 @@ def main():
                     placeholder="Select a customer",
                 )
                 if selected_name == "+ New Customer":
-                    new_name: str = st.text_input("Customer Name", key="new_customer_name")
+                    new_name: str = st.text_input(
+                        "Customer Name", key="new_customer_name"
+                    )
                     customer_name = new_name.strip().title() if new_name else ""
                     st.session_state["customer_name"] = customer_name
                     st.session_state["customer_id_options"] = []
@@ -392,9 +395,12 @@ def main():
                         ]
                         st.session_state["customer_id_options"] = billto_ids
                         if billto_ids:
-                            if len(billto_ids) == 1 and not st.session_state.get("customer_ids"):
+                            if len(billto_ids) == 1 and not st.session_state.get(
+                                "customer_ids"
+                            ):
                                 st.session_state["customer_ids"] = billto_ids[:1]
                             else:
+
                                 def select_all_ids() -> None:
                                     st.session_state["customer_ids"] = billto_ids[:5]
 
@@ -405,7 +411,9 @@ def main():
                                 # st.markdown("**Customer ID**")
 
                                 try:
-                                    cid_col, actions_col = st.columns([3, 1], gap="small")
+                                    cid_col, actions_col = st.columns(
+                                        [3, 1], gap="small"
+                                    )
                                 except TypeError:
                                     try:
                                         cid_col, actions_col = st.columns([3, 1])
@@ -413,24 +421,37 @@ def main():
                                         cid_col, actions_col = st.columns(2)
 
                                 # The input itself (label collapsed so tops align)
-                                multiselect_fn = getattr(cid_col, "multiselect", st.multiselect)
+                                multiselect_fn = getattr(
+                                    cid_col, "multiselect", st.multiselect
+                                )
                                 multiselect_fn(
                                     "Customer ID",
                                     billto_ids,
                                     key="customer_ids",
                                     max_selections=5,
                                     label_visibility="collapsed",
-                                    placeholder="Select Customer ID"
+                                    placeholder="Select Customer ID",
                                 )
 
                                 # Buttons column, vertically centered to the input row
                                 with actions_col:
                                     anchor_id = f"cid_actions_{uuid.uuid4().hex[:6]}"
-                                    st.markdown(f"<span id='{anchor_id}'></span>", unsafe_allow_html=True)
+                                    st.markdown(
+                                        f"<span id='{anchor_id}'></span>",
+                                        unsafe_allow_html=True,
+                                    )
 
                                     b1, b2 = st.columns(2, gap="small")
-                                    b1.button("Select all", on_click=select_all_ids, key="cid_select_all")
-                                    b2.button("Deselect all", on_click=deselect_all_ids, key="cid_clear_all")
+                                    b1.button(
+                                        "Select all",
+                                        on_click=select_all_ids,
+                                        key="cid_select_all",
+                                    )
+                                    b2.button(
+                                        "Deselect all",
+                                        on_click=deselect_all_ids,
+                                        key="cid_clear_all",
+                                    )
 
                                     st.markdown(
                                         f"""
@@ -518,12 +539,12 @@ def main():
             st.session_state.pop(f"layer_confirmed_{last_idx}", None)
             st.session_state["current_step"] = compute_current_step()
             st.rerun()
-        
+
         if hasattr(st, "divider"):
             st.divider()
         else:  # pragma: no cover - Streamlit <1.20 or test stubs
             st.markdown("---")
-        
+
         if not st.session_state.get("export_complete"):
             header_text: str = "Step — Run Export"
             button_text: str = "Run Export"
@@ -531,7 +552,6 @@ def main():
                 header_text = "Step 2 - Generate BID File"
                 button_text = "Generate BID"
             st.header(header_text)
-
 
             sheet = st.session_state.get("upload_sheet", 0)
             df, _ = read_tabular_file(
@@ -574,23 +594,19 @@ def main():
             ):
                 st.session_state["postprocess_run_clicked"] = True
                 with st.spinner("Gathering mileage and toll data…"):
-                    st.markdown(
-                        ":blue[This process can take up to 10 minutes...]"
+                    st.markdown(":blue[This process can take up to 10 minutes...]")
+                    preview_payload: dict[str, Any] = azure_sql.get_pit_url_payload(
+                        st.session_state["operation_code"]
                     )
-                    preview_payload: dict[str, Any] = (
-                        azure_sql.get_pit_url_payload(
-                            st.session_state["operation_code"]
-                        )
-                    )
-                    preview_item = (
-                        preview_payload.get("item/In_dtInputData") or [{}]
-                    )[0]
+                    preview_item = (preview_payload.get("item/In_dtInputData") or [{}])[
+                        0
+                    ]
                     dest_site: str | None = preview_item.get("CLIENT_DEST_SITE")
-                    dest_path: str | None = preview_item.get(
-                        "CLIENT_DEST_FOLDER_PATH"
-                    )
+                    dest_path: str | None = preview_item.get("CLIENT_DEST_FOLDER_PATH")
                     if dest_site and dest_path:
-                        sharepoint_url = f"{dest_site.rstrip('/')}{quote(dest_path, safe='/')}"
+                        sharepoint_url = (
+                            f"{dest_site.rstrip('/')}{quote(dest_path, safe='/')}"
+                        )
                         st.link_button("Open SharePoint folder", sharepoint_url)
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
@@ -608,10 +624,9 @@ def main():
                         tmp_path = Path(tmp.name)
                         mapped_df = save_mapped_csv(df, final_json, tmp_path)
 
-                    adhoc_headers = (
-                        st.session_state.get("header_adhoc_headers")
-                        or azure_sql.derive_adhoc_headers(mapped_df)
-                    )
+                    adhoc_headers = st.session_state.get(
+                        "header_adhoc_headers"
+                    ) or azure_sql.derive_adhoc_headers(mapped_df)
                     insert_pit_bid_rows(
                         mapped_df,
                         st.session_state["operation_code"],
@@ -627,13 +642,13 @@ def main():
                         )
                     azure_sql.log_mapping_process(
                         guid,
+                        st.session_state.get("operation_code"),
                         slugify(template_obj.template_name),
                         template_obj.template_name,
                         user_email or "unknown",
                         selected_file,
                         json.dumps(final_json),
                         template_obj.template_guid,
-                        st.session_state.get("operation_code"),
                         adhoc_headers,
                     )
                     _, payload = run_postprocess_if_configured(
@@ -659,9 +674,7 @@ def main():
             st.success(
                 "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
-            payload: dict[str, Any] = (
-                st.session_state.get("postprocess_payload") or {}
-            )
+            payload: dict[str, Any] = st.session_state.get("postprocess_payload") or {}
             dest_site: str | None = payload.get("CLIENT_DEST_SITE")
             dest_path: str | None = payload.get("CLIENT_DEST_FOLDER_PATH")
             if not (dest_site and dest_path):
@@ -689,10 +702,12 @@ def main():
             st.info("Please select a template to begin.")
         elif not st.session_state.get("uploaded_file"):
             st.info("Please upload a client data file to continue.")
-            
+
     st.markdown(
         "<div style='margin-bottom: 240px'></div>",
         unsafe_allow_html=True,
     )
+
+
 main()
 logout_button()
