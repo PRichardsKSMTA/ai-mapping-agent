@@ -178,13 +178,13 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     monkeypatch.setattr("app_utils.azure_sql.derive_adhoc_headers", lambda df: {})
     def fake_log(
         process_guid,
+        operation_cd,
         template_name,
         friendly_name,
         user_email,
         file_name_string,
         process_json,
         template_guid,
-        operation_cd,
         adhoc_headers=None,
     ):
         called["log_guid"] = process_guid

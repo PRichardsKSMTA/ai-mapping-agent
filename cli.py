@@ -135,13 +135,13 @@ def main() -> None:
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
             azure_sql.log_mapping_process(
                 process_guid,
+                args.operation_code,
                 args.template.stem,
                 template.template_name,
                 args.user_email,
                 args.template.name,
                 json.dumps(mapped),
                 template.template_guid,
-                args.operation_code,
                 adhoc_headers,
             )
             logs_post, payload = run_postprocess_if_configured(
@@ -158,25 +158,25 @@ def main() -> None:
         else:
             azure_sql.log_mapping_process(
                 process_guid,
+                args.operation_code,
                 args.template.stem,
                 template.template_name,
                 args.user_email,
                 args.template.name,
                 json.dumps(mapped),
                 template.template_guid,
-                args.operation_code,
                 adhoc_headers,
             )
     else:
         azure_sql.log_mapping_process(
             process_guid,
+            args.operation_code,
             args.template.stem,
             template.template_name,
             args.user_email,
             args.template.name,
             json.dumps(mapped),
             template.template_guid,
-            args.operation_code,
             None,
         )
 

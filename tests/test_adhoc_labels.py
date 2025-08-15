@@ -140,13 +140,13 @@ def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Di
 
     def fake_log(
         process_guid,
+        operation_cd,
         template_name,
         friendly_name,
         user_email,
         file_name_string,
         process_json,
         template_guid,
-        operation_cd,
         adhoc_headers=None,
     ):
         captured["log_adhoc"] = adhoc_headers
