@@ -12,6 +12,31 @@ OPENAI_API_KEY = "your-openai-key"
 
 Streamlit will automatically load this file when running the app.
 
+### Azure AD authentication
+
+For Azure Active Directory login, set the following variables in
+`.streamlit/secrets.toml` or your environment:
+
+- `AAD_CLIENT_ID`
+- `AAD_TENANT_ID`
+- `AAD_REDIRECT_URI`
+- `AAD_CLIENT_SECRET`
+
+When registering the Azure app, add a **Web** platform (not SPA) and set the
+Streamlit URL as the redirect URI.
+
+Example `.streamlit/secrets.toml`:
+
+```toml
+AAD_CLIENT_ID = "your-client-id"
+AAD_TENANT_ID = "your-tenant-id"
+AAD_REDIRECT_URI = "http://localhost:8501"
+AAD_CLIENT_SECRET = "your-client-secret"
+```
+
+The same `AAD_CLIENT_SECRET` must be configured in the Streamlit Cloud
+deployment's Secrets settings.
+
 ### Database configuration
 
 To enable operation and customer lookups, set the following environment variables
