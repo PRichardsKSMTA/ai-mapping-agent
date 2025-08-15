@@ -28,15 +28,15 @@ def test_cli_basic(monkeypatch, tmp_path: Path):
     ):
         captured.update(
             {
-                "process_guid": process_guid,
-                "template_name": template_name,
-                "friendly_name": friendly_name,
-                "user_email": user_email,
-                "file_name_string": file_name_string,
-                "process_json": process_json,
-                "template_guid": template_guid,
-                "operation_cd": operation_cd,
-                "adhoc_headers": adhoc_headers,
+                'process_guid': process_guid,
+                'operation_cd': operation_cd,
+                'template_name': template_name,
+                'friendly_name': friendly_name,
+                'user_email': user_email,
+                'file_name_string': file_name_string,
+                'process_json': process_json,
+                'template_guid': template_guid,
+                'adhoc_headers': adhoc_headers,
             }
         )
 
