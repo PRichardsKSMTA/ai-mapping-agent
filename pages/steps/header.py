@@ -124,6 +124,7 @@ def render(layer, idx: int) -> None:
 
     all_fields = list(layer.fields) + [FieldSpec(key=f) for f in extra_fields]
     adhoc_labels = st.session_state.setdefault("header_adhoc_headers", {})
+    adhoc_autogen = st.session_state.setdefault("header_adhoc_autogen", {})
     for field in all_fields:  # type: ignore
         key, required = field.key, field.required
         # Source | ⚙ | Expr | Template | Status | 🗑️
@@ -151,12 +152,15 @@ def render(layer, idx: int) -> None:
                 },
                 headers=source_cols,
             )
-            if key.startswith("ADHOC_INFO"):
+            if key.startswith("ADHOC_INFO") and new_src != src_val:
                 match = re.findall(r"\d+", key)
                 default = f"AdHoc{match[0] if match else ''}"
                 label = adhoc_labels.get(key, default)
-                if label == default:
+                auto = adhoc_autogen.get(key, True)
+                if auto or label == src_val:
                     adhoc_labels[key] = new_src
+                    adhoc_autogen[key] = True
+                    st.session_state[f"adhoc_label_{key}"] = new_src
         elif "src" in mapping.get(key, {}):
             set_field_mapping(key, idx, {})
 
@@ -206,12 +210,16 @@ def render(layer, idx: int) -> None:
             sub = row[3].columns([1, 1])
             sub[0].markdown(f"**{key}**")
             match = re.findall(r"\d+", key)
-            default = adhoc_labels.get(key) or f"AdHoc{match[0] if match else ''}"
+            default = f"AdHoc{match[0] if match else ''}"
+            label = adhoc_labels.setdefault(key, default)
+            adhoc_autogen.setdefault(key, True)
             val = sub[1].text_input(
                 f"adhoc_label_{key}",
-                value=default,
+                value=label,
                 label_visibility="collapsed",
             )
+            if val != label:
+                adhoc_autogen[key] = False
             adhoc_labels[key] = val or default
         else:
             row[3].markdown(f"**{key}**")
