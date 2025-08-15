@@ -210,14 +210,12 @@ else:
             return
 
         login_url = _initiate_flow()
-        st.title("AI Mapping Agent")
-        st.subheader("Please sign in")
-        st.link_button(
-            "🔒 Sign in with Microsoft",
-            login_url,
-            type="primary",
-            use_container_width=False,
-        )
+        st.markdown(
+            "<h1 style='text-align:center;'>AI Mapping Agent</h1>"
+            "<h3 style='text-align:center;'>Please sign in</h3>",
+            unsafe_allow_html=True)
+        _, col, _ = st.columns((1, 2, 1))
+        col.link_button("🔒 Sign in with Microsoft", login_url, type="primary", use_container_width=True)
         st.stop()
 
     def require_login(func):
