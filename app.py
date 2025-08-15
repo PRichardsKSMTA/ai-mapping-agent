@@ -126,9 +126,10 @@ def main():
         st.caption("Template edits exist only in this session until you save them.")
         save_col, mgr_col = st.columns(2)
         save_col.button("Save Template", on_click=save_current_template)
-        mgr_col.page_link(
-            "pages/template_manager.py", label="Template Manager", icon="📝"
-        )
+        if st.session_state.get("is_admin"):
+            mgr_col.page_link(
+                "pages/template_manager.py", label="Template Manager", icon="📝"
+            )
 
     TEMPLATES_DIR = Path("templates")
     TEMPLATES_DIR.mkdir(exist_ok=True)
