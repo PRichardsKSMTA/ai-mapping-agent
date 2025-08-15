@@ -626,6 +626,7 @@ def main():
                         selected_file,
                         json.dumps(final_json),
                         template_obj.template_guid,
+                        st.session_state.get("operation_code"),
                         adhoc_headers,
                     )
                     _, payload = run_postprocess_if_configured(

@@ -38,9 +38,11 @@ def test_log_mapping_process(monkeypatch, payload):
         "file.csv",
         payload,
         "tmpl-guid",
+        "OP",
         adhoc,
     )
     assert "MAPPING_AGENT_PROCESSES" in captured["query"]
+    assert "OPERATION_CD" in captured["query"]
     params = captured["params"]
     assert params[0] == "proc"
     assert params[1] == "template-name"
@@ -53,3 +55,4 @@ def test_log_mapping_process(monkeypatch, payload):
     expected["adhoc_headers"] = adhoc
     assert stored == expected
     assert params[7] == "tmpl-guid"
+    assert params[8] == "OP"

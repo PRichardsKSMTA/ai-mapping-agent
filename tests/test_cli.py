@@ -15,7 +15,7 @@ def test_cli_basic(monkeypatch, tmp_path: Path):
     out = tmp_path / 'out.json'
     captured: dict[str, object] = {}
 
-    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, adhoc_headers=None):
+    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, operation_cd, adhoc_headers=None):
         captured.update(
             {
                 'process_guid': process_guid,
@@ -25,6 +25,7 @@ def test_cli_basic(monkeypatch, tmp_path: Path):
                 'file_name_string': file_name_string,
                 'process_json': process_json,
                 'template_guid': template_guid,
+                'operation_cd': operation_cd,
                 'adhoc_headers': adhoc_headers,
             }
         )
@@ -45,6 +46,7 @@ def test_cli_basic(monkeypatch, tmp_path: Path):
     assert captured['friendly_name'] == 'simple-template'
     assert captured['user_email'] == 'user@example.com'
     assert captured['file_name_string'] == tpl.name
+    assert captured['operation_cd'] is None
 
 
 def test_cli_csv_output(monkeypatch, tmp_path: Path):

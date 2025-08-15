@@ -176,7 +176,17 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         lambda df, op, cust, ids, guid, adhoc: len(df),
     )
     monkeypatch.setattr("app_utils.azure_sql.derive_adhoc_headers", lambda df: {})
-    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, adhoc_headers=None):
+    def fake_log(
+        process_guid,
+        template_name,
+        friendly_name,
+        user_email,
+        file_name_string,
+        process_json,
+        template_guid,
+        operation_cd,
+        adhoc_headers=None,
+    ):
         called["log_guid"] = process_guid
         called["log_template"] = template_name
         called["log_friendly"] = friendly_name
