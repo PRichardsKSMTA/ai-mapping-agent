@@ -5,7 +5,9 @@ import re
 import hashlib
 from typing import List, Optional, TypedDict
 
-SUGGESTION_FILE = Path("data/mapping_suggestions.json")
+SUGGESTION_FILE = (
+    Path(__file__).resolve().parent.parent / "data" / "mapping_suggestions.json"
+)
 
 
 class Suggestion(TypedDict, total=False):
