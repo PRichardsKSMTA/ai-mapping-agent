@@ -133,6 +133,9 @@ def main():
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
     apply_global_css()
     st.title("AI Mapping Agent")
+    user_email = get_user_email()
+    if user_email:
+        st.caption(f"Signed in as {user_email}")
 
     if st.session_state.get("unsaved_changes"):
         st.warning(
@@ -151,7 +154,6 @@ def main():
 
     st.session_state.setdefault("upload_data_file_key", str(uuid.uuid4()))
 
-    user_email = get_user_email()
     if user_email and "selected_template_file" not in st.session_state:
         last = get_last_template(user_email)
         if last:
@@ -652,21 +654,20 @@ def main():
                         adhoc_headers,
                     )
                     user_email = auth.ensure_user_email()
-                    if not user_email:
-                        st.warning(
-                            "User email missing; logging export as 'unknown'",
+                    if user_email:
+                        azure_sql.log_mapping_process(
+                            guid,
+                            st.session_state.get("operation_code"),
+                            slugify(template_obj.template_name),
+                            template_obj.template_name,
+                            user_email,
+                            selected_file,
+                            json.dumps(final_json),
+                            template_obj.template_guid,
+                            adhoc_headers,
                         )
-                    azure_sql.log_mapping_process(
-                        guid,
-                        st.session_state.get("operation_code"),
-                        slugify(template_obj.template_name),
-                        template_obj.template_name,
-                        user_email or "unknown",
-                        selected_file,
-                        json.dumps(final_json),
-                        template_obj.template_guid,
-                        adhoc_headers,
-                    )
+                    else:
+                        st.warning("User email missing; export not logged.")
                     _, payload = run_postprocess_if_configured(
                         template_obj,
                         df,
