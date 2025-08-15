@@ -15,6 +15,7 @@ AAD_EMPLOYEE_DOMAINS=ksmcpa.com,ksmta.com
 AAD_KSMTA_GROUP_IDS=cccccccc-cccc-cccc-cccc-cccccccccccc
 DISABLE_AUTH=1                     # set to 0 or unset for real login
 DEV_USER_EMAIL=pete.richards@ksmta.com
+DEV_USER_NAME=pete.richards
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ def _get_config(name: str, default: str | None = None) -> str | None:
 # 1.  Dev bypass mode                                                         #
 # --------------------------------------------------------------------------- #
 DISABLE_AUTH = _get_config("DISABLE_AUTH", "0") == "1"
+DISABLE_AUTH_ENV = DISABLE_AUTH
 CLIENT_ID = _get_config("AAD_CLIENT_ID")
 CLIENT_SECRET = _get_config("AAD_CLIENT_SECRET")
 TENANT_ID = _get_config("AAD_TENANT_ID")
@@ -73,9 +75,11 @@ if not DISABLE_AUTH:
 
 if DISABLE_AUTH:
     # Seed fake session values
-    st.session_state.setdefault(
-        "user_email", _get_config("DEV_USER_EMAIL", "pete.richards@ksmta.com")
-    )
+    default_email = _get_config("DEV_USER_EMAIL", "pete.richards@ksmta.com")
+    default_name = _get_config("DEV_USER_NAME", default_email.split("@")[0])
+    if DISABLE_AUTH_ENV:
+        st.session_state.setdefault("user_email", default_email)
+        st.session_state.setdefault("user_name", default_name)
     st.session_state.setdefault("is_employee", True)
     st.session_state.setdefault("is_ksmta", True)
     st.session_state.setdefault("is_admin", True)
@@ -99,8 +103,17 @@ if DISABLE_AUTH:
     def get_user_email() -> str | None:  # type: ignore
         return st.session_state.get("user_email")
 
+    def get_user_name() -> str | None:  # type: ignore
+        return st.session_state.get("user_name")
+    def _ensure_user() -> None:  # type: ignore
+        return
+
     def ensure_user_email() -> str | None:  # type: ignore
         """Return user email from session (dev bypass)."""
+        email = st.session_state.get("user_email")
+        if email:
+            return email
+        _ensure_user()
         return st.session_state.get("user_email")
 
 else:
@@ -274,6 +287,9 @@ else:
 
     def get_user_email() -> str | None:
         return st.session_state.get("user_email")
+
+    def get_user_name() -> str | None:
+        return st.session_state.get("user_name")
 
     def ensure_user_email() -> str | None:
         """Ensure user email is available, invoking login if needed."""

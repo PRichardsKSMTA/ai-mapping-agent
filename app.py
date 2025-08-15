@@ -134,6 +134,12 @@ def main():
     apply_global_css()
     st.title("AI Mapping Agent")
 
+    name = auth.get_user_name()
+    if name:
+        st.markdown(
+            f"<div class='user-badge'>👤 {name}</div>", unsafe_allow_html=True
+        )
+
     if st.session_state.get("unsaved_changes"):
         st.warning(
             "Unsaved template changes detected. Save before leaving to keep your work."
