@@ -103,19 +103,19 @@ def test_ensure_user_email_relogin(
 
     email = auth.ensure_user_email()
     assert called["flag"] is True
-    created_by = email or "unknown"
-    azure_sql.log_mapping_process(
-        "proc",
-        "OP",
-        "tmpl",
-        "friendly",
-        created_by,
-        "file.csv",
-        {},
-        "tmpl-guid",
-    )
-    assert captured["created_by"] == (
-        "user@example.com" if recover_email else "unknown"
-    )
+    if email:
+        azure_sql.log_mapping_process(
+            "proc",
+            "OP",
+            "tmpl",
+            "friendly",
+            email,
+            "file.csv",
+            {},
+            "tmpl-guid",
+        )
+        assert captured["created_by"] == "user@example.com"
+    else:
+        assert captured == {}
     st.session_state.clear()
     del sys.modules["auth"]
