@@ -74,6 +74,10 @@ if DISABLE_AUTH:
     def get_user_email() -> str | None:  # type: ignore
         return st.session_state.get("user_email")
 
+    def ensure_user_email() -> str | None:  # type: ignore
+        """Return user email from session (dev bypass)."""
+        return st.session_state.get("user_email")
+
 else:
     # ----------------------------------------------------------------------- #
     # 2.  Real MSAL authentication                                            #
@@ -232,4 +236,12 @@ else:
                 st.rerun()
 
     def get_user_email() -> str | None:
+        return st.session_state.get("user_email")
+
+    def ensure_user_email() -> str | None:
+        """Ensure user email is available, invoking login if needed."""
+        email = st.session_state.get("user_email")
+        if email:
+            return email
+        _ensure_user()
         return st.session_state.get("user_email")

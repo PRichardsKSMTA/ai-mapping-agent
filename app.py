@@ -635,12 +635,17 @@ def main():
                         guid,
                         adhoc_headers,
                     )
+                    user_email = auth.ensure_user_email()
+                    if not user_email:
+                        st.warning(
+                            "User email missing; logging export as 'unknown'",
+                        )
                     azure_sql.log_mapping_process(
                         guid,
                         st.session_state.get("operation_code"),
                         slugify(template_obj.template_name),
                         template_obj.template_name,
-                        auth.get_user_email(),
+                        user_email or "unknown",
                         selected_file,
                         json.dumps(final_json),
                         template_obj.template_guid,
