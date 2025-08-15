@@ -141,6 +141,7 @@ def main() -> None:
                 args.template.name,
                 json.dumps(mapped),
                 template.template_guid,
+                args.operation_code,
                 adhoc_headers,
             )
             logs_post, payload = run_postprocess_if_configured(
@@ -163,6 +164,7 @@ def main() -> None:
                 args.template.name,
                 json.dumps(mapped),
                 template.template_guid,
+                args.operation_code,
                 adhoc_headers,
             )
     else:
@@ -174,6 +176,7 @@ def main() -> None:
             args.template.name,
             json.dumps(mapped),
             template.template_guid,
+            args.operation_code,
             None,
         )
 

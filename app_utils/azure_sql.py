@@ -680,6 +680,7 @@ def log_mapping_process(
     file_name_string: str,
     process_json: dict | str,
     template_guid: str,
+    operation_cd: str | None,
     adhoc_headers: Dict[str, str] | None = None,
 ) -> None:
     """Insert a record into ``dbo.MAPPING_AGENT_PROCESSES``."""
@@ -690,7 +691,7 @@ def log_mapping_process(
         payload["adhoc_headers"] = adhoc_headers
     with _connect() as conn:
         conn.cursor().execute(
-            "INSERT INTO dbo.MAPPING_AGENT_PROCESSES (PROCESS_GUID, TEMPLATE_NAME, FRIENDLY_NAME, CREATED_BY, CREATED_DTTM, FILE_NAME_STRING, PROCESS_JSON, TEMPLATE_GUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO dbo.MAPPING_AGENT_PROCESSES (PROCESS_GUID, TEMPLATE_NAME, FRIENDLY_NAME, CREATED_BY, CREATED_DTTM, FILE_NAME_STRING, PROCESS_JSON, TEMPLATE_GUID, OPERATION_CD) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 process_guid,
                 template_name,
@@ -700,5 +701,6 @@ def log_mapping_process(
                 file_name_string,
                 json.dumps(payload),
                 template_guid,
+                operation_cd,
             ),
         )
