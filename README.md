@@ -73,3 +73,13 @@ python start_postprocess.py
 ```
 
 See `docs/template_spec.md` for details.
+
+## SharePoint uploads
+
+All SharePoint exports must be uploaded to:
+
+```
+/CLIENT  Downloads/Pricing Tools/Customer Bids
+```
+
+This path is case-sensitive and includes two spaces between `CLIENT` and `Downloads`. Keep the exact spacing and capitalization to avoid broken links or misplaced files.
