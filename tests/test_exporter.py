@@ -37,6 +37,20 @@ def test_expressions_in_output():
     assert any(c["expression"] == "$A - $B" for c in derived)
 
 
+def test_header_expression_clears_source():
+    template = load_sample("standard-fm-coa")
+    state = {
+        "header_mapping_0": {
+            "NET_CHANGE": {"src": "A", "expr": "df['A']*2"}
+        }
+    }
+    out = build_output_template(template, state, process_guid="guid_expr")
+    header_layer = out["layers"][0]
+    net_change = next(f for f in header_layer["fields"] if f["key"] == "NET_CHANGE")
+    assert net_change["expression"] == "df['A']*2"
+    assert "source" not in net_change
+
+
 def test_extra_fields_preserved():
     template = load_sample("standard-fm-coa")
     state = {
