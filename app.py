@@ -616,6 +616,7 @@ def main():
                     )
                     azure_sql.log_mapping_process(
                         guid,
+                        st.session_state.get("operation_code"),
                         slugify(template_obj.template_name),
                         template_obj.template_name,
                         auth.get_user_email(),
