@@ -1,5 +1,6 @@
 import pytest
 import types
+from pathlib import Path
 
 from app_utils.mapping_utils import suggest_header_mapping
 from app_utils.ui.header_utils import (
@@ -183,14 +184,16 @@ def test_persist_suggestions_from_mapping(monkeypatch, tmp_path):
     assert saved[1]["formula"] == "df['A'] + df['B']"
 
 
-def test_remove_formula_clears_mapping_and_suggestion(monkeypatch, tmp_path):
+def _prepare_suggestion(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> tuple[int, str, list[dict], Path]:
     idx = 0
     map_key = f"header_mapping_{idx}"
     st.session_state.clear()
     st.session_state[map_key] = {"Calc": {"expr": "df['A']", "expr_display": "A"}}
     st.session_state["current_template"] = "demo"
     sug_file = tmp_path / "mapping_suggestions.json"
-    data = [
+    data: list[dict] = [
         {
             "template": "demo",
             "field": "Calc",
@@ -202,9 +205,19 @@ def test_remove_formula_clears_mapping_and_suggestion(monkeypatch, tmp_path):
     ]
     sug_file.write_text(json.dumps(data))
     monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug_file)
+    return idx, map_key, data, sug_file
 
+
+def test_remove_formula_keeps_suggestion(monkeypatch, tmp_path):
+    idx, map_key, data, sug_file = _prepare_suggestion(monkeypatch, tmp_path)
     remove_formula("Calc", idx)
+    assert st.session_state[map_key]["Calc"] == {}
+    assert json.loads(sug_file.read_text()) == data
 
+
+def test_remove_formula_forget_suggestion(monkeypatch, tmp_path):
+    idx, map_key, _, sug_file = _prepare_suggestion(monkeypatch, tmp_path)
+    remove_formula("Calc", idx, drop_suggestion=True)
     assert st.session_state[map_key]["Calc"] == {}
     assert json.loads(sug_file.read_text()) == []
 

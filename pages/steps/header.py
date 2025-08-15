@@ -197,10 +197,17 @@ def render(layer, idx: int) -> None:
         expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(key, {}).get("expr")
         conf = mapping.get(key, {}).get("confidence")
         if expr_disp:
-            pill = row[2].columns([4, 1])
+            pill = row[2].columns([4, 1, 2])
             pill[0].markdown(f"<span class='expr-pill'>{expr_disp}</span>", unsafe_allow_html=True)
             if pill[1].button("×", key=f"rm_expr_{key}", help="Remove formula"):
-                remove_formula(key, idx)
+                remove_formula(key, idx, drop_suggestion=False)
+                st.rerun()
+            if pill[2].button(
+                "Forget suggestion",
+                key=f"forget_expr_{key}",
+                help="Remove formula and suggestion",
+            ):
+                remove_formula(key, idx, drop_suggestion=True)
                 st.rerun()
         elif conf is not None and "src" in mapping.get(key, {}):
             pct = int(round(conf * 100))

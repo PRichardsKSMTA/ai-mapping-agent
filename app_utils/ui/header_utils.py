@@ -22,8 +22,8 @@ def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
         st.session_state[map_key] = mapping
 
 
-def remove_formula(field_key: str, idx: int) -> None:
-    """Remove formula mapping and stored suggestion for ``field_key``."""
+def remove_formula(field_key: str, idx: int, drop_suggestion: bool = False) -> None:
+    """Remove formula mapping for ``field_key`` and optionally drop suggestion."""
     map_key = f"header_mapping_{idx}"
     mapping = st.session_state.get(map_key, {})
     info = mapping.get(field_key, {})
@@ -32,7 +32,7 @@ def remove_formula(field_key: str, idx: int) -> None:
     mapping[field_key] = info
     st.session_state[map_key] = mapping
     tpl = st.session_state.get("current_template")
-    if tpl:
+    if tpl and drop_suggestion:
         remove_suggestion(tpl, field_key, "formula")
 
 
