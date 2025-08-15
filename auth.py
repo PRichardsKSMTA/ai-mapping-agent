@@ -216,7 +216,7 @@ else:
             "🔒 Sign in with Microsoft",
             login_url,
             type="primary",
-            use_container_width=True,
+            use_container_width=False,
         )
         st.stop()
 
