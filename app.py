@@ -111,10 +111,25 @@ def do_reset(user_email: str | None = None) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Helper to remove admin-only pages
+# ---------------------------------------------------------------------------
+def remove_template_manager_page() -> None:
+    """Hide Template Manager page for non-admin users."""
+    if st.session_state.get("is_admin"):
+        return
+    get_pages = getattr(st, "experimental_get_pages", None)
+    if not get_pages:
+        return
+    pages = get_pages()
+    pages.pop("pages/template_manager.py", None)
+
+
+# ---------------------------------------------------------------------------
 # 0. Page config & helpers
 # ---------------------------------------------------------------------------
 @require_login
 def main():
+    remove_template_manager_page()
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
     apply_global_css()
     st.title("AI Mapping Agent")
