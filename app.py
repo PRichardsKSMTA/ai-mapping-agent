@@ -258,7 +258,7 @@ def main():
     st.sidebar.button(
         "Reset",
         on_click=lambda: do_reset(user_email),
-        type="",
+        type="tertiary",
         use_container_width=True,
     )
     if st.session_state.pop("_reset_triggered", False):
