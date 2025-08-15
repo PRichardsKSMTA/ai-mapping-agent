@@ -187,6 +187,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
 
     def fake_runner(tpl, df, process_guid, *args):
         called["run"] = True
+        called["runs"] = called.get("runs", 0) + 1
         called["guid"] = process_guid
         payload = {
             "p": 1,
@@ -271,13 +272,27 @@ def test_dataframe_previews(monkeypatch):
     assert len(st.dataframe_calls) >= 2
 
 
-def test_postprocess_flag_set(monkeypatch):
+def test_postprocess_flag_cleared_after_export(monkeypatch):
     _, state, _ = run_app(monkeypatch)
-    assert state.get("postprocess_run_clicked") is True
+    assert "postprocess_run_clicked" not in state
 
 
-def test_postprocess_button_disabled_on_second_click(monkeypatch):
-    _, state, st = run_app(monkeypatch, button_sequence=[{"Generate BID"}, {"Generate BID"}])
-    assert state.get("postprocess_run_clicked") is True
-    assert st.spinner_messages.count("Gathering mileage and toll data…") == 1
+def test_postprocess_flag_cleared_on_reset(monkeypatch):
+    called, state, _ = run_app(monkeypatch)
+    import app
+    app.do_reset()
+    assert "postprocess_run_clicked" not in state
+
+
+def test_export_button_reenabled_after_completion(monkeypatch):
+    called, state, st = run_app(monkeypatch)
+    assert called.get("runs") == 1
+    assert "postprocess_run_clicked" not in state
+    state["export_complete"] = False
+    st.button_sequence = [{"Generate BID"}]
+    st.run_idx = 0
+    import importlib, sys, app
+    importlib.reload(sys.modules["app"])
+    assert called.get("runs") == 2
+    assert st.spinner_messages.count("Gathering mileage and toll data…") == 2
 
