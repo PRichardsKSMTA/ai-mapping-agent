@@ -90,7 +90,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
-        "CLIENT_DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
+        "CLIENT_DEST_FOLDER_PATH": "/CLIENT  Downloads/Pricing Tools/Customer Bids",
     }
 
     monkeypatch.setattr(
@@ -127,9 +127,9 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     expected = 'OP - BID - Cust_20200101.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
-    assert returned['CLIENT_DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
+    assert returned['CLIENT_DEST_FOLDER_PATH'] == "/CLIENT  Downloads/Pricing Tools/Customer Bids"
     assert all(
-        item.get('CLIENT_DEST_FOLDER_PATH') == "/Client Downloads/Pricing Tools/Customer Bids"
+        item.get('CLIENT_DEST_FOLDER_PATH') == "/CLIENT  Downloads/Pricing Tools/Customer Bids"
         for item in returned.get('item/In_dtInputData', [])
     )
     assert called['url'] == tpl.postprocess.url
@@ -144,7 +144,7 @@ def test_pit_bid_posts(monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
-        "CLIENT_DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
+        "CLIENT_DEST_FOLDER_PATH": "/CLIENT  Downloads/Pricing Tools/Customer Bids",
     }
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
@@ -184,7 +184,7 @@ def test_pit_bid_posts(monkeypatch):
     assert called['url'] == tpl.postprocess.url
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
-    expected_path = "/Client Downloads/Pricing Tools/Customer Bids"
+    expected_path = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
     assert returned['CLIENT_DEST_FOLDER_PATH'] == expected_path
     assert all(
         item.get('CLIENT_DEST_FOLDER_PATH') == expected_path
