@@ -19,7 +19,8 @@ def apply_header_mappings(df: pd.DataFrame, template: Any) -> pd.DataFrame:
             src = getattr(field, "source", None)
             expr = getattr(field, "expression", None)
             if src and src in out.columns:
-                out = out.rename(columns={src: field.key})
+                # Copy values to the destination key without removing the original
+                out[field.key] = out[src]
             elif expr:
                 out[field.key] = eval(expr, {"df": out})  # controlled templates
     return out
