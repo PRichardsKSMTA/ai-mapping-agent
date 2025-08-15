@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import time
+import logging
 from functools import wraps
 from typing import Any, Dict, Set
 
@@ -50,6 +51,25 @@ CLIENT_ID = _get_config("AAD_CLIENT_ID")
 CLIENT_SECRET = _get_config("AAD_CLIENT_SECRET")
 TENANT_ID = _get_config("AAD_TENANT_ID")
 REDIRECT_URI = _get_config("AAD_REDIRECT_URI")
+
+REQUIRED_SECRETS = {
+    "AAD_CLIENT_ID": CLIENT_ID,
+    "AAD_CLIENT_SECRET": CLIENT_SECRET,
+    "AAD_TENANT_ID": TENANT_ID,
+    "AAD_REDIRECT_URI": REDIRECT_URI,
+}
+
+if not DISABLE_AUTH:
+    missing = [name for name, value in REQUIRED_SECRETS.items() if not value]
+    if missing:
+        DISABLE_AUTH = True
+        msg = (
+            "Auth disabled: missing secrets -> " + ", ".join(missing)
+        )
+        try:
+            st.warning(msg)
+        except Exception:  # pragma: no cover - streamlit not initialized
+            logging.warning(msg)
 
 if DISABLE_AUTH:
     # Seed fake session values
@@ -88,11 +108,6 @@ else:
     # 2.  Real MSAL authentication                                            #
     # ----------------------------------------------------------------------- #
     import msal  # only when auth enabled
-
-    if not all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, REDIRECT_URI]):
-        raise RuntimeError(
-            "AAD_CLIENT_ID, AAD_CLIENT_SECRET, AAD_TENANT_ID, and AAD_REDIRECT_URI must be set in st.secrets or environment variables."
-        )
 
     EMPLOYEE_GROUP_IDS: Set[str] = {
         g.strip()
