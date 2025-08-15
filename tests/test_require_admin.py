@@ -26,6 +26,7 @@ def setup_auth(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AAD_CLIENT_ID", "x")
     monkeypatch.setenv("AAD_TENANT_ID", "x")
     monkeypatch.setenv("AAD_REDIRECT_URI", "http://localhost")
+    monkeypatch.setenv("AAD_CLIENT_SECRET", "x")
     sys.modules.pop("auth", None)
     auth = importlib.import_module("auth")
     monkeypatch.setattr(auth, "_ensure_user", lambda: None)
