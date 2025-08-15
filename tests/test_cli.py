@@ -14,18 +14,27 @@ def test_cli_basic(monkeypatch, tmp_path: Path):
     src = Path('tests/fixtures/simple.csv')
     out = tmp_path / 'out.json'
     captured: dict[str, object] = {}
-
-    def fake_log(process_guid, template_name, friendly_name, user_email, file_name_string, process_json, template_guid, operation_cd, adhoc_headers=None):
+    def fake_log(
+        process_guid,
+        operation_cd,
+        template_name,
+        friendly_name,
+        user_email,
+        file_name_string,
+        process_json,
+        template_guid,
+        adhoc_headers=None,
+    ):
         captured.update(
             {
                 'process_guid': process_guid,
+                'operation_cd': operation_cd,
                 'template_name': template_name,
                 'friendly_name': friendly_name,
                 'user_email': user_email,
                 'file_name_string': file_name_string,
                 'process_json': process_json,
                 'template_guid': template_guid,
-                'operation_cd': operation_cd,
                 'adhoc_headers': adhoc_headers,
             }
         )

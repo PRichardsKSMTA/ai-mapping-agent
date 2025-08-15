@@ -683,7 +683,10 @@ def log_mapping_process(
     template_guid: str,
     adhoc_headers: Dict[str, str] | None = None,
 ) -> None:
-    """Insert a record into ``dbo.MAPPING_AGENT_PROCESSES``."""
+    """Insert a record into ``dbo.MAPPING_AGENT_PROCESSES``.
+
+    ``operation_cd`` is optional and may be ``None``.
+    """
     payload = (
         json.loads(process_json) if isinstance(process_json, str) else dict(process_json)
     )
