@@ -674,13 +674,13 @@ def insert_pit_bid_rows(
 
 def log_mapping_process(
     process_guid: str,
+    operation_cd: str | None,
     template_name: str,
     friendly_name: str,
     created_by: str,
     file_name_string: str,
     process_json: dict | str,
     template_guid: str,
-    operation_cd: str | None,
     adhoc_headers: Dict[str, str] | None = None,
 ) -> None:
     """Insert a record into ``dbo.MAPPING_AGENT_PROCESSES``."""
@@ -691,9 +691,10 @@ def log_mapping_process(
         payload["adhoc_headers"] = adhoc_headers
     with _connect() as conn:
         conn.cursor().execute(
-            "INSERT INTO dbo.MAPPING_AGENT_PROCESSES (PROCESS_GUID, TEMPLATE_NAME, FRIENDLY_NAME, CREATED_BY, CREATED_DTTM, FILE_NAME_STRING, PROCESS_JSON, TEMPLATE_GUID, OPERATION_CD) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO dbo.MAPPING_AGENT_PROCESSES (PROCESS_GUID, OPERATION_CD, TEMPLATE_NAME, FRIENDLY_NAME, CREATED_BY, CREATED_DTTM, FILE_NAME_STRING, PROCESS_JSON, TEMPLATE_GUID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 process_guid,
+                operation_cd,
                 template_name,
                 friendly_name,
                 created_by,
@@ -701,6 +702,5 @@ def log_mapping_process(
                 file_name_string,
                 json.dumps(payload),
                 template_guid,
-                operation_cd,
             ),
         )
