@@ -88,6 +88,8 @@ class DummyStreamlit:
             if self.run_idx < len(self.button_sequence)
             else set()
         )
+        if k.get("disabled"):
+            return False
         return label in presses
     def spinner(self, msg, *a, **k):
         class _C(DummyContainer):
@@ -260,10 +262,22 @@ def test_back_after_export(monkeypatch):
     for key in ["export_complete", "mapped_csv"]:
         assert key not in state
     assert "layer_confirmed_0" not in state
+    assert "postprocess_run_clicked" not in state
 
 
 def test_dataframe_previews(monkeypatch):
     _, state, st = run_app(monkeypatch)
     assert state.get("export_complete")
     assert len(st.dataframe_calls) >= 2
+
+
+def test_postprocess_flag_set(monkeypatch):
+    _, state, _ = run_app(monkeypatch)
+    assert state.get("postprocess_run_clicked") is True
+
+
+def test_postprocess_button_disabled_on_second_click(monkeypatch):
+    _, state, st = run_app(monkeypatch, button_sequence=[{"Generate BID"}, {"Generate BID"}])
+    assert state.get("postprocess_run_clicked") is True
+    assert st.spinner_messages.count("Gathering mileage and toll data…") == 1
 

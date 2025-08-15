@@ -506,6 +506,7 @@ def main():
                 "export_complete",
                 "mapped_csv",
                 "mapped_preview_df",
+                "postprocess_run_clicked",
             ]:
                 st.session_state.pop(key, None)
             st.session_state.pop(f"layer_confirmed_{last_idx}", None)
@@ -559,7 +560,13 @@ def main():
                 unsafe_allow_html=True,
             )
 
-            if st.button(button_text, key="postprocess_run", type="primary"):
+            if st.button(
+                button_text,
+                key="postprocess_run",
+                type="primary",
+                disabled=st.session_state.get("postprocess_run_clicked", False),
+            ):
+                st.session_state["postprocess_run_clicked"] = True
                 with st.spinner("Gathering mileage and toll data…"):
                     st.markdown(
                         ":blue[This process can take up to 10 minutes...]"

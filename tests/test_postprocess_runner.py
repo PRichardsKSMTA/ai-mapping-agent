@@ -2,6 +2,7 @@ import types
 import sys
 import logging
 from typing import Any, Dict
+from datetime import datetime
 import pandas as pd
 import pytest
 from schemas.template_v2 import PostprocessSpec, Template
@@ -100,6 +101,10 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         'app_utils.postprocess_runner.wait_for_postprocess_completion',
         lambda *a, **k: None,
     )
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.datetime',
+        types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)),
+    )
     called = {}
 
     def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
@@ -119,7 +124,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         operation_cd='OP',
         customer_name='Cust',
     )
-    expected = 'OP - BID - Cust.xlsm'
+    expected = 'OP - BID - Cust_20200101.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
     assert returned['CLIENT_DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
@@ -149,6 +154,10 @@ def test_pit_bid_posts(monkeypatch):
         'app_utils.postprocess_runner.wait_for_postprocess_completion',
         lambda *a, **k: None,
     )
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.datetime',
+        types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)),
+    )
     called: dict[str, Any] = {}
 
     def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
@@ -170,7 +179,7 @@ def test_pit_bid_posts(monkeypatch):
     )
     assert "Payload loaded" in logs
     assert "Payload finalized" in logs
-    expected = 'OP - BID - Cust.xlsm'
+    expected = 'OP - BID - Cust_20200101.xlsm'
     assert logs[-1] == 'Done'
     assert called['url'] == tpl.postprocess.url
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
