@@ -93,6 +93,8 @@ def main():
     TEMPLATES_DIR = Path("templates")
     TEMPLATES_DIR.mkdir(exist_ok=True)
 
+    st.session_state.setdefault("upload_data_file_key", str(uuid.uuid4()))
+
     user_email = get_user_email()
     if user_email and "selected_template_file" not in st.session_state:
         last = get_last_template(user_email)
@@ -133,8 +135,10 @@ def main():
             "mapped_preview_df",
         ]:
             st.session_state.pop(k, None)
-        st.session_state["upload_data_file"] = None
-        st.session_state.pop("upload_data_file", None)
+        old_key = st.session_state.get("upload_data_file_key")
+        if old_key:
+            st.session_state.pop(old_key, None)
+        st.session_state["upload_data_file_key"] = str(uuid.uuid4())
         st.session_state["current_step"] = 0
         if user_email:
             set_last_template(user_email, "")
@@ -243,7 +247,7 @@ def main():
         uploaded_file = st.file_uploader(
             "Upload client data file (Excel or CSV)",
             type=["csv", "xls", "xlsx"],
-            key="upload_data_file",
+            key=st.session_state["upload_data_file_key"],
             label_visibility="collapsed",
         )
     if uploaded_file:

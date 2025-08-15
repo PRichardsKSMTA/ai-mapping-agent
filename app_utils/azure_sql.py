@@ -28,7 +28,7 @@ PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Customer Name": "CUSTOMER_NAME",
     "Freight Type": "FREIGHT_TYPE",
     "Temp Cat": "TEMP_CAT",
-    "BTF FSC Per Mile": "BTF_FSC_PER_MILE",
+    "Breakthrough Fuel": "BTF_FSC_PER_MILE",
     "Volume Frequency": "VOLUME_FREQUENCY",
 }
 

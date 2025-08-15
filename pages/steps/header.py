@@ -15,24 +15,19 @@ from app_utils.ui.header_utils import (
     set_field_mapping,
     remove_field,
     add_field,
-    append_lookup_layer,
-    append_computed_layer,
-    save_current_template,
+    remove_formula,
     persist_suggestions_from_mapping,
 )
 from app_utils.ui_utils import set_steps_from_template
 import uuid
 
-# ─── CSS tweaks ───────────────────────────────────────────────────────
 st.markdown(
     """
     <style>
-    .confidence-badge{
-        font-size:0.75rem;color:#666;background:#eee;
-        border-radius:4px;padding:2px 6px;margin-left:4px;
-    }
+    .confidence-badge{font-size:0.75rem;color:#666;background:#eee;border-radius:4px;padding:2px 6px;margin-left:4px;}
     .stSelectbox select{max-width:150px;}
-    .stButton>button   {padding:.15rem .5rem;}
+    .stButton>button{padding:.15rem .5rem;}
+    .expr-pill{background:#eee;border-radius:12px;padding:2px 8px;font-family:monospace;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -117,9 +112,9 @@ def render(layer, idx: int) -> None:
     if not st.session_state.get(ai_flag):
         before = mapping.copy()
         with st.spinner("Querying GPT..."):
-            mapping = apply_gpt_header_fallback(mapping, source_cols, targets=required_keys)
-        for k in optional_keys + adhoc_keys:
-            mapping[k] = {}
+            mapping = apply_gpt_header_fallback(
+                mapping, source_cols, targets=required_keys
+            )
         st.session_state[map_key] = mapping
         st.session_state[ai_flag] = True
         if mapping != before:
@@ -189,12 +184,14 @@ def render(layer, idx: int) -> None:
             )
 
         # ── Expression / confidence cell ────────────────────────────────
-        expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(
-            key, {}
-        ).get("expr")
+        expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(key, {}).get("expr")
         conf = mapping.get(key, {}).get("confidence")
         if expr_disp:
-            row[2].markdown(f"`{expr_disp}`")
+            pill = row[2].columns([4, 1])
+            pill[0].markdown(f"<span class='expr-pill'>{expr_disp}</span>", unsafe_allow_html=True)
+            if pill[1].button("×", key=f"rm_expr_{key}", help="Remove formula"):
+                remove_formula(key, idx)
+                st.rerun()
         elif conf is not None and "src" in mapping.get(key, {}):
             pct = int(round(conf * 100))
             row[2].markdown(

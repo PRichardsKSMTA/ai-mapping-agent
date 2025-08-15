@@ -20,10 +20,11 @@ def _apply_header_expressions(layer: Dict[str, Any], idx: int, state: MutableMap
 
     for field in new_layer.get("fields", []):
         info = mapping.get(field["key"], {})
-        if "src" in info:
-            field["source"] = info["src"]
         if "expr" in info:
             field["expression"] = info["expr"]
+            field.pop("source", None)
+        elif "src" in info:
+            field["source"] = info["src"]
     return new_layer
 
 

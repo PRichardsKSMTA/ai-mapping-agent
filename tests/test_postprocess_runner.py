@@ -6,7 +6,11 @@ from datetime import datetime
 import pandas as pd
 import pytest
 from schemas.template_v2 import PostprocessSpec, Template
-from app_utils.postprocess_runner import run_postprocess, run_postprocess_if_configured
+from app_utils.postprocess_runner import (
+    CLIENT_BIDS_DEST_PATH,
+    run_postprocess,
+    run_postprocess_if_configured,
+)
 
 
 def test_run_postprocess_calls_requests(load_env, monkeypatch):
@@ -90,7 +94,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
-        "CLIENT_DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
+        "CLIENT_DEST_FOLDER_PATH": CLIENT_BIDS_DEST_PATH,
     }
 
     monkeypatch.setattr(
@@ -127,9 +131,9 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     expected = 'OP - BID - Cust_20200101.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
-    assert returned['CLIENT_DEST_FOLDER_PATH'] == "/Client Downloads/Pricing Tools/Customer Bids"
+    assert returned['CLIENT_DEST_FOLDER_PATH'] == CLIENT_BIDS_DEST_PATH
     assert all(
-        item.get('CLIENT_DEST_FOLDER_PATH') == "/Client Downloads/Pricing Tools/Customer Bids"
+        item.get('CLIENT_DEST_FOLDER_PATH') == CLIENT_BIDS_DEST_PATH
         for item in returned.get('item/In_dtInputData', [])
     )
     assert called['url'] == tpl.postprocess.url
@@ -144,7 +148,7 @@ def test_pit_bid_posts(monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
-        "CLIENT_DEST_FOLDER_PATH": "/Client Downloads/Pricing Tools/Customer Bids",
+        "CLIENT_DEST_FOLDER_PATH": CLIENT_BIDS_DEST_PATH,
     }
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
@@ -184,7 +188,7 @@ def test_pit_bid_posts(monkeypatch):
     assert called['url'] == tpl.postprocess.url
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
-    expected_path = "/Client Downloads/Pricing Tools/Customer Bids"
+    expected_path = CLIENT_BIDS_DEST_PATH
     assert returned['CLIENT_DEST_FOLDER_PATH'] == expected_path
     assert all(
         item.get('CLIENT_DEST_FOLDER_PATH') == expected_path

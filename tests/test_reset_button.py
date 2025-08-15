@@ -15,6 +15,7 @@ class DummyContainer:
 class DummySidebar:
     def __init__(self, st):
         self.st = st
+        self.reset_pressed = False
     def __enter__(self):
         return self
     def __exit__(self, *exc):
@@ -34,9 +35,12 @@ class DummySidebar:
         pass
     def button(self, label, on_click=None, *a, **k):
         if label == "Reset":
-            if on_click:
-                on_click()
-            return True
+            if not self.reset_pressed:
+                self.reset_pressed = True
+                if on_click:
+                    on_click()
+                return True
+            return False
         return False
 
 class DummyStreamlit:
@@ -55,13 +59,15 @@ class DummyStreamlit:
         if key:
             self.session_state[key] = choice
         return choice
-    def file_uploader(self, *a, **k):
-        return None
+    def file_uploader(self, label, *, key=None, **k):
+        return self.session_state.get(key)
     def button(self, *a, **k):
         return False
     def spinner(self, *a, **k):
         return DummyContainer()
     def empty(self):
+        return DummyContainer()
+    def container(self):
         return DummyContainer()
     def rerun(self):
         self.rerun_called = True
@@ -83,26 +89,40 @@ def run_app(monkeypatch):
     monkeypatch.setattr(
         "app_utils.azure_sql.fetch_operation_codes", lambda email=None: ["DEK1_REF"]
     )
-    st.session_state.update({
-        "selected_template_file": "demo.json",
-        "uploaded_file": object(),
-        "upload_data_file": object(),
-        "template": {},
-        "template_name": "Demo",
-        "current_template": "Demo",
-        "layer_confirmed_0": True,
-        "export_complete": True,
-        "header_mapping_0": {"A": {"src": "A"}},
-    })
+    upload_key = "uploader-key"
+    st.session_state.update(
+        {
+            "selected_template_file": "demo.json",
+            "uploaded_file": object(),
+            "upload_data_file_key": upload_key,
+            upload_key: object(),
+            "template": {},
+            "template_name": "Demo",
+            "current_template": "Demo",
+            "layer_confirmed_0": True,
+            "export_complete": True,
+            "header_mapping_0": {"A": {"src": "A"}},
+        }
+    )
     sys.modules.pop("app", None)
-    importlib.import_module("app")
-    return st
+    app_mod = importlib.import_module("app")
+    return st, app_mod, upload_key
 
 
 def test_reset_button_triggers_rerun(monkeypatch):
-    st = run_app(monkeypatch)
+    st, _app, old_key = run_app(monkeypatch)
     assert st.rerun_called is True
     assert "uploaded_file" not in st.session_state
-    assert "upload_data_file" not in st.session_state
+    assert old_key not in st.session_state
     assert "export_complete" not in st.session_state
     assert "header_mapping_0" not in st.session_state
+
+
+def test_uploader_cleared_after_rerun(monkeypatch):
+    st, app_mod, old_key = run_app(monkeypatch)
+    new_key = st.session_state["upload_data_file_key"]
+    assert new_key != old_key
+    app_mod.main()
+    assert st.session_state["upload_data_file_key"] == new_key
+    assert new_key not in st.session_state
+    assert "uploaded_file" not in st.session_state

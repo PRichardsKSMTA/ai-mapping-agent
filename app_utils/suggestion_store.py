@@ -5,7 +5,9 @@ import re
 import hashlib
 from typing import List, Optional, TypedDict
 
-SUGGESTION_FILE = Path("data/mapping_suggestions.json")
+SUGGESTION_FILE = (
+    Path(__file__).resolve().parent.parent / "data" / "mapping_suggestions.json"
+)
 
 
 class Suggestion(TypedDict, total=False):
@@ -88,3 +90,19 @@ def get_suggestions(
     if h_id:
         matches.sort(key=lambda x: 0 if x.get("header_id") == h_id else 1)
     return matches
+
+
+def remove_suggestion(template: str, field: str, suggestion_type: str | None = "formula") -> None:
+    """Remove stored suggestions matching ``template`` and ``field``."""
+    t_c = _canon(template)
+    f_c = _canon(field)
+    data = [
+        s
+        for s in _load()
+        if not (
+            _canon(s["template"]) == t_c
+            and _canon(s["field"]) == f_c
+            and (suggestion_type is None or s.get("type") == suggestion_type)
+        )
+    ]
+    _save(data)
