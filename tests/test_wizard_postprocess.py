@@ -59,6 +59,7 @@ class DummyStreamlit:
         self.session_state = {}
         self.sidebar = DummySidebar(self)
         self.markdown_calls: list[str] = []
+        self.link_button_calls: list[tuple[str, str]] = []
         self.spinner_messages: list[str] = []
         self.info_messages: list[str] = []
         self.success_messages: list[str] = []
@@ -104,6 +105,9 @@ class DummyStreamlit:
         self.run_idx += 1
     def markdown(self, text, *a, **k):
         self.markdown_calls.append(text)
+    def link_button(self, label, url, *a, **k):
+        self.link_button_calls.append((label, url))
+        return False
     def download_button(self, *a, **k):
         pass
     def divider(self, *a, **k):
@@ -156,6 +160,17 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
                 "BILLTO_ID": "1",
             }
         ],
+    )
+    monkeypatch.setattr(
+        "app_utils.azure_sql.get_pit_url_payload",
+        lambda op_cd: {
+            "item/In_dtInputData": [
+                {
+                    "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
+                    "CLIENT_DEST_FOLDER_PATH": "/docs/folder with spaces",
+                }
+            ]
+        },
     )
     monkeypatch.setattr(
         "app_utils.azure_sql.insert_pit_bid_rows",
@@ -249,8 +264,9 @@ def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
     assert any(
-        "https://tenant.sharepoint.com/sites/demo/docs/folder" in m
-        for m in st.markdown_calls
+        url
+        == "https://tenant.sharepoint.com/sites/demo/docs/folder%20with%20spaces"
+        for _, url in st.link_button_calls
     )
 
 

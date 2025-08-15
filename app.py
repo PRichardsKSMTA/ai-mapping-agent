@@ -19,6 +19,8 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
+from urllib.parse import quote
 import streamlit as st
 from pydantic import ValidationError
 import auth
@@ -285,7 +287,10 @@ def main():
     st.session_state.setdefault("customer_ids", None)
     
     if hasattr(st, "divider"):
-        st.divider()
+        if hasattr(st, "divider"):
+            st.divider()
+        else:  # pragma: no cover - Streamlit <1.20 or test stubs
+            st.markdown("---")
 
     # ---------------------------------------------------------------------------
     # 4. Customer selection (PIT BID only)
@@ -507,7 +512,10 @@ def main():
             st.session_state["current_step"] = compute_current_step()
             st.rerun()
         
-        st.divider()
+        if hasattr(st, "divider"):
+            st.divider()
+        else:  # pragma: no cover - Streamlit <1.20 or test stubs
+            st.markdown("---")
         
         if not st.session_state.get("export_complete"):
             header_text: str = "Step — Run Export"
@@ -553,8 +561,24 @@ def main():
 
             if st.button(button_text, key="postprocess_run", type="primary"):
                 with st.spinner("Gathering mileage and toll data…"):
-                    st.markdown('''
-                                :blue[This process can take up to 10 minutes...]''')
+                    st.markdown(
+                        ":blue[This process can take up to 10 minutes...]"
+                    )
+                    preview_payload: dict[str, Any] = (
+                        azure_sql.get_pit_url_payload(
+                            st.session_state["operation_code"]
+                        )
+                    )
+                    preview_item = (
+                        preview_payload.get("item/In_dtInputData") or [{}]
+                    )[0]
+                    dest_site: str | None = preview_item.get("CLIENT_DEST_SITE")
+                    dest_path: str | None = preview_item.get(
+                        "CLIENT_DEST_FOLDER_PATH"
+                    )
+                    if dest_site and dest_path:
+                        sharepoint_url = f"{dest_site.rstrip('/')}{quote(dest_path, safe='/')}"
+                        st.link_button("Open SharePoint folder", sharepoint_url)
                     sheet = st.session_state.get("upload_sheet", 0)
                     df, _ = read_tabular_file(
                         st.session_state["uploaded_file"], sheet_name=sheet
@@ -615,12 +639,18 @@ def main():
             st.success(
                 "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
             )
-            payload = st.session_state.get("postprocess_payload") or {}
-            dest_site = payload.get("CLIENT_DEST_SITE")
-            dest_path = payload.get("CLIENT_DEST_FOLDER_PATH")
+            payload: dict[str, Any] = (
+                st.session_state.get("postprocess_payload") or {}
+            )
+            dest_site: str | None = payload.get("CLIENT_DEST_SITE")
+            dest_path: str | None = payload.get("CLIENT_DEST_FOLDER_PATH")
+            if not (dest_site and dest_path):
+                nested = (payload.get("item/In_dtInputData") or [{}])[0]
+                dest_site = dest_site or nested.get("CLIENT_DEST_SITE")
+                dest_path = dest_path or nested.get("CLIENT_DEST_FOLDER_PATH")
             if dest_site and dest_path:
-                sharepoint_url = f"{dest_site.rstrip('/')}{dest_path}"
-                st.markdown(f"[Open SharePoint folder]({sharepoint_url})")
+                sharepoint_url = f"{dest_site.rstrip('/')}{quote(dest_path, safe='/')}"
+                st.link_button("Open SharePoint folder", sharepoint_url)
             preview_df = st.session_state.get("mapped_preview_df")
             if preview_df is not None:
                 st.dataframe(preview_df)
