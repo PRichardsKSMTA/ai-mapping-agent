@@ -10,6 +10,8 @@ from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
 from app_utils.azure_sql import get_pit_url_payload, wait_for_postprocess_completion
 
+CLIENT_BIDS_DEST_PATH: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
+
 
 def run_postprocess(
     cfg: PostprocessSpec, df: pd.DataFrame, log: List[str] | None = None
@@ -77,8 +79,7 @@ def run_postprocess_if_configured(
         except RuntimeError as err:  # pragma: no cover - exercised in integration
             logs.append(f"Payload error: {err}")
             raise
-        dest_path: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
-        payload["CLIENT_DEST_FOLDER_PATH"] = dest_path
+        payload["CLIENT_DEST_FOLDER_PATH"] = CLIENT_BIDS_DEST_PATH
         logs.append("Payload loaded")
 
         # Generate filename with current date
@@ -90,7 +91,7 @@ def run_postprocess_if_configured(
             payload["item/In_dtInputData"].append({})
         payload["item/In_dtInputData"][0]["NEW_EXCEL_FILENAME"] = fname
         for entry in payload.get("item/In_dtInputData", []):
-            entry["CLIENT_DEST_FOLDER_PATH"] = dest_path
+            entry["CLIENT_DEST_FOLDER_PATH"] = CLIENT_BIDS_DEST_PATH
         if "BID-Payload" in payload:
             payload["BID-Payload"] = process_guid
         else:
