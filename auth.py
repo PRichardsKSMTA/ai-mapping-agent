@@ -266,6 +266,10 @@ else:
             # email: str | None = st.session_state.get("user_email")
             # if email:
             #     st.caption(f"Signed in as {email}")
+            st.markdown(
+                "<div style='height: 3rem'></div>",
+                unsafe_allow_html=True,
+            )
             if st.button(
                 "Sign out", type="primary", use_container_width=True
             ):
