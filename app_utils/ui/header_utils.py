@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import streamlit as st
-from app_utils.suggestion_store import add_suggestion
+from app_utils.suggestion_store import add_suggestion, remove_suggestion
 from app_utils.template_builder import (
     build_lookup_layer,
     build_computed_layer,
@@ -20,6 +20,20 @@ def set_field_mapping(field_key: str, idx: int, value: dict) -> None:
     if mapping.get(field_key) != value:
         mapping[field_key] = value
         st.session_state[map_key] = mapping
+
+
+def remove_formula(field_key: str, idx: int) -> None:
+    """Remove formula mapping and stored suggestion for ``field_key``."""
+    map_key = f"header_mapping_{idx}"
+    mapping = st.session_state.get(map_key, {})
+    info = mapping.get(field_key, {})
+    info.pop("expr", None)
+    info.pop("expr_display", None)
+    mapping[field_key] = info
+    st.session_state[map_key] = mapping
+    tpl = st.session_state.get("current_template")
+    if tpl:
+        remove_suggestion(tpl, field_key, "formula")
 
 
 def remove_field(field_key: str, idx: int) -> None:

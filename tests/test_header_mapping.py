@@ -7,6 +7,7 @@ from app_utils.ui.header_utils import (
     add_field,
     set_field_mapping,
     persist_suggestions_from_mapping,
+    remove_formula,
 )
 import streamlit as st
 import json
@@ -169,13 +170,43 @@ def test_persist_suggestions_from_mapping(monkeypatch, tmp_path):
     monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug_file)
 
     st.session_state["current_template"] = "demo"
-    layer = types.SimpleNamespace(fields=[FieldSpec(key="Name")])
-    mapping = {"Name": {"src": "ColA"}}
+    layer = types.SimpleNamespace(fields=[FieldSpec(key="Name"), FieldSpec(key="Calc")])
+    mapping = {
+        "Name": {"src": "ColA"},
+        "Calc": {"expr": "df['A'] + df['B']", "expr_display": "A + B"},
+    }
 
-    persist_suggestions_from_mapping(layer, mapping, ["ColA"])
+    persist_suggestions_from_mapping(layer, mapping, ["ColA", "A", "B"])
 
     saved = json.loads(sug_file.read_text())
     assert saved[0]["columns"] == ["ColA"]
+    assert saved[1]["formula"] == "df['A'] + df['B']"
+
+
+def test_remove_formula_clears_mapping_and_suggestion(monkeypatch, tmp_path):
+    idx = 0
+    map_key = f"header_mapping_{idx}"
+    st.session_state.clear()
+    st.session_state[map_key] = {"Calc": {"expr": "df['A']", "expr_display": "A"}}
+    st.session_state["current_template"] = "demo"
+    sug_file = tmp_path / "mapping_suggestions.json"
+    data = [
+        {
+            "template": "demo",
+            "field": "Calc",
+            "type": "formula",
+            "formula": "df['A']",
+            "columns": ["A"],
+            "display": "A",
+        }
+    ]
+    sug_file.write_text(json.dumps(data))
+    monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug_file)
+
+    remove_formula("Calc", idx)
+
+    assert st.session_state[map_key]["Calc"] == {}
+    assert json.loads(sug_file.read_text()) == []
 
 
 def test_exact_match_prepopulates_optional(monkeypatch):
