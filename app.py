@@ -68,6 +68,45 @@ def default_sheet_index(sheets: list[str]) -> int:
     return 0
 
 
+def do_reset(user_email: str | None = None) -> None:
+    """Clear uploaded file, mappings, and export state."""
+    prefixes = [
+        "layer_confirmed_",
+        "header_",
+        "lookup_",
+        "computed_",
+    ]
+    for k in list(st.session_state.keys()):
+        if any(k.startswith(p) for p in prefixes):
+            st.session_state.pop(k)
+    for k in [
+        "uploaded_file",
+        "upload_sheet",
+        "upload_sheets",
+        "template",
+        "template_name",
+        "selected_template_file",
+        "current_template",
+        "auto_computed_confirm",
+        "export_complete",
+        "customer_name",
+        "customer_choice",
+        "selected_customer",
+        "new_customer_name",
+        "mapped_preview_df",
+        "postprocess_run_clicked",
+    ]:
+        st.session_state.pop(k, None)
+    old_key = st.session_state.get("upload_data_file_key")
+    if old_key:
+        st.session_state.pop(old_key, None)
+    st.session_state["upload_data_file_key"] = str(uuid.uuid4())
+    st.session_state["current_step"] = 0
+    if user_email:
+        set_last_template(user_email, "")
+    st.session_state["_reset_triggered"] = True
+
+
 # ---------------------------------------------------------------------------
 # 0. Page config & helpers
 # ---------------------------------------------------------------------------
@@ -106,43 +145,6 @@ def main():
         for k in list(st.session_state.keys()):
             if k.startswith("layer_confirmed_"):
                 del st.session_state[k]
-
-    def do_reset() -> None:
-        """Clear uploaded file, mappings, and export state."""
-        prefixes = [
-            "layer_confirmed_",
-            "header_",
-            "lookup_",
-            "computed_",
-        ]
-        for k in list(st.session_state.keys()):
-            if any(k.startswith(p) for p in prefixes):
-                st.session_state.pop(k)
-        for k in [
-            "uploaded_file",
-            "upload_sheet",
-            "upload_sheets",
-            "template",
-            "template_name",
-            "selected_template_file",
-            "current_template",
-            "auto_computed_confirm",
-            "export_complete",
-            "customer_name",
-            "customer_choice",
-            "selected_customer",
-            "new_customer_name",
-            "mapped_preview_df",
-        ]:
-            st.session_state.pop(k, None)
-        old_key = st.session_state.get("upload_data_file_key")
-        if old_key:
-            st.session_state.pop(old_key, None)
-        st.session_state["upload_data_file_key"] = str(uuid.uuid4())
-        st.session_state["current_step"] = 0
-        if user_email:
-            set_last_template(user_email, "")
-        st.session_state["_reset_triggered"] = True
 
     # ---------------------------------------------------------------------------
     # 1. Sidebar – choose template
@@ -234,7 +236,7 @@ def main():
 
     progress_box = st.sidebar.empty()
     render_progress(progress_box)
-    st.sidebar.button("Reset", on_click=do_reset)
+    st.sidebar.button("Reset", on_click=lambda: do_reset(user_email))
     if st.session_state.pop("_reset_triggered", False):
         st.rerun()
 
@@ -646,6 +648,7 @@ def main():
                             "postprocess_payload": payload,
                         }
                     )
+                    st.session_state.pop("postprocess_run_clicked", None)
                     st.rerun()
         else:
             st.success(
