@@ -267,7 +267,7 @@ else:
             if email:
                 st.caption(f"Signed in as {email}")
             if st.button(
-                "↩ Sign out", type="primary", use_container_width=True
+                "Sign out", type="primary", use_container_width=True
             ):
                 for k in [
                     "user_email",
