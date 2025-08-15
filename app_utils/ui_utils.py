@@ -45,6 +45,17 @@ def apply_global_css() -> None:
 
         /* Optional: narrower selects when you toggle a 'compact' class */
         .compact [data-testid="stSelectbox"] { max-width: 460px; }
+
+        .user-badge {
+            position: fixed;
+            top: 8px;
+            right: 16px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            z-index: 1000;
+        }
         </style>
         """,
         unsafe_allow_html=True,
