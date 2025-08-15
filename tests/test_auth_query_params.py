@@ -8,6 +8,7 @@ from streamlit.runtime.state.query_params import QueryParams
 
 def test_complete_flow_accepts_query_params(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AAD_CLIENT_ID", "cid")
+    monkeypatch.setenv("AAD_CLIENT_SECRET", "sec")
     monkeypatch.setenv("AAD_TENANT_ID", "tid")
     monkeypatch.setenv("AAD_REDIRECT_URI", "http://localhost")
     monkeypatch.delenv("DISABLE_AUTH", raising=False)

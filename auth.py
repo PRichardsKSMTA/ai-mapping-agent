@@ -9,7 +9,7 @@ auth.py  –  Stand-alone + demo-bypass
 
 Environment variables
 ---------------------
-AAD_CLIENT_ID, AAD_TENANT_ID, AAD_REDIRECT_URI
+AAD_CLIENT_ID, AAD_CLIENT_SECRET, AAD_TENANT_ID, AAD_REDIRECT_URI
 AAD_EMPLOYEE_GROUP_IDS=            # optional
 AAD_EMPLOYEE_DOMAINS=ksmcpa.com,ksmta.com
 AAD_KSMTA_GROUP_IDS=cccccccc-cccc-cccc-cccc-cccccccccccc
@@ -47,6 +47,7 @@ def _get_config(name: str, default: str | None = None) -> str | None:
 # --------------------------------------------------------------------------- #
 DISABLE_AUTH = _get_config("DISABLE_AUTH", "0") == "1"
 CLIENT_ID = _get_config("AAD_CLIENT_ID")
+CLIENT_SECRET = _get_config("AAD_CLIENT_SECRET")
 TENANT_ID = _get_config("AAD_TENANT_ID")
 REDIRECT_URI = _get_config("AAD_REDIRECT_URI")
 
@@ -88,9 +89,9 @@ else:
     # ----------------------------------------------------------------------- #
     import msal  # only when auth enabled
 
-    if not all([CLIENT_ID, TENANT_ID, REDIRECT_URI]):
+    if not all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, REDIRECT_URI]):
         raise RuntimeError(
-            "AAD_CLIENT_ID, AAD_TENANT_ID, and AAD_REDIRECT_URI must be set in st.secrets or environment variables."
+            "AAD_CLIENT_ID, AAD_CLIENT_SECRET, AAD_TENANT_ID, and AAD_REDIRECT_URI must be set in st.secrets or environment variables."
         )
 
     EMPLOYEE_GROUP_IDS: Set[str] = {
@@ -117,11 +118,12 @@ else:
     _FLOW_CACHE: Dict[str, Dict[str, Any]] = {}
 
     # -------------------- MSAL helpers ------------------------------------ #
-    def _build_msal_app() -> msal.PublicClientApplication:
+    def _build_msal_app() -> msal.ConfidentialClientApplication:
         if "msal_app" not in st.session_state:
-            st.session_state.msal_app = msal.PublicClientApplication(
+            st.session_state.msal_app = msal.ConfidentialClientApplication(
                 client_id=CLIENT_ID,
                 authority=AUTHORITY,
+                client_credential=CLIENT_SECRET,
             )
         return st.session_state.msal_app
 
