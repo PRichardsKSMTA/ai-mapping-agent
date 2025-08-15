@@ -57,6 +57,7 @@ if DISABLE_AUTH:
     )
     st.session_state.setdefault("is_employee", True)
     st.session_state.setdefault("is_ksmta", True)
+    st.session_state.setdefault("is_admin", True)
 
     # No-op decorators
     def require_login(func):  # type: ignore
@@ -66,6 +67,9 @@ if DISABLE_AUTH:
         return func
 
     def require_ksmta(func):  # type: ignore
+        return func
+
+    def require_admin(func):  # type: ignore
         return func
 
     def logout_button():  # type: ignore
@@ -101,6 +105,9 @@ else:
     }
     KSMTA_GROUP_IDS: Set[str] = {
         g.strip() for g in _get_config("AAD_KSMTA_GROUP_IDS", "").split(",") if g.strip()
+    }
+    ADMIN_GROUP_IDS: Set[str] = {
+        g.strip() for g in _get_config("AAD_ADMIN_GROUP_IDS", "").split(",") if g.strip()
     }
 
     AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
@@ -167,6 +174,7 @@ else:
             groups=groups,
             is_employee=is_employee,
             is_ksmta=bool(groups & KSMTA_GROUP_IDS),
+            is_admin=bool(groups & ADMIN_GROUP_IDS),
             id_token=result["id_token"],
             token_acquired_at=time.time(),
         )
@@ -207,6 +215,17 @@ else:
 
         return wrapper
 
+    def require_admin(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            _ensure_user()
+            if not st.session_state.get("is_admin", False):
+                st.error("🚫 Admins only.")
+                st.stop()
+            return func(*args, **kwargs)
+
+        return wrapper
+
     def require_ksmta(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -227,6 +246,7 @@ else:
                     "groups",
                     "is_employee",
                     "is_ksmta",
+                    "is_admin",
                     "id_token",
                     "token_acquired_at",
                     "msal_state",

@@ -7,7 +7,7 @@ import uuid
 import streamlit as st
 from pydantic import ValidationError
 
-from auth import require_employee
+from auth import require_admin
 from schemas.template_v2 import Template
 from app_utils.excel_utils import list_sheets, read_tabular_file
 from app_utils.template_builder import (
@@ -44,7 +44,7 @@ def render_sidebar_columns(columns: List[str]) -> None:
         st.sidebar.write(col)
 
 
-@require_employee
+@require_admin
 def show() -> None:
     st.title("Template Manager")
 
