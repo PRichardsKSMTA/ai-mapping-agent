@@ -12,6 +12,7 @@ import streamlit as st
 import json
 from schemas.template_v2 import FieldSpec
 from app_utils import suggestion_store
+from app_utils.mapping import header_layer
 
 
 def test_header_mapping_confidence():
@@ -175,3 +176,67 @@ def test_persist_suggestions_from_mapping(monkeypatch, tmp_path):
 
     saved = json.loads(sug_file.read_text())
     assert saved[0]["columns"] == ["ColA"]
+
+
+def test_exact_match_prepopulates_optional(monkeypatch):
+    """Exact column names should remain mapped after GPT fallback."""
+
+    monkeypatch.setattr(
+        header_layer, "apply_gpt_header_fallback", lambda m, *_a, **_k: m
+    )
+
+    fields = [
+        FieldSpec(key="Lane ID", required=True),
+        FieldSpec(key="Origin City", required=False),
+    ]
+    cols = ["Lane ID", "Origin City"]
+
+    mapping = suggest_header_mapping([f.key for f in fields], cols)
+    mapping = header_layer.apply_gpt_header_fallback(mapping, cols, targets=["Lane ID"])
+
+    assert mapping["Lane ID"]["src"] == "Lane ID"
+    assert mapping["Origin City"]["src"] == "Origin City"
+
+
+def test_saved_suggestion_prepopulates(monkeypatch, tmp_path):
+    """Stored suggestions should map optional fields."""
+
+    monkeypatch.setattr(
+        header_layer, "apply_gpt_header_fallback", lambda m, *_a, **_k: m
+    )
+
+    sug_file = tmp_path / "mapping_suggestions.json"
+    data = [
+        {
+            "template": "PIT BID",
+            "field": "Origin City",
+            "type": "direct",
+            "formula": None,
+            "columns": ["OC"],
+            "display": "OC",
+        }
+    ]
+    sug_file.write_text(json.dumps(data))
+    monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug_file)
+
+    fields = [
+        FieldSpec(key="Lane ID", required=True),
+        FieldSpec(key="Origin City", required=False),
+    ]
+    cols = ["Lane ID", "OC"]
+
+    mapping = suggest_header_mapping([f.key for f in fields], cols)
+    for field in fields:
+        key = field.key
+        for s in suggestion_store.get_suggestions("PIT BID", key, headers=cols):
+            if s["type"] == "direct":
+                for col in cols:
+                    if col.lower() == s["columns"][0].lower():
+                        mapping[key] = {"src": col, "confidence": 1.0}
+                        break
+                if mapping.get(key):
+                    break
+
+    mapping = header_layer.apply_gpt_header_fallback(mapping, cols, targets=["Lane ID"])
+
+    assert mapping["Origin City"]["src"] == "OC"
