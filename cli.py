@@ -5,11 +5,14 @@ from typing import Any, Dict
 import uuid
 
 import pandas as pd
+
 try:
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - optional dependency
+
     def load_dotenv() -> None:
         return None
+
 
 load_dotenv()
 
@@ -52,7 +55,9 @@ def auto_map(template: Template, df: pd.DataFrame) -> Dict[str, Any]:
                 unique_vals = sorted(df[src].dropna().unique().astype(str))
                 records = getattr(template, layer.dictionary_sheet, [])
                 dict_vals = [rec[layer.target_field] for rec in records]
-                state[f"lookup_mapping_{idx}"] = match_lookup_values(dict_vals, unique_vals)
+                state[f"lookup_mapping_{idx}"] = match_lookup_values(
+                    dict_vals, unique_vals
+                )
         elif layer.type == "computed":
             result = resolve_computed_layer(layer.model_dump(), df)
             state[f"computed_result_{idx}"] = result

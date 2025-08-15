@@ -25,7 +25,7 @@ def _fake_conn(captured: dict):
     return FakeConn()
 
 
-@pytest.mark.parametrize("payload", [{"a": 1}, "{\"a\": 1}"])
+@pytest.mark.parametrize("payload", [{"a": 1}, '{"a": 1}'])
 def test_log_mapping_process(monkeypatch, payload):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))

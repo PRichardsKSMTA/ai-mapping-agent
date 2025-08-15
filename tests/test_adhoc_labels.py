@@ -87,10 +87,14 @@ def setup_header_env(monkeypatch: MonkeyPatch) -> HeaderDummyStreamlit:
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setattr(header_step, "st", st)
     monkeypatch.setattr(
-        header_step, "read_tabular_file", lambda _f, sheet_name=None: (pd.DataFrame(), ["A", "B"])
+        header_step,
+        "read_tabular_file",
+        lambda _f, sheet_name=None: (pd.DataFrame(), ["A", "B"]),
     )
     monkeypatch.setattr(
-        header_step, "suggest_header_mapping", lambda fields, cols: {k: {} for k in fields}
+        header_step,
+        "suggest_header_mapping",
+        lambda fields, cols: {k: {} for k in fields},
     )
     monkeypatch.setattr(
         header_step, "apply_gpt_header_fallback", lambda m, c, targets=None: m
@@ -98,16 +102,21 @@ def setup_header_env(monkeypatch: MonkeyPatch) -> HeaderDummyStreamlit:
     monkeypatch.setattr(header_step, "get_suggestions", lambda *a, **k: [])
     monkeypatch.setattr(header_step, "add_suggestion", lambda *a, **k: None)
     import app_utils.ui.header_utils as header_utils
+
     monkeypatch.setattr(header_utils, "st", st)
     st.session_state.update({"uploaded_file": object(), "current_template": "demo"})
     return st
 
 
-def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Dict[str, object]]:
+def run_app_with_labels(
+    monkeypatch: MonkeyPatch,
+) -> Tuple[Dict[str, object], Dict[str, object]]:
     st = DummyStreamlit([{"Generate BID"}])
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
-    monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
+    monkeypatch.setitem(
+        sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None)
+    )
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
     monkeypatch.setattr(
@@ -140,13 +149,13 @@ def run_app_with_labels(monkeypatch: MonkeyPatch) -> Tuple[Dict[str, object], Di
 
     def fake_log(
         process_guid,
+        operation_cd,
         template_name,
         friendly_name,
         user_email,
         file_name_string,
         process_json,
         template_guid,
-        operation_cd,
         adhoc_headers=None,
     ):
         captured["log_adhoc"] = adhoc_headers
@@ -194,7 +203,9 @@ def test_adhoc_labels_propagate(monkeypatch: MonkeyPatch) -> None:
 
 def test_default_label_updates_on_mapping(monkeypatch: MonkeyPatch) -> None:
     st = setup_header_env(monkeypatch)
-    layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
+    layer = HeaderLayer(
+        type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)]
+    )
     st.session_state["src_ADHOC_INFO1"] = "A"
     header_step.render(layer, 0)
     assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"
@@ -203,7 +214,9 @@ def test_default_label_updates_on_mapping(monkeypatch: MonkeyPatch) -> None:
 
 def test_custom_label_persists(monkeypatch: MonkeyPatch) -> None:
     st = setup_header_env(monkeypatch)
-    layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
+    layer = HeaderLayer(
+        type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)]
+    )
     st.session_state["src_ADHOC_INFO1"] = "A"
     header_step.render(layer, 0)
     st.session_state["adhoc_label_ADHOC_INFO1"] = "Custom"
@@ -216,7 +229,9 @@ def test_custom_label_persists(monkeypatch: MonkeyPatch) -> None:
 
 def test_label_updates_after_multiple_source_changes(monkeypatch: MonkeyPatch) -> None:
     st = setup_header_env(monkeypatch)
-    layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
+    layer = HeaderLayer(
+        type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)]
+    )
     st.session_state["src_ADHOC_INFO1"] = "A"
     header_step.render(layer, 0)
     assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"

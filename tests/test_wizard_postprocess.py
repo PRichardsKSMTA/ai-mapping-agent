@@ -5,13 +5,17 @@ from pathlib import Path
 import sys
 import pandas as pd
 
+
 class DummyContainer:
     def __enter__(self):
         return self
+
     def __exit__(self, *exc):
         pass
+
     def markdown(self, *a, **k):
         pass
+
     def progress(self, *a, **k):
         pass
 
@@ -25,6 +29,7 @@ class DummyColumn:
 
     def button(self, *a, **k):
         return False
+
 
 class DummySidebar:
     def __init__(self, st):
@@ -44,14 +49,19 @@ class DummySidebar:
         if key:
             self.st.session_state[key] = choice
         return choice
+
     def empty(self):
         return DummyContainer()
+
     def write(self, *a, **k):
         pass
+
     def info(self, *a, **k):
         pass
+
     def button(self, *a, **k):
         return False
+
 
 class DummyStreamlit:
     def __init__(self, button_sequence: list[set[str]] | None = None):
@@ -66,22 +76,30 @@ class DummyStreamlit:
         self.secrets = {}
         self.button_sequence = button_sequence or []
         self.run_idx = 0
+
     def set_page_config(self, *a, **k):
         pass
+
     def title(self, *a, **k):
         pass
+
     header = subheader = error = write = warning = caption = title
+
     def info(self, msg, *a, **k):
         self.info_messages.append(msg)
+
     def success(self, msg, *a, **k):
         self.success_messages.append(msg)
+
     def selectbox(self, label, options, index=0, key=None, **k):
         choice = options[index] if options and index is not None else None
         if key:
             self.session_state[key] = choice
         return choice
+
     def file_uploader(self, *a, **k):
         return types.SimpleNamespace(name="upload.csv")
+
     def button(self, label, *a, **k):
         presses = (
             self.button_sequence[self.run_idx]
@@ -91,34 +109,46 @@ class DummyStreamlit:
         if k.get("disabled"):
             return False
         return label in presses
+
     def spinner(self, msg, *a, **k):
         class _C(DummyContainer):
             def __enter__(self_inner):
                 self.spinner_messages.append(msg)
                 return self_inner
+
         return _C()
+
     def empty(self):
         return DummyContainer()
+
     def rerun(self):
         pass
 
     def next_run(self) -> None:
         self.run_idx += 1
+
     def markdown(self, text, *a, **k):
         self.markdown_calls.append(text)
+
     def link_button(self, label, url, *a, **k):
         self.link_button_calls.append((label, url))
         return False
+
     def download_button(self, *a, **k):
         pass
+
     def json(self, *a, **k):  # type: ignore[override]
         pass
+
     def dataframe(self, data, *a, **k):  # type: ignore[override]
         self.dataframe_calls.append(data)
+
     def cache_data(self, *a, **k):
         def wrap(func):
             return func
+
         return wrap
+
     def multiselect(self, label, options, default=None, key=None, **k):
         if key and key in self.session_state:
             return self.session_state[key]
@@ -126,6 +156,7 @@ class DummyStreamlit:
         if key:
             self.session_state[key] = sel
         return sel
+
     def columns(self, spec, **kwargs):
         n = len(spec) if isinstance(spec, (list, tuple)) else spec
         return [DummyColumn() for _ in range(n)]
@@ -140,7 +171,9 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
     monkeypatch.setenv("CLIENT_DEST_FOLDER_PATH", "docs/folder with spaces")
-    monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
+    monkeypatch.setitem(
+        sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None)
+    )
     monkeypatch.setattr("auth.logout_button", lambda: None)
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
     monkeypatch.setattr(
@@ -176,6 +209,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         lambda df, op, cust, ids, guid, adhoc: len(df),
     )
     monkeypatch.setattr("app_utils.azure_sql.derive_adhoc_headers", lambda df: {})
+
     def fake_log(
         process_guid,
         operation_cd,
@@ -192,6 +226,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         called["log_friendly"] = friendly_name
         called["log_email"] = user_email
         called["log_file"] = file_name_string
+
     monkeypatch.setattr("app_utils.azure_sql.log_mapping_process", fake_log)
     called: dict[str, object] = {}
 
@@ -214,21 +249,25 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     tpl_data = json.loads(tpl_path.read_text())
     tpl_data["postprocess"] = {"url": "https://example.com"}
     orig_read = Path.read_text
+
     def fake_read(self, *a, **k):
         if self == tpl_path:
             return json.dumps(tpl_data)
         return orig_read(self, *a, **k)
+
     monkeypatch.setattr(Path, "read_text", fake_read)
-    st.session_state.update({
-        "selected_template_file": tpl_path.name,
-        "template": tpl_data,
-        "template_name": "PIT BID",
-        "current_template": "PIT BID",
-        "customer_name": "Customer",
-        "layer_confirmed_0": True,
-        "customer_name": "Cust",
-        "customer_ids": ["1"],
-    })
+    st.session_state.update(
+        {
+            "selected_template_file": tpl_path.name,
+            "template": tpl_data,
+            "template_name": "PIT BID",
+            "current_template": "PIT BID",
+            "customer_name": "Customer",
+            "layer_confirmed_0": True,
+            "customer_name": "Cust",
+            "customer_ids": ["1"],
+        }
+    )
     sys.modules.pop("app", None)
     importlib.import_module("app")
     st.next_run()
@@ -253,8 +292,7 @@ def test_sharepoint_link_displayed(monkeypatch):
     _, _, st = run_app(monkeypatch)
     assert any("mileage and toll data" in m for m in st.spinner_messages)
     assert any(
-        url
-        == "https://tenant.sharepoint.com/sites/demo/docs/folder%20with%20spaces"
+        url == "https://tenant.sharepoint.com/sites/demo/docs/folder%20with%20spaces"
         for _, url in st.link_button_calls
     )
 
@@ -290,6 +328,7 @@ def test_postprocess_flag_cleared_after_export(monkeypatch):
 def test_postprocess_flag_cleared_on_reset(monkeypatch):
     called, state, _ = run_app(monkeypatch)
     import app
+
     app.do_reset()
     assert "postprocess_run_clicked" not in state
 
@@ -302,7 +341,7 @@ def test_export_button_reenabled_after_completion(monkeypatch):
     st.button_sequence = [{"Generate BID"}]
     st.run_idx = 0
     import importlib, sys, app
+
     importlib.reload(sys.modules["app"])
     assert called.get("runs") == 2
     assert st.spinner_messages.count("Gathering mileage and toll data…") == 2
-
