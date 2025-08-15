@@ -210,7 +210,14 @@ else:
             return
 
         login_url = _initiate_flow()
-        st.link_button("🔒 Sign in with Microsoft", login_url)
+        st.title("AI Mapping Agent")
+        st.subheader("Please sign in")
+        st.link_button(
+            "🔒 Sign in with Microsoft",
+            login_url,
+            type="primary",
+            use_container_width=True,
+        )
         st.stop()
 
     def require_login(func):
@@ -256,7 +263,12 @@ else:
 
     def logout_button() -> None:
         with st.sidebar:
-            if st.button("↩️ Sign out"):
+            email: str | None = st.session_state.get("user_email")
+            if email:
+                st.caption(f"Signed in as {email}")
+            if st.button(
+                "↩️ Sign out", type="primary", use_container_width=True
+            ):
                 for k in [
                     "user_email",
                     "user_name",
