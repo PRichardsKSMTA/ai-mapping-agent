@@ -55,6 +55,9 @@ def patch_streamlit(monkeypatch):
     st = DummyStreamlit()
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setattr(header_step, "st", st)
+    monkeypatch.setattr(
+        header_step, "suggest_header_mapping", lambda fields, cols: {k: {} for k in fields}
+    )
     return st
 
 

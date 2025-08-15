@@ -97,6 +97,8 @@ def setup_header_env(monkeypatch: MonkeyPatch) -> HeaderDummyStreamlit:
     )
     monkeypatch.setattr(header_step, "get_suggestions", lambda *a, **k: [])
     monkeypatch.setattr(header_step, "add_suggestion", lambda *a, **k: None)
+    import app_utils.ui.header_utils as header_utils
+    monkeypatch.setattr(header_utils, "st", st)
     st.session_state.update({"uploaded_file": object(), "current_template": "demo"})
     return st
 
@@ -195,6 +197,7 @@ def test_default_label_updates_on_mapping(monkeypatch: MonkeyPatch) -> None:
     st.session_state["src_ADHOC_INFO1"] = "A"
     header_step.render(layer, 0)
     assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"
+    assert st.session_state["header_adhoc_autogen"]["ADHOC_INFO1"] is True
 
 
 def test_custom_label_persists(monkeypatch: MonkeyPatch) -> None:
@@ -207,3 +210,21 @@ def test_custom_label_persists(monkeypatch: MonkeyPatch) -> None:
     st.session_state["src_ADHOC_INFO1"] = "B"
     header_step.render(layer, 0)
     assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "Custom"
+    assert st.session_state["header_adhoc_autogen"]["ADHOC_INFO1"] is False
+
+
+def test_label_updates_after_multiple_source_changes(monkeypatch: MonkeyPatch) -> None:
+    st = setup_header_env(monkeypatch)
+    layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
+    st.session_state["src_ADHOC_INFO1"] = "A"
+    header_step.render(layer, 0)
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"
+    assert st.session_state["header_adhoc_autogen"]["ADHOC_INFO1"] is True
+    st.session_state["src_ADHOC_INFO1"] = "B"
+    header_step.render(layer, 0)
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "B"
+    assert st.session_state["header_adhoc_autogen"]["ADHOC_INFO1"] is True
+    st.session_state["src_ADHOC_INFO1"] = "A"
+    header_step.render(layer, 0)
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"
+    assert st.session_state["header_adhoc_autogen"]["ADHOC_INFO1"] is True
