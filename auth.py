@@ -263,6 +263,7 @@ else:
 
     def logout_button() -> None:
         with st.sidebar:
+            st.divider()
             # email: str | None = st.session_state.get("user_email")
             # if email:
             #     st.caption(f"Signed in as {email}")
