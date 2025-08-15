@@ -29,6 +29,8 @@ def run_postprocess(
             log.append("Done")
 
 
+from datetime import datetime
+
 def run_postprocess_if_configured(
     template: Template,
     df: pd.DataFrame,
@@ -78,7 +80,11 @@ def run_postprocess_if_configured(
         dest_path: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
         payload["CLIENT_DEST_FOLDER_PATH"] = dest_path
         logs.append("Payload loaded")
-        fname = f"{operation_cd} - BID - {customer_name}.xlsm"
+
+        # Generate filename with current date
+        current_date = datetime.now().strftime("%Y%m%d")
+        fname = f"{operation_cd} - BID - {customer_name}_{current_date}.xlsm"
+
         payload.setdefault("item/In_dtInputData", [{}])
         if not payload["item/In_dtInputData"]:
             payload["item/In_dtInputData"].append({})
@@ -110,3 +116,4 @@ def run_postprocess_if_configured(
         payload = df.to_dict(orient="records")
         run_postprocess(template.postprocess, df, logs)
     return logs, payload
+
