@@ -122,12 +122,15 @@ def save_current_template() -> str | None:
 
 def persist_suggestions_from_mapping(layer, mapping: dict, source_cols: list[str]) -> None:
     """Persist suggestions for the provided mapping."""
+    template = st.session_state.get("current_template")
+    if template is None:
+        return
     for field in layer.fields:  # type: ignore
         info = mapping.get(field.key, {})
         if "src" in info:
             add_suggestion(
                 {
-                    "template": st.session_state["current_template"],
+                    "template": template,
                     "field": field.key,
                     "type": "direct",
                     "formula": None,
@@ -140,7 +143,7 @@ def persist_suggestions_from_mapping(layer, mapping: dict, source_cols: list[str
             cols = re.findall(r"df\['([^']+)'\]", info["expr"])
             add_suggestion(
                 {
-                    "template": st.session_state["current_template"],
+                    "template": template,
                     "field": field.key,
                     "type": "formula",
                     "formula": info["expr"],

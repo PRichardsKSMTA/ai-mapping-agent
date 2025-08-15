@@ -20,6 +20,7 @@ from app_utils.ui.header_utils import (
 )
 from app_utils.ui_utils import set_steps_from_template
 import uuid
+import hashlib
 
 st.markdown(
     """
@@ -67,19 +68,24 @@ def render(layer, idx: int) -> None:
     required_keys = [f.key for f in layer.fields if f.required]
     adhoc_keys = [f.key for f in layer.fields if f.key.startswith("ADHOC_INFO")]
     optional_keys = [f.key for f in layer.fields if not f.required]
-
     map_key = f"header_mapping_{idx}"
     sheet_key = f"header_sheet_{idx}"
+    cols_key = f"header_cols_{idx}"
+    cols_hash = hashlib.sha256("|".join(source_cols).encode()).hexdigest()
     if (
         map_key not in st.session_state
         or st.session_state.get(sheet_key) != sheet_name
+        or st.session_state.get(cols_key) != cols_hash
     ):
         auto = suggest_header_mapping([f.key for f in layer.fields], source_cols)
         for k in adhoc_keys:
             auto[k] = {}
         st.session_state[map_key] = auto
         st.session_state[sheet_key] = sheet_name
+        st.session_state[cols_key] = cols_hash
         st.session_state.pop(f"header_ai_done_{idx}", None)
+    else:
+        st.session_state[cols_key] = cols_hash
     mapping = st.session_state[map_key]
 
     # List of user-added fields
