@@ -1,13 +1,13 @@
 # app_utils/suggestion_store.py
 from pathlib import Path
 import json
+import os
 import re
 import hashlib
 from typing import List, Optional, TypedDict
 
-SUGGESTION_FILE = (
-    Path(__file__).resolve().parent.parent / "data" / "mapping_suggestions.json"
-)
+_default_path = Path.cwd() / "data" / "mapping_suggestions.json"
+SUGGESTION_FILE = Path(os.environ.get("SUGGESTION_FILE", _default_path))
 
 
 class Suggestion(TypedDict, total=False):
@@ -21,9 +21,13 @@ class Suggestion(TypedDict, total=False):
 
 
 def _load() -> List[Suggestion]:
+    SUGGESTION_FILE.parent.mkdir(exist_ok=True, parents=True)
     if not SUGGESTION_FILE.exists():
         return []
-    return json.loads(SUGGESTION_FILE.read_text())
+    try:
+        return json.loads(SUGGESTION_FILE.read_text())
+    except json.JSONDecodeError:
+        return []
 
 
 def _save(data: List[Suggestion]) -> None:
