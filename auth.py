@@ -221,36 +221,28 @@ else:
             "<h3 style='text-align:center;'>Please sign in</h3>",
             unsafe_allow_html=True
         )
-
         _, col, _ = st.columns((1, 2, 1))
 
-        # Use a plain anchor (same tab). This avoids iframes and avoids Streamlit's link_button (new tab).
-        col.markdown(
-            f"""
-            <a href="{login_url}"
-            target="_self"
-            rel="noopener"
-            style="
-                display:inline-block;
-                width:100%;
-                padding:0.6rem 1rem;
-                border-radius:0.5rem;
-                background:#0d6efd;
-                color:#fff;
-                font-weight:600;
-                text-decoration:none;
-                text-align:center;">
-            🔒 Sign in with Microsoft
-            </a>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Optional: show the exact URL for quick debugging
-        with st.expander("Debug: Microsoft authorization URL"):
-            st.code(login_url, language="text")
-
-        st.stop()
+        if col.button("🔒 Sign in with Microsoft", type="primary", use_container_width=True, key="msal_same_tab_btn"):
+            import json
+            import streamlit.components.v1 as components
+            components.html(
+                f"""
+                <script>
+                (function() {{
+                    var url = {json.dumps(login_url)};
+                    // IMPORTANT: navigate the TOP window, not the iframe Streamlit renders in.
+                    if (window.top) {{
+                    window.top.location.href = url;
+                    }} else {{
+                    window.location.href = url;
+                    }}
+                }})();
+                </script>
+                """,
+                height=0,
+            )
+            st.stop()
 
     def require_login(func):
         @wraps(func)
