@@ -239,51 +239,29 @@ else:
 
         _, col, _ = st.columns((1, 2, 1))
 
-        if LOGIN_UI == "popup":
-            # Render a button that opens a small popup window for Microsoft login.
-            if col.button("🔒 Sign in with Microsoft", type="primary", use_container_width=True, key="msal_popup_btn"):
-                components.html(
-                    f"""
-                    <script>
-                    (function() {{
-                    var url = {json.dumps(login_url)};
-                    // Open a small popup for the Microsoft sign-in
-                    var w = window.open(
-                        url,
-                        "msal-login",
-                        "width=520,height=640,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes"
-                    );
-                    // When the popup closes (or sends a message), refresh this page to pick up the session
-                    function onMessage(ev) {{
-                        if (typeof ev.data === 'string' && ev.data.indexOf('msal:complete') === 0) {{
-                        window.location.reload();
-                        }}
-                    }}
-                    window.addEventListener('message', onMessage, false);
-                    var t = setInterval(function() {{
-                        if (!w || w.closed) {{
-                        clearInterval(t);
-                        window.location.reload();
-                        }}
-                    }}, 800);
-                    }})();
-                    </script>
-                    """,
-                    height=0
-                )
-            st.stop()
-        else:
-            # Same-tab login: redirect this tab to the Microsoft login URL.
-            if col.button("🔒 Sign in with Microsoft", type="primary", use_container_width=True, key="msal_same_tab_btn"):
-                components.html(
-                    f"""
-                    <script>
-                    window.location.href = {json.dumps(login_url)};
-                    </script>
-                    """,
-                    height=0
-                )
-            st.stop()
+        # Same-tab navigation to Microsoft login using a plain HTML form submit.
+        # This avoids Streamlit components (iframes) and avoids link_button (new tab).
+        col.markdown(
+            f"""
+            <form action="{login_url}" method="GET" style="margin:0;">
+            <button type="submit"
+                    style="
+                        width:100%;
+                        padding:0.6rem 1rem;
+                        border:0;
+                        border-radius:0.5rem;
+                        background:#0d6efd;
+                        color:#fff;
+                        font-weight:600;
+                        cursor:pointer;">
+                🔒 Sign in with Microsoft
+            </button>
+            </form>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.stop()
 
     def require_login(func):
         @wraps(func)
