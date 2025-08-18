@@ -27,6 +27,10 @@ from typing import Any, Dict, Set
 
 import streamlit as st
 
+import json
+import streamlit.components.v1 as components
+
+
 try:  # pragma: no cover - optional dependency
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - if python-dotenv not installed
@@ -51,6 +55,8 @@ CLIENT_ID = _get_config("AAD_CLIENT_ID")
 CLIENT_SECRET = _get_config("AAD_CLIENT_SECRET")
 TENANT_ID = _get_config("AAD_TENANT_ID")
 REDIRECT_URI = _get_config("AAD_REDIRECT_URI")
+LOGIN_UI = (_get_config("MSAL_LOGIN_UI", "same_tab") or "same_tab").lower()
+# Allowed values: "same_tab" or "popup"
 
 REQUIRED_SECRETS = {
     "AAD_CLIENT_ID": CLIENT_ID,
@@ -193,10 +199,26 @@ else:
             id_token=result["id_token"],
             token_acquired_at=time.time(),
         )
-
+        
         # Clean up
         st.session_state.pop("msal_state", None)
         st.query_params.clear()
+
+        # If auth completed in a popup, notify and close it.
+        components.html(
+            """
+            <script>
+            try {
+                if (window.opener && !window.opener.closed) {
+                window.opener.postMessage('msal:complete', '*');
+                window.close();
+                }
+            } catch (e) {}
+            </script>
+            """,
+            height=0
+        )
+
 
     # -------------------- Decorators & helpers ---------------------------- #
     def _ensure_user() -> None:
@@ -208,13 +230,60 @@ else:
             return
 
         login_url = _initiate_flow()
+
         st.markdown(
             "<h1 style='text-align:center;'>AI Mapping Agent</h1>"
             "<h3 style='text-align:center;'>Please sign in</h3>",
-            unsafe_allow_html=True)
+            unsafe_allow_html=True
+        )
+
         _, col, _ = st.columns((1, 2, 1))
-        col.link_button("🔒 Sign in with Microsoft", login_url, type="primary", use_container_width=True)
-        st.stop()
+
+        if LOGIN_UI == "popup":
+            # Render a button that opens a small popup window for Microsoft login.
+            if col.button("🔒 Sign in with Microsoft", type="primary", use_container_width=True, key="msal_popup_btn"):
+                components.html(
+                    f"""
+                    <script>
+                    (function() {{
+                    var url = {json.dumps(login_url)};
+                    // Open a small popup for the Microsoft sign-in
+                    var w = window.open(
+                        url,
+                        "msal-login",
+                        "width=520,height=640,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes"
+                    );
+                    // When the popup closes (or sends a message), refresh this page to pick up the session
+                    function onMessage(ev) {{
+                        if (typeof ev.data === 'string' && ev.data.indexOf('msal:complete') === 0) {{
+                        window.location.reload();
+                        }}
+                    }}
+                    window.addEventListener('message', onMessage, false);
+                    var t = setInterval(function() {{
+                        if (!w || w.closed) {{
+                        clearInterval(t);
+                        window.location.reload();
+                        }}
+                    }}, 800);
+                    }})();
+                    </script>
+                    """,
+                    height=0
+                )
+            st.stop()
+        else:
+            # Same-tab login: redirect this tab to the Microsoft login URL.
+            if col.button("🔒 Sign in with Microsoft", type="primary", use_container_width=True, key="msal_same_tab_btn"):
+                components.html(
+                    f"""
+                    <script>
+                    window.location.href = {json.dumps(login_url)};
+                    </script>
+                    """,
+                    height=0
+                )
+            st.stop()
 
     def require_login(func):
         @wraps(func)
