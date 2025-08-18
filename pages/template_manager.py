@@ -25,6 +25,7 @@ from app_utils.ui_utils import (
     compute_current_step,
     render_required_label,
 )
+from app_utils.ui.suggestion_dialog import edit_suggestions
 
 
 def persist_template(tpl: dict) -> str:
@@ -213,13 +214,15 @@ def show() -> None:
         )
         layers = len(data.get("layers", []))
         guid = data.get("template_guid", "—")
-        row = st.columns([3, 1, 2, 3, 1])
+        row = st.columns([3, 1, 2, 3, 1, 1])
         if row[0].button(data.get("template_name", tf[:-5]), key=f"tm_open_{tf}"):
             edit_template(tf, data)
         row[1].write(f"{layers} layers")
         row[2].write(modified)
         row[3].write(guid)
-        if row[4].button("Delete", key=f"tm_del_{tf}"):
+        if row[4].button("Manage Suggestions", key=f"tm_sugg_{tf}"):
+            edit_suggestions(tf, data.get("template_name", tf[:-5]))
+        if row[5].button("Delete", key=f"tm_del_{tf}"):
             confirm_delete(tf)
 
 

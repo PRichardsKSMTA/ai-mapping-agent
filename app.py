@@ -134,7 +134,7 @@ def main():
     apply_global_css()
     st.title("AI Mapping Agent")
     user_email = get_user_email()
-    if user_email:
+    if user_email and hasattr(st, "caption"):
         st.caption(f"Signed in as {user_email}")
 
     if st.session_state.get("unsaved_changes"):
