@@ -108,3 +108,67 @@ def test_round_trip_persistence(monkeypatch, tmp_path):
     importlib.reload(suggestion_store)
     res = suggestion_store.get_suggestions("Demo", "Name")
     assert res and res[0]["columns"] == ["ColA"]
+
+
+def test_update_suggestion(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    data = [
+        {
+            "template": "Demo",
+            "field": "Name",
+            "type": "direct",
+            "formula": None,
+            "columns": ["ColA"],
+            "display": "ColA",
+        }
+    ]
+    path.write_text(json.dumps(data))
+    monkeypatch.setenv("SUGGESTION_FILE", str(path))
+    importlib.reload(suggestion_store)
+
+    ok = suggestion_store.update_suggestion(
+        "Demo",
+        "Name",
+        columns=[" colA "],
+        display="Column B",
+        new_columns=["ColB"],
+    )
+    assert ok
+    res = suggestion_store.get_suggestion("Demo", "Name", columns=["ColB"])
+    assert res and res["display"] == "Column B"
+
+
+def test_delete_suggestion(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    data = [
+        {
+            "template": "Demo",
+            "field": "Name",
+            "type": "direct",
+            "formula": None,
+            "columns": ["ColA"],
+            "display": "ColA",
+        },
+        {
+            "template": "Demo",
+            "field": "Name",
+            "type": "formula",
+            "formula": "A+B",
+            "columns": ["ColA", "ColB"],
+            "display": "A+B",
+        },
+    ]
+    path.write_text(json.dumps(data))
+    monkeypatch.setenv("SUGGESTION_FILE", str(path))
+    importlib.reload(suggestion_store)
+
+    removed = suggestion_store.delete_suggestion("Demo", "Name", columns=["colA"])
+    assert removed
+    remaining = json.loads(path.read_text())
+    assert len(remaining) == 1 and remaining[0]["type"] == "formula"
+
+    removed_formula = suggestion_store.delete_suggestion(
+        "Demo", "Name", formula="A+B"
+    )
+    assert removed_formula
+    assert json.loads(path.read_text()) == []
