@@ -1,24 +1,21 @@
 from __future__ import annotations
 
-from functools import wraps
-from typing import Set, Optional
 import os
 import time
+from functools import wraps
+from typing import Optional, Set
 
 import streamlit as st
 
 
 # ------------------------------
-# Configuration helpers
+# Config helper
 # ------------------------------
 def _get_config(key: str, default: Optional[str] = None) -> Optional[str]:
-    """Read configuration from st.secrets or environment."""
     try:
-        if "secrets" in st.__dict__ and key in st.secrets:
+        if hasattr(st, "secrets") and key in st.secrets:
             val = st.secrets[key]
-            if val is None:
-                return default
-            return str(val)
+            return default if val is None else str(val)
     except Exception:
         pass
     return os.environ.get(key, default)
@@ -42,7 +39,9 @@ ADMIN_GROUP_IDS: Set[str] = {
     g.strip() for g in (_get_config("AAD_ADMIN_GROUP_IDS", "") or "").split(",") if g.strip()
 }
 EMPLOYEE_DOMAINS: Set[str] = {
-    d.strip().lower() for d in (_get_config("AAD_EMPLOYEE_DOMAINS", "ksmcpa.com,ksmta.com") or "").split(",") if d.strip()
+    d.strip().lower()
+    for d in (_get_config("AAD_EMPLOYEE_DOMAINS", "ksmcpa.com,ksmta.com") or "").split(",")
+    if d.strip()
 }
 
 
@@ -115,16 +114,23 @@ if DISABLE_AUTH:
         _ensure_user()
         return st.session_state.get("user_email")
 
+
 # ============================================================
-# 2) Real authentication (popup) using msal-streamlit-authentication
+# 2) Real authentication (POPUP via msal-streamlit-authentication)
 # ============================================================
 else:
+    # Popup-based Streamlit component built on MSAL.js
     from msal_streamlit_authentication import msal_authentication
 
     AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
+    # Use the exact SPA redirect you registered (prod). Override via env/secrets if needed.
+    REDIRECT_URI = _get_config(
+        "AAD_REDIRECT_URI_JS",
+        "https://freightmath-rfp-automation.streamlit.app/",
+    )
 
-    # minimal Graph scope to read the signed-in user's profile; feel free to extend
-    SCOPES = ["User.Read"]
+    # Scopes: OIDC basics + Graph profile
+    SCOPES = ["openid", "profile", "email", "User.Read"]
 
     def _render_login_ui() -> None:
         st.markdown(
@@ -133,19 +139,18 @@ else:
             unsafe_allow_html=True,
         )
 
-        # Popup-based login component.
-        # Register SPA redirect URIs in Azure AD:
-        #   - Production: https://<your-app>.streamlit.app/
-        #   - Local:      http://localhost:8501/
+        # ---- IMPORTANT ----
+        # Use localStorage so tokens written in the POPUP are visible to the main window.
+        # (sessionStorage is isolated per window and can leave the parent unaware.)
         token = msal_authentication(
             auth={
                 "clientId": CLIENT_ID,
                 "authority": AUTHORITY,
-                "redirectUri": "https://freightmath-rfp-automation.streamlit.app/",
-                "postLogoutRedirectUri": "https://freightmath-rfp-automation.streamlit.app/logout",
+                "redirectUri": REDIRECT_URI,
+                "postLogoutRedirectUri": REDIRECT_URI,
             },
             cache={
-                "cacheLocation": "sessionStorage",
+                "cacheLocation": "localStorage",
                 "storeAuthStateInCookie": False,
             },
             login_request={"scopes": SCOPES},
@@ -156,7 +161,6 @@ else:
         )
 
         if token:
-            # token is an MSAL.js AuthenticationResult
             claims = token.get("idTokenClaims") or {}
             groups = set(claims.get("groups", []))
             email = (
@@ -227,31 +231,34 @@ else:
         return wrapper
 
     def logout_button() -> None:
+        # Only render the component here *after* login, so we don’t mount two instances at once.
+        if "user_email" not in st.session_state:
+            return
+
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
 
-            # Render the component in the sidebar; when logged in it shows "Sign out".
-            token = msal_authentication(
+            _ = msal_authentication(
                 auth={
                     "clientId": CLIENT_ID,
                     "authority": AUTHORITY,
-                    "redirectUri": "https://freightmath-rfp-automation.streamlit.app/",
-                    "postLogoutRedirectUri": "https://freightmath-rfp-automation.streamlit.app/logout",
+                    "redirectUri": REDIRECT_URI,
+                    "postLogoutRedirectUri": REDIRECT_URI,
                 },
                 cache={
-                    "cacheLocation": "sessionStorage",
+                    "cacheLocation": "localStorage",
                     "storeAuthStateInCookie": False,
                 },
                 login_request={"scopes": SCOPES},
                 logout_request={},
                 login_button_text="🔒 Sign in with Microsoft",
                 logout_button_text="Sign out",
-                key="msal_popup_sidebar",
+                key="msal_popup_logout",
             )
 
-            # If user clicked "Sign out" in the component, clear server-side state.
-            if "user_email" in st.session_state and not token:
+            # If the component has logged us out, clear server-side state too.
+            if "user_email" in st.session_state and not st.session_state.get("id_token"):
                 for k in [
                     "user_email", "user_name", "groups",
                     "is_employee", "is_ksmta", "is_admin",
