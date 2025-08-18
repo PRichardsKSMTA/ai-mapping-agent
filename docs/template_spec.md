@@ -72,6 +72,9 @@ The validator dispatches to a specific Pydantic model based on that type.
 | `required` | `bool`   | optional | `false`    | If `true`, UI marks as mandatory.               |
 | `notes`    | `string` | optional | —          | Shown as tooltip.                               |
 
+> If a `Lane ID` column is missing or entirely blank in the source data, the
+> engine automatically populates it with 1‑based sequential IDs.
+
 ---
 
 ### 3.2 `lookup`

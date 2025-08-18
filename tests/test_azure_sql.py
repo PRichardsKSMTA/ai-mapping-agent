@@ -333,6 +333,17 @@ def test_insert_pit_bid_rows_autofill_freight_type(monkeypatch):
     assert captured["params"][12] == "V"
 
 
+def test_insert_pit_bid_rows_generates_lane_ids(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
+    monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
+    df = pd.DataFrame({"Origin City": ["OC1", "OC2"]})
+    rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
+    assert rows == 2
+    lane_ids = [row[3] for row in captured["batches"][0]]
+    assert lane_ids == ["1", "2"]
+
+
 def test_insert_pit_bid_rows_formatted_numbers(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))

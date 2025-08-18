@@ -526,6 +526,9 @@ def insert_pit_bid_rows(
         if len(text) >= 2:
             return text[:2].upper()
         raise ValueError(f"{field} value '{val}' cannot be abbreviated")
+    if "Lane ID" not in df.columns or df["Lane ID"].isna().all():
+        df = df.copy()
+        df["Lane ID"] = range(1, len(df) + 1)
 
     df_db = df.rename(columns=PIT_BID_FIELD_MAP).copy()
     if "CUSTOMER_ID" in df_db.columns:
@@ -535,6 +538,9 @@ def insert_pit_bid_rows(
             cols = [c for c in df_db.columns if c == col]
             df_db[col] = df_db[cols].bfill(axis=1).iloc[:, 0]
         df_db = df_db.loc[:, ~df_db.columns.duplicated()]
+
+    if "LANE_ID" not in df_db.columns or df_db["LANE_ID"].isna().any():
+        raise ValueError("LANE_ID cannot be null")
 
     for col in ["ORIG_ST", "DEST_ST"]:
         if col in df_db.columns:
