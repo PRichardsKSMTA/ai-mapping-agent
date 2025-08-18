@@ -205,19 +205,19 @@ else:
         st.query_params.clear()
 
         # If auth completed in a popup, notify and close it.
-        components.html(
-            """
-            <script>
-            try {
-                if (window.opener && !window.opener.closed) {
-                window.opener.postMessage('msal:complete', '*');
-                window.close();
-                }
-            } catch (e) {}
-            </script>
-            """,
-            height=0
-        )
+        # components.html(
+        #     """
+        #     <script>
+        #     try {
+        #         if (window.opener && !window.opener.closed) {
+        #         window.opener.postMessage('msal:complete', '*');
+        #         window.close();
+        #         }
+        #     } catch (e) {}
+        #     </script>
+        #     """,
+        #     height=0
+        # )
 
 
     # -------------------- Decorators & helpers ---------------------------- #
