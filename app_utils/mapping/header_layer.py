@@ -37,9 +37,20 @@ def apply_gpt_header_fallback(
     source_columns: List[str],
     targets: Iterable[str] | None = None,
 ) -> Dict[str, Dict[str, str]]:
-    """Fill unmapped header fields using GPT suggestions."""
+    """Fill unmapped header fields using GPT suggestions.
+
+    Parameters
+    ----------
+    mapping:
+        Existing field mapping.
+    source_columns:
+        Available source columns.
+    targets:
+        Specific field keys to consider. If empty or ``None`` all unmapped
+        fields are targeted.
+    """
     unmapped = [k for k, v in mapping.items() if not v.get("src") and not v.get("expr")]
-    if targets is not None:
+    if targets:
         target_set = set(targets)
         unmapped = [k for k in unmapped if k in target_set]
     if not unmapped:
