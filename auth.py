@@ -72,15 +72,16 @@ if not DISABLE_AUTH:
             logging.warning(msg)
 
 if DISABLE_AUTH:
-    # Seed fake session values
-    st.session_state.setdefault(
-        "user_email", _get_config("DEV_USER_EMAIL", "pete.richards@ksmta.com")
-    )
-    st.session_state.setdefault("is_employee", True)
-    st.session_state.setdefault("is_ksmta", True)
-    st.session_state.setdefault("is_admin", True)
-
+    if _get_config("DISABLE_AUTH", "0") == "1":
+        st.session_state.setdefault(
+            "user_email", _get_config("DEV_USER_EMAIL", "pete.richards@ksmta.com")
+        )
+        st.session_state.setdefault("is_employee", True)
+        st.session_state.setdefault("is_ksmta", True)
+        st.session_state.setdefault("is_admin", True)
     # No-op decorators
+    def _ensure_user() -> None:  # type: ignore
+        return
     def require_login(func):  # type: ignore
         return func
 
@@ -100,7 +101,7 @@ if DISABLE_AUTH:
         return st.session_state.get("user_email")
 
     def ensure_user_email() -> str | None:  # type: ignore
-        """Return user email from session (dev bypass)."""
+        _ensure_user()
         return st.session_state.get("user_email")
 
 else:
@@ -261,10 +262,10 @@ else:
 
     def logout_button() -> None:
         with st.sidebar:
-            st.divider()
+            if hasattr(st.sidebar, "divider"):
+                st.sidebar.divider()
             # email: str | None = st.session_state.get("user_email")
-            # if email:
-            #     st.caption(f"Signed in as {email}")
+            # st.caption(f"Signed in as {email}")
             st.markdown(
                 "<div style='height: 3rem'></div>",
                 unsafe_allow_html=True,
