@@ -141,8 +141,8 @@ else:
             auth={
                 "clientId": CLIENT_ID,
                 "authority": AUTHORITY,
-                "redirectUri": "/",
-                "postLogoutRedirectUri": "/",
+                "redirectUri": "https://freightmath-rfp-automation.streamlit.app/",
+                "postLogoutRedirectUri": "https://freightmath-rfp-automation.streamlit.app/logout",
             },
             cache={
                 "cacheLocation": "sessionStorage",
@@ -236,8 +236,8 @@ else:
                 auth={
                     "clientId": CLIENT_ID,
                     "authority": AUTHORITY,
-                    "redirectUri": "/",
-                    "postLogoutRedirectUri": "/",
+                    "redirectUri": "https://freightmath-rfp-automation.streamlit.app/",
+                    "postLogoutRedirectUri": "https://freightmath-rfp-automation.streamlit.app/logout",
                 },
                 cache={
                     "cacheLocation": "sessionStorage",
