@@ -617,7 +617,7 @@ def main():
             ):
                 st.session_state["postprocess_run_clicked"] = True
                 with st.spinner("Gathering mileage and toll data…"):
-                    st.markdown(":blue[This process can take up to 10 minutes...]")
+                    st.markdown(":blue[This process can take up to 15 minutes...]")
                     preview_payload: dict[str, Any] = azure_sql.get_pit_url_payload(
                         st.session_state["operation_code"]
                     )
