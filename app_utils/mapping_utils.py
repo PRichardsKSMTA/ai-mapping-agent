@@ -1,7 +1,10 @@
 import os
 import json
+import re
 import numpy as np
 from datetime import datetime
+from typing import Set
+
 import streamlit as st
 from openai import OpenAI
 
@@ -159,6 +162,33 @@ def match_lookup_values(source_series, dictionary_list):
     """Legacy wrapper used by pages.steps.lookup."""
     return suggest_lookup_mapping(list(source_series), list(dictionary_list))
 
+# --- Header mapping helpers -------------------------------------------------
+
+_ABBREV_MAP: dict[str, set[str]] = {
+    "zip": {"zipcode", "postal"},
+    "zipcode": {"zip", "postal"},
+    "code": {"cd"},
+    "cd": {"code"},
+    "number": {"num", "no"},
+    "num": {"number", "no"},
+    "no": {"number", "num"},
+}
+
+
+def _tokenize(text: str) -> Set[str]:
+    tokens = re.findall(r"[A-Za-z0-9]+", text.lower())
+    expanded: Set[str] = set()
+    for tok in tokens:
+        expanded.add(tok)
+        expanded.update(_ABBREV_MAP.get(tok, set()))
+    return expanded
+
+
+def _token_similarity(a: Set[str], b: Set[str]) -> float:
+    union = a | b
+    return len(a & b) / len(union) if union else 0.0
+
+
 def suggest_header_mapping(template_fields: list[str], source_columns: list[str]):
     """Return fuzzy header suggestions with confidence scores."""
 
@@ -175,9 +205,21 @@ def suggest_header_mapping(template_fields: list[str], source_columns: list[str]
             best_lower = matches[0]
             best_src = lower_map[best_lower]
             ratio = SequenceMatcher(None, tf.lower(), best_lower).ratio()
-            if ratio >= 0.8:
+            if ratio >= 0.75:
                 out[tf] = {"src": best_src, "confidence": ratio}
                 continue
-        out[tf] = {}
+
+        tf_tokens = _tokenize(tf)
+        best_src = None
+        best_score = 0.0
+        for col in source_columns:
+            score = _token_similarity(tf_tokens, _tokenize(col))
+            if score > best_score:
+                best_score = score
+                best_src = col
+        if best_score >= 0.6 and best_src:
+            out[tf] = {"src": best_src, "confidence": best_score}
+        else:
+            out[tf] = {}
 
     return out
