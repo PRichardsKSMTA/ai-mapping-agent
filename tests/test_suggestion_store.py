@@ -89,6 +89,38 @@ def test_add_suggestion_updates_header_id(monkeypatch, tmp_path):
     assert saved[0]["header_id"] == suggestion_store._headers_id(["X", "Y"])
 
 
+def test_display_dedup(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    data = [
+        {
+            "template": "Demo",
+            "field": "Zip",
+            "type": "direct",
+            "formula": None,
+            "columns": ["Origin Zip"],
+            "display": "Origin Zip",
+        },
+        {
+            "template": "Demo",
+            "field": "Zip",
+            "type": "direct",
+            "formula": None,
+            "columns": ["Origin Zip"],
+            "display": "origin  zip",
+        },
+    ]
+    path.write_text(json.dumps(data))
+    monkeypatch.setenv("SUGGESTION_FILE", str(path))
+    importlib.reload(suggestion_store)
+
+    res = suggestion_store.get_suggestions("Demo", "Zip")
+    assert len(res) == 1
+    assert len(json.loads(path.read_text())) == 1
+
+    suggestion_store.add_suggestion(data[1])
+    assert len(json.loads(path.read_text())) == 1
+
+
 def test_round_trip_persistence(monkeypatch, tmp_path):
     path = tmp_path / "data" / "mapping_suggestions.json"
     monkeypatch.setenv("SUGGESTION_FILE", str(path))

@@ -46,9 +46,27 @@ def _load() -> List[Suggestion]:
     if not SUGGESTION_FILE.exists():
         return []
     try:
-        return json.loads(SUGGESTION_FILE.read_text())
+        data = json.loads(SUGGESTION_FILE.read_text())
     except json.JSONDecodeError:
         return []
+
+    seen = set()
+    deduped: List[Suggestion] = []
+    for s in data:
+        key = (
+            _canon(s.get("template", "")),
+            _canon(s.get("field", "")),
+            s.get("type"),
+            s.get("formula"),
+            tuple(_canon(c) for c in s.get("columns", [])),
+            _canon(s.get("display", "")),
+        )
+        if key not in seen:
+            seen.add(key)
+            deduped.append(s)
+    if len(deduped) != len(data):
+        _save(deduped)
+    return deduped
 
 
 def _save(data: List[Suggestion]) -> None:
@@ -74,6 +92,7 @@ def add_suggestion(s: Suggestion, headers: Optional[List[str]] | None = None) ->
     t_c = _canon(s["template"])
     f_c = _canon(s["field"])
     cols_c = [_canon(c) for c in s.get("columns", [])]
+    display_c = _canon(s.get("display", ""))
     h_id = s.get("header_id") or _headers_id(headers)
     if h_id:
         s = {**s, "header_id": h_id}
@@ -84,6 +103,7 @@ def add_suggestion(s: Suggestion, headers: Optional[List[str]] | None = None) ->
             and existing.get("type") == s.get("type")
             and existing.get("formula") == s.get("formula")
             and [_canon(c) for c in existing.get("columns", [])] == cols_c
+            and _canon(existing.get("display", "")) == display_c
         ):
             if h_id:
                 data[i] = {**existing, "header_id": h_id}
