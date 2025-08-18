@@ -1,53 +1,28 @@
 import importlib
 import json
 import sys
-import types
 from pathlib import Path
 from typing import Any
 
 
 class DummyStreamlit:
-    def __init__(
-        self,
-        *,
-        pressed_labels: set[str] | None = None,
-        pressed_keys: set[str] | None = None,
-        session_state: dict | None = None,
-    ) -> None:
-        self.session_state = session_state or {}
-        self.pressed_labels = pressed_labels or set()
-        self.pressed_keys = pressed_keys or set()
-        self.text_inputs: list[tuple[str, str]] = []
+    def __init__(self, *, tag_returns: dict[str, list[str]] | None = None) -> None:
+        self.tag_returns = tag_returns or {}
+        self.tag_calls: list[tuple[str, list[str]]] = []
 
-    # basic widgets -------------------------------------------------
     def dialog(self, *a, **k):
         def wrap(func):
             return func
 
         return wrap
 
-    def text_input(self, label: str, value: str = "", key: str | None = None, **k):
-        self.text_inputs.append((label, value))
-        return self.session_state.get(key, value)
-
-    def button(self, label: str, *, key: str | None = None, **k) -> bool:
-        return label in self.pressed_labels or (key is not None and key in self.pressed_keys)
-
-    def columns(self, spec):
-        if isinstance(spec, int):
-            spec = range(spec)
-        return [
-            types.SimpleNamespace(button=self.button, text_input=self.text_input)
-            for _ in spec
-        ]
-
-    def subheader(self, *a, **k):
+    def subheader(self, *a, **k) -> None:  # pragma: no cover - trivial
         pass
 
-    def error(self, *a, **k):
+    def error(self, *a, **k) -> None:  # pragma: no cover - trivial
         pass
 
-    def rerun(self) -> None:
+    def rerun(self) -> None:  # pragma: no cover - trivial
         pass
 
 
@@ -56,9 +31,7 @@ def run_dialog(
     tmp_path,
     *,
     suggestions: list[dict] | None = None,
-    pressed_labels: set[str] | None = None,
-    pressed_keys: set[str] | None = None,
-    session_state: dict | None = None,
+    tag_returns: dict[str, list[str]] | None = None,
 ) -> tuple[DummyStreamlit, Any]:
     monkeypatch.chdir(tmp_path)
     tpl_dir = Path("templates")
@@ -75,12 +48,20 @@ def run_dialog(
 
     importlib.reload(suggestion_store)
 
-    dummy = DummyStreamlit(
-        pressed_labels=pressed_labels,
-        pressed_keys=pressed_keys,
-        session_state=session_state,
-    )
+    dummy = DummyStreamlit(tag_returns=tag_returns)
+
+    class DummyTags:
+        def __init__(self, parent: DummyStreamlit) -> None:
+            self.parent = parent
+
+        def st_tags(
+            self, label: str, text: str, value: list[str], key: str, **k: Any
+        ) -> list[str]:
+            self.parent.tag_calls.append((label, value))
+            return self.parent.tag_returns.get(key, value)
+
     monkeypatch.setitem(sys.modules, "streamlit", dummy)
+    monkeypatch.setitem(sys.modules, "streamlit_tags", DummyTags(dummy))
     sys.modules.pop("app_utils.ui.suggestion_dialog", None)
     suggestion_dialog = importlib.import_module("app_utils.ui.suggestion_dialog")
 
@@ -103,16 +84,14 @@ def test_list_existing_suggestions(monkeypatch, tmp_path):
             }
         ],
     )
-    assert any(val == "ColA" for _, val in dummy.text_inputs)
+    assert any("ColA" in vals for _, vals in dummy.tag_calls)
 
 
 def test_add_suggestion(monkeypatch, tmp_path):
-    session = {"new_cols_Name": "ColB", "new_disp_Name": "ColB"}
     _, store = run_dialog(
         monkeypatch,
         tmp_path,
-        pressed_labels={"Add Name"},
-        session_state=session,
+        tag_returns={"tags_Name": ["ColB"]},
     )
     res = store.get_suggestions("Demo", "Name")
     assert res and res[0]["columns"] == ["ColB"]
@@ -131,7 +110,7 @@ def test_delete_suggestion(monkeypatch, tmp_path):
                 "display": "ColA",
             }
         ],
-        pressed_keys={"del_Name_0"},
+        tag_returns={"tags_Name": []},
     )
     assert store.get_suggestions("Demo", "Name") == []
 

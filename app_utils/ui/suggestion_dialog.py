@@ -8,12 +8,14 @@ from typing import List
 
 import streamlit as st
 
-from app_utils.suggestion_store import (
-    add_suggestion,
-    delete_suggestion,
-    get_suggestions,
-    update_suggestion,
-)
+try:  # pragma: no cover - dependency optional in tests
+    from streamlit_tags import st_tags
+except Exception:  # noqa: BLE001
+    def st_tags(*, label: str, text: str, value: list[str], key: str):
+        del label, text, key
+        return value
+
+from app_utils.suggestion_store import add_suggestion, delete_suggestion, get_suggestions
 
 
 def _field_names(tpl: dict) -> List[str]:
@@ -40,62 +42,76 @@ def edit_suggestions(filename: str, template_name: str) -> None:
     def _dlg() -> None:
         for field in _field_names(tpl):
             st.subheader(field)
+
             suggestions = get_suggestions(template_name, field)
-            for idx, s in enumerate(suggestions):
-                cols_val = ",".join(s.get("columns", []))
-                cols_key = f"sg_cols_{field}_{idx}"
-                disp_key = f"sg_disp_{field}_{idx}"
+            direct = [s for s in suggestions if s.get("type") != "formula"]
+            formulas = [s for s in suggestions if s.get("type") == "formula"]
+
+            def _label(s: dict) -> str:
                 if s.get("type") == "formula":
-                    st.text_input("Formula", s.get("formula", ""), key=cols_key, disabled=True)
-                else:
-                    st.text_input("Columns", cols_val, key=cols_key)
-                st.text_input("Display", s.get("display", ""), key=disp_key)
-                c1, c2 = st.columns(2)
-                if c1.button("Update", key=f"upd_{field}_{idx}"):
-                    new_cols = None
-                    if s.get("type") != "formula":
-                        raw = st.session_state.get(cols_key, "")
-                        new_cols = [c.strip() for c in raw.split(",") if c.strip()]
-                    update_suggestion(
-                        template_name,
-                        field,
-                        columns=s.get("columns"),
-                        formula=s.get("formula"),
-                        display=st.session_state.get(disp_key, ""),
-                        new_columns=new_cols,
-                    )
-                    st.rerun()
-                if c2.button("Delete", key=f"del_{field}_{idx}"):
+                    return s.get("display") or s.get("formula", "")
+                return s.get("display") or ",".join(s.get("columns", []))
+
+            direct_labels = [_label(s) for s in direct]
+            new_direct = st_tags(
+                label="Columns",
+                text="Add column and press enter",
+                value=direct_labels,
+                key=f"tags_{field}",
+            )
+            removed = set(direct_labels) - set(new_direct)
+            for lbl in removed:
+                match = next((d for d in direct if _label(d) == lbl), None)
+                if match:
                     delete_suggestion(
                         template_name,
                         field,
-                        columns=s.get("columns"),
-                        formula=s.get("formula"),
+                        columns=match.get("columns"),
                     )
                     st.rerun()
+            added = set(new_direct) - set(direct_labels)
+            for lbl in added:
+                cols = [c.strip() for c in lbl.split(",") if c.strip()]
+                add_suggestion(
+                    {
+                        "template": template_name,
+                        "field": field,
+                        "type": "direct",
+                        "columns": cols,
+                        "display": lbl,
+                    }
+                )
+                st.rerun()
 
-            cols_new = f"new_cols_{field}"
-            form_new = f"new_formula_{field}"
-            disp_new = f"new_disp_{field}"
-            st.text_input("Columns", key=cols_new)
-            st.text_input("Formula", key=form_new)
-            st.text_input("Display", key=disp_new)
-            if st.button(f"Add {field}", key=f"add_{field}"):
-                cols = [
-                    c.strip()
-                    for c in st.session_state.get(cols_new, "").split(",")
-                    if c.strip()
-                ]
-                formula = st.session_state.get(form_new) or None
-                suggestion = {
-                    "template": template_name,
-                    "field": field,
-                    "type": "formula" if formula else "direct",
-                    "formula": formula,
-                    "columns": cols,
-                    "display": st.session_state.get(disp_new, ""),
-                }
-                add_suggestion(suggestion)
+            formula_labels = [_label(s) for s in formulas]
+            new_formulas = st_tags(
+                label="Formulas",
+                text="Add formula and press enter",
+                value=formula_labels,
+                key=f"form_{field}",
+            )
+            removed_f = set(formula_labels) - set(new_formulas)
+            for lbl in removed_f:
+                match = next((f for f in formulas if _label(f) == lbl), None)
+                if match:
+                    delete_suggestion(
+                        template_name,
+                        field,
+                        formula=match.get("formula"),
+                    )
+                    st.rerun()
+            added_f = set(new_formulas) - set(formula_labels)
+            for lbl in added_f:
+                add_suggestion(
+                    {
+                        "template": template_name,
+                        "field": field,
+                        "type": "formula",
+                        "formula": lbl,
+                        "columns": [],
+                        "display": "",
+                    }
+                )
                 st.rerun()
 
     _dlg()

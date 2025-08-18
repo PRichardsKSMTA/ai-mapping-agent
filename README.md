@@ -1,5 +1,7 @@
 # ai-mapping-agent
-An AI Agent trained on heuristic mapping of specific FreightMath data
+An AI Agent trained on heuristic mapping of specific FreightMath data. The UI uses
+[`streamlit-tags`](https://github.com/gagan3012/streamlit-tags) for editable
+suggestion pills.
 
 ## Configuration
 
