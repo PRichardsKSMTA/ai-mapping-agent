@@ -11,3 +11,4 @@ pyodbc
 extra-streamlit-components
 msal
 python-dotenv
+streamlit-tags
