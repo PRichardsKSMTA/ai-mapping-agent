@@ -6,8 +6,16 @@ from typing import Any
 
 
 class DummyStreamlit:
-    def __init__(self, *, tag_returns: dict[str, list[str]] | None = None) -> None:
-        self.tag_returns = tag_returns or {}
+    def __init__(
+        self,
+        *,
+        tags_add: dict[str, list[str]] | None = None,
+        tags_remove: dict[str, list[str]] | None = None,
+    ) -> None:
+        """Minimal mock of Streamlit for tag widgets."""
+
+        self.tags_add = tags_add or {}
+        self.tags_remove = tags_remove or {}
         self.tag_calls: list[tuple[str, list[str]]] = []
 
     def dialog(self, *a, **k):
@@ -31,7 +39,8 @@ def run_dialog(
     tmp_path,
     *,
     suggestions: list[dict] | None = None,
-    tag_returns: dict[str, list[str]] | None = None,
+    tags_add: dict[str, list[str]] | None = None,
+    tags_remove: dict[str, list[str]] | None = None,
 ) -> tuple[DummyStreamlit, Any]:
     monkeypatch.chdir(tmp_path)
     tpl_dir = Path("templates")
@@ -48,7 +57,7 @@ def run_dialog(
 
     importlib.reload(suggestion_store)
 
-    dummy = DummyStreamlit(tag_returns=tag_returns)
+    dummy = DummyStreamlit(tags_add=tags_add, tags_remove=tags_remove)
 
     class DummyTags:
         def __init__(self, parent: DummyStreamlit) -> None:
@@ -58,7 +67,12 @@ def run_dialog(
             self, label: str, text: str, value: list[str], key: str, **k: Any
         ) -> list[str]:
             self.parent.tag_calls.append((label, value))
-            return self.parent.tag_returns.get(key, value)
+            new_vals = value[:]
+            new_vals.extend(self.parent.tags_add.get(key, []))
+            for tag in self.parent.tags_remove.get(key, []):
+                if tag in new_vals:
+                    new_vals.remove(tag)
+            return new_vals
 
     monkeypatch.setitem(sys.modules, "streamlit", dummy)
     monkeypatch.setitem(sys.modules, "streamlit_tags", DummyTags(dummy))
@@ -84,14 +98,14 @@ def test_list_existing_suggestions(monkeypatch, tmp_path):
             }
         ],
     )
-    assert any("ColA" in vals for _, vals in dummy.tag_calls)
+    assert ("Columns", ["ColA"]) in dummy.tag_calls
 
 
 def test_add_suggestion(monkeypatch, tmp_path):
     _, store = run_dialog(
         monkeypatch,
         tmp_path,
-        tag_returns={"tags_Name": ["ColB"]},
+        tags_add={"tags_Name": ["ColB"]},
     )
     res = store.get_suggestions("Demo", "Name")
     assert res and res[0]["columns"] == ["ColB"]
@@ -110,7 +124,7 @@ def test_delete_suggestion(monkeypatch, tmp_path):
                 "display": "ColA",
             }
         ],
-        tag_returns={"tags_Name": []},
+        tags_remove={"tags_Name": ["ColA"]},
     )
     assert store.get_suggestions("Demo", "Name") == []
 

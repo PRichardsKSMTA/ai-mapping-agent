@@ -227,47 +227,91 @@ def show() -> None:
 
 
 def edit_template(filename: str, data: dict) -> None:
-    key = f"edit_{filename}"
-    st.session_state.setdefault(key, json.dumps(data, indent=2))
-    post_key = f"{key}_post"
+    """Render a dialog to edit an existing template."""
+
+    tpl = Template.model_validate(data)
+
+    prefix = f"tm_edit_{filename}"
+    name_key = f"{prefix}_name"
+    fields_key = f"{prefix}_fields"
+    post_key = f"{prefix}_post"
+    guid = tpl.template_guid or str(uuid.uuid4())
+
+    st.session_state.setdefault(name_key, tpl.template_name)
     st.session_state.setdefault(
-        post_key,
-        json.dumps(data.get("postprocess", ""), indent=2)
-        if data.get("postprocess") is not None
-        else "",
+        fields_key,
+        [{"key": f.key, "required": f.required} for f in tpl.layers[0].fields],
     )
+    st.session_state.setdefault(post_key, tpl.postprocess.url if tpl.postprocess else "")
+
+    def _build_tpl_dict(name: str, fields: list[dict], post_url: str) -> dict:
+        cleaned = [
+            {"key": f["key"].strip(), "required": bool(f.get("required", False))}
+            for f in fields
+            if f.get("key")
+        ]
+        tpl_dict = {
+            "template_guid": guid,
+            "template_name": name.strip(),
+            "layers": [{"type": "header", "fields": cleaned}],
+        }
+        if post_url:
+            tpl_dict["postprocess"] = {"url": post_url}
+        return tpl_dict
 
     @st.dialog(f"Edit Template '{filename}'", width="large")
-    def _dlg() -> None:
-        st.text_area("Template JSON", key, height=400)
-        st.caption(
-            "Optional instructions to POST mapped data after processing."
-        )
-        st.text_area("Postprocess JSON (optional)", post_key, height=200)
+    def _dlg() -> None:  # pragma: no cover - widget rendering
+        name = st.text_input("Template Name", key=name_key)
+
+        st.subheader("Fields")
+        fields = st.session_state[fields_key]
+        for idx, fld in enumerate(list(fields)):
+            cols = st.columns([3, 1, 1])
+            fld["key"] = cols[0].text_input(
+                "Field", value=fld["key"], key=f"{fields_key}_{idx}"
+            )
+            fld["required"] = cols[1].checkbox(
+                "Required", value=fld.get("required", False), key=f"{fields_key}_{idx}_req"
+            )
+            if cols[2].button("Remove", key=f"{fields_key}_{idx}_del"):
+                fields.pop(idx)
+                st.session_state[fields_key] = fields
+                st.rerun()
+        st.session_state[fields_key] = fields
+
+        if st.button("Add Field", key=f"{fields_key}_add"):
+            fields.append({"key": "", "required": False})
+            st.session_state[fields_key] = fields
+            st.rerun()
+
+        post_url = st.text_input("Postprocess URL", key=post_key)
+
+        with st.expander("Full JSON"):
+            st.json(_build_tpl_dict(name, fields, post_url))
+
         c1, c2 = st.columns([1, 1])
-        if c1.button("Save", key=f"{key}_save"):
+        if c1.button("Save", key=f"{prefix}_save"):
             with st.spinner("Saving template..."):
                 try:
-                    obj = json.loads(st.session_state[key])
-                    post_txt = st.session_state[post_key].strip()
-                    post_obj = json.loads(post_txt) if post_txt else None
-                    if post_obj is None:
-                        obj.pop("postprocess", None)
-                    else:
-                        obj["postprocess"] = post_obj
-                    obj.setdefault("template_guid", str(uuid.uuid4()))
-                    Template.model_validate(obj)
-                    safe = save_template_file(obj)
-                    if safe + ".json" != filename:
+                    tpl_dict = _build_tpl_dict(
+                        st.session_state[name_key],
+                        st.session_state[fields_key],
+                        st.session_state[post_key],
+                    )
+                    tpl_obj = Template.model_validate(tpl_dict)
+                    safe = save_template_file(tpl_obj.model_dump(exclude_none=True))
+                    if f"{safe}.json" != filename:
                         os.remove(os.path.join("templates", filename))
                     st.success("Template saved")
                     st.session_state["unsaved_changes"] = False
-                    st.session_state.pop(key, None)
+                    for k in (name_key, fields_key, post_key):
+                        st.session_state.pop(k, None)
                     st.rerun()
                 except Exception as err:  # noqa: BLE001
                     st.error(f"❌ {err}")
-        if c2.button("Cancel", key=f"{key}_cancel"):
-            st.session_state.pop(key, None)
+        if c2.button("Cancel", key=f"{prefix}_cancel"):
+            for k in (name_key, fields_key, post_key):
+                st.session_state.pop(k, None)
             st.rerun()
 
     _dlg()
