@@ -166,7 +166,7 @@ class DummyStreamlit:
 
 
 def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
-    st = DummyStreamlit(button_sequence or [{"Generate BID"}])
+    st = DummyStreamlit(button_sequence or [{"Generate PIT"}])
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setenv("CLIENT_DEST_SITE", "https://tenant.sharepoint.com/sites/demo")
@@ -306,7 +306,7 @@ def test_back_before_export(monkeypatch):
 def test_back_after_export(monkeypatch):
     _, state, _ = run_app(
         monkeypatch,
-        button_sequence=[{"Generate BID"}, {"Back to mappings"}],
+        button_sequence=[{"Generate PIT"}, {"Back to mappings"}],
     )
     for key in ["export_complete", "mapped_csv"]:
         assert key not in state
@@ -338,7 +338,7 @@ def test_export_button_reenabled_after_completion(monkeypatch):
     assert called.get("runs") == 1
     assert "postprocess_run_clicked" not in state
     state["export_complete"] = False
-    st.button_sequence = [{"Generate BID"}]
+    st.button_sequence = [{"Generate PIT"}]
     st.run_idx = 0
     import importlib, sys, app
 

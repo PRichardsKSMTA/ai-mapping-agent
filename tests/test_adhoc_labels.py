@@ -111,7 +111,7 @@ def setup_header_env(monkeypatch: MonkeyPatch) -> HeaderDummyStreamlit:
 def run_app_with_labels(
     monkeypatch: MonkeyPatch,
 ) -> Tuple[Dict[str, object], Dict[str, object]]:
-    st = DummyStreamlit([{"Generate BID"}])
+    st = DummyStreamlit([{"Generate PIT"}])
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setitem(
