@@ -1,4 +1,25 @@
-# app_utils/suggestion_store.py
+"""Persistence layer for field mapping suggestions.
+
+This module stores per-template field mapping suggestions on disk. It exposes
+helpers to add, fetch, update, and delete individual suggestions.
+
+Key functions
+-------------
+``add_suggestion``
+    Persist a new suggestion if it doesn't already exist.
+``get_suggestions``
+    Return all suggestions for a template field.
+``get_suggestion``
+    Fetch a single suggestion matching a template field and either columns or a
+    formula.
+``update_suggestion``
+    Modify an existing suggestion's display text or source columns.
+``delete_suggestion``
+    Remove one stored suggestion identified by its columns or formula.
+``remove_suggestion``
+    Remove all suggestions matching a template/field pair.
+"""
+
 from pathlib import Path
 import json
 import os
@@ -86,6 +107,105 @@ def get_suggestions(
     if h_id:
         matches.sort(key=lambda x: 0 if x.get("header_id") == h_id else 1)
     return matches
+
+
+def get_suggestion(
+    template: str,
+    field: str,
+    *,
+    columns: Optional[List[str]] | None = None,
+    formula: str | None = None,
+) -> Optional[Suggestion]:
+    """Return a single suggestion matching ``template``/``field``.
+
+    Either ``columns`` or ``formula`` must be provided to identify the
+    suggestion. Matching on columns is case/whitespace insensitive.
+    """
+
+    t_c = _canon(template)
+    f_c = _canon(field)
+    cols_c = [_canon(c) for c in columns] if columns else None
+    for s in _load():
+        if _canon(s["template"]) == t_c and _canon(s["field"]) == f_c:
+            match_formula = formula is not None and s.get("formula") == formula
+            match_columns = (
+                cols_c is not None
+                and [_canon(c) for c in s.get("columns", [])] == cols_c
+            )
+            if match_formula or match_columns:
+                return s
+    return None
+
+
+def update_suggestion(
+    template: str,
+    field: str,
+    *,
+    columns: Optional[List[str]] | None = None,
+    formula: str | None = None,
+    display: Optional[str] | None = None,
+    new_columns: Optional[List[str]] | None = None,
+) -> bool:
+    """Update an existing suggestion's display text or columns.
+
+    The suggestion is selected via ``template``/``field`` and either ``columns``
+    or ``formula``. Returns ``True`` if a suggestion was updated.
+    """
+
+    data = _load()
+    t_c = _canon(template)
+    f_c = _canon(field)
+    cols_c = [_canon(c) for c in columns] if columns else None
+    updated = False
+    for i, s in enumerate(data):
+        if _canon(s["template"]) == t_c and _canon(s["field"]) == f_c:
+            match_formula = formula is not None and s.get("formula") == formula
+            match_columns = (
+                cols_c is not None
+                and [_canon(c) for c in s.get("columns", [])] == cols_c
+            )
+            if match_formula or match_columns:
+                new_s = dict(s)
+                if display is not None:
+                    new_s["display"] = display
+                if new_columns is not None:
+                    new_s["columns"] = new_columns
+                data[i] = new_s
+                updated = True
+                break
+    if updated:
+        _save(data)
+    return updated
+
+
+def delete_suggestion(
+    template: str,
+    field: str,
+    *,
+    columns: Optional[List[str]] | None = None,
+    formula: str | None = None,
+) -> bool:
+    """Delete a single suggestion identified by columns or formula."""
+
+    t_c = _canon(template)
+    f_c = _canon(field)
+    cols_c = [_canon(c) for c in columns] if columns else None
+    new_data: List[Suggestion] = []
+    removed = False
+    for s in _load():
+        if _canon(s["template"]) == t_c and _canon(s["field"]) == f_c:
+            match_formula = formula is not None and s.get("formula") == formula
+            match_columns = (
+                cols_c is not None
+                and [_canon(c) for c in s.get("columns", [])] == cols_c
+            )
+            if match_formula or match_columns:
+                removed = True
+                continue
+        new_data.append(s)
+    if removed:
+        _save(new_data)
+    return removed
 
 
 def remove_suggestion(template: str, field: str, suggestion_type: str | None = "formula") -> None:
