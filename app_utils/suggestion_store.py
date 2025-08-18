@@ -56,26 +56,18 @@ def add_suggestion(s: Suggestion, headers: Optional[List[str]] | None = None) ->
     h_id = s.get("header_id") or _headers_id(headers)
     if h_id:
         s = {**s, "header_id": h_id}
-    # Replace suggestion for same header set
     for i, existing in enumerate(data):
-        if (
-            _canon(existing["template"]) == t_c
-            and _canon(existing["field"]) == f_c
-            and existing.get("header_id") == h_id
-        ):
-            data[i] = s
-            _save(data)
-            return
-    # Deduplicate exact suggestions
-    for existing in data:
         if (
             _canon(existing["template"]) == t_c
             and _canon(existing["field"]) == f_c
             and existing.get("type") == s.get("type")
             and existing.get("formula") == s.get("formula")
             and [_canon(c) for c in existing.get("columns", [])] == cols_c
-            and existing.get("header_id") == h_id
         ):
+            if h_id:
+                data[i] = {**existing, "header_id": h_id}
+                _save(data)
+                return
             return
     data.append(s)
     _save(data)
