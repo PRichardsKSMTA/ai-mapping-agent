@@ -236,8 +236,8 @@ else:
                 auth={
                     "clientId": CLIENT_ID,
                     "authority": AUTHORITY,
-                    "redirectUri": "https://freightmath-rfp-automation.streamlit.app/",
-                    "postLogoutRedirectUri": "https://freightmath-rfp-automation.streamlit.app/logout",
+                    "redirectUri": "/",
+                    "postLogoutRedirectUri": "/",
                 },
                 cache={
                     "cacheLocation": "sessionStorage",
