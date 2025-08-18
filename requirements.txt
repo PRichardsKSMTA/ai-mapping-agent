@@ -12,3 +12,4 @@ extra-streamlit-components
 msal
 python-dotenv
 streamlit-tags
+msal-streamlit-authentication
