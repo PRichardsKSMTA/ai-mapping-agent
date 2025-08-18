@@ -44,7 +44,7 @@ def test_add_suggestion_dedup(monkeypatch, tmp_path):
     assert len(saved) == 1
 
 
-def test_add_suggestion_replace_on_header(monkeypatch, tmp_path):
+def test_add_suggestion_no_replace_on_header(monkeypatch, tmp_path):
     path = tmp_path / "mapping_suggestions.json"
     path.write_text("[]")
     monkeypatch.setenv("SUGGESTION_FILE", str(path))
@@ -63,8 +63,30 @@ def test_add_suggestion_replace_on_header(monkeypatch, tmp_path):
     suggestion_store.add_suggestion({**base, "columns": ["ColB"]}, headers=headers)
 
     saved = json.loads(path.read_text())
+    assert len(saved) == 2
+    assert saved[1]["columns"] == ["ColB"]
+
+
+def test_add_suggestion_updates_header_id(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    path.write_text("[]")
+    monkeypatch.setenv("SUGGESTION_FILE", str(path))
+    importlib.reload(suggestion_store)
+
+    base = {
+        "template": "Demo",
+        "field": "Name",
+        "type": "direct",
+        "formula": None,
+        "columns": ["ColA"],
+        "display": "ColA",
+    }
+    suggestion_store.add_suggestion(base, headers=["A", "B"])
+    suggestion_store.add_suggestion(base, headers=["X", "Y"])
+
+    saved = json.loads(path.read_text())
     assert len(saved) == 1
-    assert saved[0]["columns"] == ["ColB"]
+    assert saved[0]["header_id"] == suggestion_store._headers_id(["X", "Y"])
 
 
 def test_round_trip_persistence(monkeypatch, tmp_path):
