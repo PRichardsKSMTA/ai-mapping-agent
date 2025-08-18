@@ -224,27 +224,31 @@ else:
 
         _, col, _ = st.columns((1, 2, 1))
 
-        # Same-tab navigation to Microsoft login using a plain HTML form submit.
-        # This avoids Streamlit components (iframes) and avoids link_button (new tab).
+        # Use a plain anchor (same tab). This avoids iframes and avoids Streamlit's link_button (new tab).
         col.markdown(
             f"""
-            <form action="{login_url}" method="GET" style="margin:0;">
-            <button type="submit"
-                    style="
-                        width:100%;
-                        padding:0.6rem 1rem;
-                        border:0;
-                        border-radius:0.5rem;
-                        background:#0d6efd;
-                        color:#fff;
-                        font-weight:600;
-                        cursor:pointer;">
-                🔒 Sign in with Microsoft
-            </button>
-            </form>
+            <a href="{login_url}"
+            target="_self"
+            rel="noopener"
+            style="
+                display:inline-block;
+                width:100%;
+                padding:0.6rem 1rem;
+                border-radius:0.5rem;
+                background:#0d6efd;
+                color:#fff;
+                font-weight:600;
+                text-decoration:none;
+                text-align:center;">
+            🔒 Sign in with Microsoft
+            </a>
             """,
             unsafe_allow_html=True,
         )
+
+        # Optional: show the exact URL for quick debugging
+        with st.expander("Debug: Microsoft authorization URL"):
+            st.code(login_url, language="text")
 
         st.stop()
 
