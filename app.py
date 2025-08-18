@@ -572,8 +572,8 @@ def main():
             header_text: str = "Step — Run Export"
             button_text: str = "Run Export"
             if template_obj.template_name == "PIT BID":
-                header_text = "Step 2 - Generate BID File"
-                button_text = "Generate BID"
+                header_text = "Step 2 - Generate PIT File"
+                button_text = "Generate PIT"
             st.header(header_text)
 
             sheet = st.session_state.get("upload_sheet", 0)
