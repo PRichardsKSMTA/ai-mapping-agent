@@ -7,7 +7,7 @@
       "fields": [
         {
           "key": "Lane ID",
-          "required": true
+          "required": false
         },
         {
           "key": "Origin City",
