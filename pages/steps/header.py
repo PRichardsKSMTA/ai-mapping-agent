@@ -118,8 +118,17 @@ def render(layer, idx: int) -> None:
     if not st.session_state.get(ai_flag):
         before = mapping.copy()
         with st.spinner("Querying GPT..."):
+            required_unmapped = [
+                k
+                for k in required_keys
+                if not mapping.get(k, {}).get("src")
+                and not mapping.get(k, {}).get("expr")
+            ]
+            targets = required_unmapped or [
+                k for k, v in mapping.items() if not v.get("src") and not v.get("expr")
+            ]
             mapping = apply_gpt_header_fallback(
-                mapping, source_cols, targets=required_keys
+                mapping, source_cols, targets=targets
             )
         st.session_state[map_key] = mapping
         st.session_state[ai_flag] = True
