@@ -167,12 +167,16 @@ def render(layer, idx: int) -> None:
                 },
                 headers=source_cols,
             )
-            if key.startswith("ADHOC_INFO") and new_src != src_val:
+            if key.startswith("ADHOC_INFO"):
                 match = re.findall(r"\d+", key)
                 default = f"AdHoc{match[0] if match else ''}"
+                state_label = st.session_state.get(f"adhoc_label_{key}")
+                if state_label is not None and state_label != adhoc_labels.get(key, default):
+                    adhoc_labels[key] = state_label or default
+                    adhoc_autogen[key] = False
                 label = adhoc_labels.get(key, default)
                 auto = adhoc_autogen.get(key, True)
-                if auto or label == src_val:
+                if auto or label in {src_val, default}:
                     adhoc_labels[key] = new_src
                     adhoc_autogen[key] = True
                     st.session_state[f"adhoc_label_{key}"] = new_src
