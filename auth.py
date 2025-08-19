@@ -207,7 +207,7 @@ else:
         )
 
         # Create three columns and render the login component in the center one
-        left, center, right = st.columns([1, 1.5, 1])
+        left, center, right = st.columns([1, 1.2, 1])
         token = None
         with center:
             token = msal_authentication(
@@ -226,7 +226,7 @@ else:
                     "prompt": "select_account",
                 },
                 logout_request={},
-                login_button_text="Sign in with Microsoft",
+                login_button_text="🔒 Sign in with Microsoft",
                 logout_button_text="Sign out",
                 key="msal_popup_login_singleton",
             )
