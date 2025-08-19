@@ -250,7 +250,7 @@ else:
                 },
                 logout_request={},
                 login_button_text="🔒 Sign in with Microsoft",
-                logout_button_text="Sign out",
+                # logout_button_text="Sign out",
                 key="msal_popup_login_singleton",
             )
 
