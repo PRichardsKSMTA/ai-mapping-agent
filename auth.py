@@ -231,7 +231,7 @@ else:
         )
 
         # Columns are optional now; keeping equal columns is fine
-        left, center, right = st.columns([1, 1, 1])
+        left, center, right = st.columns([1, 1.3, 1])
         with center:
             token = msal_authentication(
                 auth={
