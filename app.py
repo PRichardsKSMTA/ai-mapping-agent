@@ -703,12 +703,14 @@ def main():
                 nested = (payload.get("item/In_dtInputData") or [{}])[0]
                 dest_site = dest_site or nested.get("CLIENT_DEST_SITE")
                 dest_path = dest_path or nested.get("CLIENT_DEST_FOLDER_PATH")
+            sharepoint_url: str | None = None
             if dest_site and dest_path:
                 sharepoint_url = f"{dest_site.rstrip('/')}{quote(dest_path, safe='/')}"
-                st.link_button("Open SharePoint folder", sharepoint_url)
             preview_df = st.session_state.get("mapped_preview_df")
             if preview_df is not None:
                 st.dataframe(preview_df)
+            if sharepoint_url:
+                st.link_button("Open SharePoint folder", sharepoint_url)
             csv_data = st.session_state.get("mapped_csv")
 
             if csv_data:

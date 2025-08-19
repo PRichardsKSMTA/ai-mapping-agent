@@ -345,3 +345,23 @@ def test_export_button_reenabled_after_completion(monkeypatch):
     importlib.reload(sys.modules["app"])
     assert called.get("runs") == 2
     assert st.spinner_messages.count("Gathering mileage and toll data…") == 2
+
+
+def test_sharepoint_link_after_preview(monkeypatch):
+    order: list[str] = []
+    orig_dataframe = DummyStreamlit.dataframe
+    orig_link_button = DummyStreamlit.link_button
+
+    def wrapped_dataframe(self, data, *args, **kwargs):  # type: ignore[override]
+        order.append("dataframe")
+        return orig_dataframe(self, data, *args, **kwargs)
+
+    def wrapped_link_button(self, label, url, *args, **kwargs):  # type: ignore[override]
+        order.append("link_button")
+        return orig_link_button(self, label, url, *args, **kwargs)
+
+    monkeypatch.setattr(DummyStreamlit, "dataframe", wrapped_dataframe)
+    monkeypatch.setattr(DummyStreamlit, "link_button", wrapped_link_button)
+
+    run_app(monkeypatch)
+    assert order[-2:] == ["dataframe", "link_button"]
