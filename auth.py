@@ -145,16 +145,17 @@ else:
 
     def _initiate_flow() -> str:
         """Start MSAL auth-code flow (once per session) and return login URL."""
-        if "msal_state" not in st.session_state:
+        state = st.session_state.get("msal_state")
+        if not state or state not in _FLOW_CACHE:
             app = _build_msal_app()
             flow = app.initiate_auth_code_flow(
                 scopes=SCOPE,
                 redirect_uri=REDIRECT_URI,
                 prompt="select_account",
             )
-            st.session_state["msal_state"] = flow["state"]
-            _FLOW_CACHE[flow["state"]] = flow
-        state = st.session_state["msal_state"]
+            state = flow["state"]
+            st.session_state["msal_state"] = state
+            _FLOW_CACHE[state] = flow
         return _FLOW_CACHE[state]["auth_uri"]
 
     def _complete_flow() -> None:

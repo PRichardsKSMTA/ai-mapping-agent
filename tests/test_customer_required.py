@@ -213,7 +213,7 @@ def test_no_error_when_customer_has_no_ids(monkeypatch):
     st = run_app(monkeypatch, customers)
     assert st.errors == []
     assert "Customer ID" not in st.multiselect_calls
-    assert st.session_state.get("customer_ids") is None
+    assert st.session_state.get("customer_ids") == []
 
 
 def test_pit_bid_requires_customer_id(monkeypatch):

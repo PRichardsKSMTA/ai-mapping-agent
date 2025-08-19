@@ -313,7 +313,7 @@ def main():
                 st.dataframe(df.head())
 
     customer_valid = True
-    st.session_state.setdefault("customer_ids", None)
+    st.session_state.setdefault("customer_ids", [])
 
     if hasattr(st, "divider"):
         if hasattr(st, "divider"):
@@ -392,7 +392,7 @@ def main():
                     customer_name = new_name.strip().title() if new_name else ""
                     st.session_state["customer_name"] = customer_name
                     st.session_state["customer_id_options"] = []
-                    st.session_state["customer_ids"] = None
+                    st.session_state["customer_ids"] = []
                     st.session_state["selected_customer"] = (
                         {"BILLTO_NAME": customer_name} if customer_name else {}
                     )
@@ -401,7 +401,7 @@ def main():
                     customer_name = selected_name
                     st.session_state["customer_name"] = customer_name
                     if selected_name and selected_name != prev_choice:
-                        st.session_state["customer_ids"] = None
+                        st.session_state["customer_ids"] = []
                 if customer_name:
                     matches = [
                         c
@@ -428,7 +428,7 @@ def main():
                                     st.session_state["customer_ids"] = billto_ids[:5]
 
                                 def deselect_all_ids() -> None:
-                                    st.session_state["customer_ids"] = None
+                                    st.session_state["customer_ids"] = []
 
                                 # Single label for both columns keeps the row visually grouped
                                 # st.markdown("**Customer ID**")
@@ -497,7 +497,7 @@ def main():
                                     )
                     else:
                         st.session_state["customer_id_options"] = []
-                        st.session_state["customer_ids"] = None
+                        st.session_state["customer_ids"] = []
                         st.info("Selected customer has no Customer IDs.")
                 else:
                     if st.session_state.get("customer_choice") != "+ New Customer":
@@ -515,7 +515,7 @@ def main():
                         st.error("Select at least one Customer ID.")
                         customer_valid = False
                 else:
-                    st.session_state["customer_ids"] = None
+                    st.session_state["customer_ids"] = []
 
     # ---------------------------------------------------------------------------
     # 5. Main wizard
