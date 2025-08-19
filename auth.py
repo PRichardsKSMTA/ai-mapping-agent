@@ -198,17 +198,40 @@ else:
         base = f"{AUTHORITY}/oauth2/v2.0/logout"
         # post_logout_redirect_uri must be one of your SPA Redirect URIs in Azure
         return f"{base}?post_logout_redirect_uri={quote(REDIRECT_URI, safe='')}"
+    
+    def _inject_component_centering_css() -> None:
+        if st.session_state.get("_center_css_done"):
+            return
+        st.session_state["_center_css_done"] = True
+        st.markdown(
+            """
+            <style>
+            /* Center any Streamlit component container (e.g., msal_streamlit_t2) */
+            div[data-testid="stComponent"] {
+                display: flex;
+                justify-content: center;   /* horizontally center the iframe */
+            }
+            div[data-testid="stComponent"] > iframe {
+                max-width: 100%;
+                margin: 0 auto;            /* keep it centered in the flex box */
+                display: block;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
     def _render_login_ui() -> None:
+        _inject_component_centering_css()  # <- ensure centering CSS is in place
+
         st.markdown(
             "<h1 style='text-align:center;'>AI Mapping Agent</h1>"
             "<h3 style='text-align:center;'>Please sign in</h3>",
             unsafe_allow_html=True,
         )
 
-        # Create three columns and render the login component in the center one
-        left, center, right = st.columns([1, 1.3, 1])
-        token = None
+        # Columns are optional now; keeping equal columns is fine
+        left, center, right = st.columns([1, 1, 1])
         with center:
             token = msal_authentication(
                 auth={
