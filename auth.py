@@ -188,9 +188,16 @@ else:
     # Maintained drop-in replacement; add to requirements.txt: msal_streamlit_t2==1.1.5
     from msal_streamlit_t2 import msal_authentication  # type: ignore
     import streamlit.components.v1 as components
+    # add near the top of the REAL-AUTH section:
+    from urllib.parse import quote
 
     AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
     SCOPES = ["openid", "profile", "email", "User.Read"]
+    
+    def _aad_logout_url() -> str:
+        base = f"{AUTHORITY}/oauth2/v2.0/logout"
+        # post_logout_redirect_uri must be one of your SPA Redirect URIs in Azure
+        return f"{base}?post_logout_redirect_uri={quote(REDIRECT_URI, safe='')}"
 
     def _render_login_ui() -> None:
         st.markdown(
@@ -320,22 +327,46 @@ else:
             height=0,
         )
 
-    def _logout_button_real() -> None:
+    def logout_button() -> None:
         if "user_email" not in st.session_state or not st.session_state.get("id_token"):
             return
+
+        import streamlit.components.v1 as components
+        import json
+
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
+
             if st.button("Sign out", type="primary", use_container_width=True, key="ksm_logout"):
-                # Clear server state first, then client-side wipe + reload (no st.rerun()).
-                for k in [
-                    "user_email", "user_name", "groups",
-                    "is_employee", "is_ksmta", "is_admin",
-                    "id_token", "token_acquired_at",
-                ]:
-                    st.session_state.pop(k, None)
-                st.query_params.clear()
-                _clear_storage_and_reload()
+                # Don’t clear server state or rerun; let the full-page navigation reset everything.
+                logout_url = _aad_logout_url()
+
+                components.html(
+                    f"""
+                    <script>
+                    (function() {{
+                        try {{
+                        // Remove everything from both storages to avoid any cached MSAL state
+                        ['localStorage','sessionStorage'].forEach(function(storeName){{
+                            var store = window[storeName];
+                            if (!store) return;
+                            var keys = [];
+                            for (var i = store.length - 1; i >= 0; i--) {{
+                            var k = store.key(i);
+                            if (k) keys.push(k);
+                            }}
+                            keys.forEach(function(k) {{ try {{ store.removeItem(k); }} catch(e){{}} }});
+                        }});
+                        }} catch (e) {{}}
+                        var url = {json.dumps(logout_url)};
+                        if (window.top) window.top.location.href = url;
+                        else window.location.href = url;
+                    }})();
+                    </script>
+                    """,
+                    height=0,
+                )
                 st.stop()
 
     def _get_user_email_real() -> Optional[str]:
