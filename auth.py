@@ -206,27 +206,29 @@ else:
             unsafe_allow_html=True,
         )
 
-        # SINGLE instance; no auto-refresh; no sidebar copy
-        token = msal_authentication(
-            auth={
-                "clientId": CLIENT_ID,
-                "authority": AUTHORITY,
-                "redirectUri": REDIRECT_URI,            # must match SPA redirect exactly
-                "postLogoutRedirectUri": REDIRECT_URI,
-            },
-            cache={
-                "cacheLocation": "localStorage",         # popup & opener share cache
-                "storeAuthStateInCookie": False,
-            },
-            login_request={
-                "scopes": SCOPES,
-                "prompt": "select_account",
-            },
-            logout_request={},                            # required param
-            login_button_text="🔒 Sign in with Microsoft",
-            logout_button_text="Sign out",
-            key="msal_popup_login_singleton",
-        )
+        # Center the login component
+        _, col, _ = st.columns((1, 2, 1))
+        with col:
+            token = msal_authentication(
+                auth={
+                    "clientId": CLIENT_ID,
+                    "authority": AUTHORITY,
+                    "redirectUri": REDIRECT_URI,            # must match SPA redirect exactly
+                    "postLogoutRedirectUri": REDIRECT_URI,
+                },
+                cache={
+                    "cacheLocation": "localStorage",         # popup & opener share cache
+                    "storeAuthStateInCookie": False,
+                },
+                login_request={
+                    "scopes": SCOPES,
+                    "prompt": "select_account",
+                },
+                logout_request={},                            # required param
+                login_button_text="🔒 Sign in with Microsoft",
+                logout_button_text="Sign out",
+                key="msal_popup_login_singleton",
+            )
 
         # Only transition when a real token exists; ignore None
         if isinstance(token, dict) and token.get("idToken"):
