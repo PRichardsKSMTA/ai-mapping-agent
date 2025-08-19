@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 import json
 import logging
+import re
 import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
@@ -90,7 +91,8 @@ def run_postprocess_if_configured(
 
         # Generate filename with current date
         current_date = datetime.now().strftime("%Y%m%d")
-        fname = f"{operation_cd} - BID - {customer_name}_{current_date}.xlsm"
+        safe_customer = re.sub(r"[\\/]+", "", customer_name)
+        fname = f"{operation_cd} - BID - {safe_customer}_{current_date}.xlsm"
 
         payload.setdefault("item/In_dtInputData", [{}])
         if not payload["item/In_dtInputData"]:

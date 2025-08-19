@@ -285,3 +285,13 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
     assert called["args"] == ("guid", "OP", 1, 3)
     assert "cycle" in logs
 
+
+def test_pit_bid_customer_name_slashes_removed(monkeypatch):
+    payload = {"item/In_dtInputData": [{}], "BID-Payload": "", "CLIENT_DEST_FOLDER_PATH": CLIENT_BIDS_DEST_PATH}
+    monkeypatch.setattr('app_utils.postprocess_runner.get_pit_url_payload', lambda *a, **k: payload)
+    monkeypatch.setattr('app_utils.postprocess_runner.wait_for_postprocess_completion', lambda *a, **k: None)
+    monkeypatch.setattr('app_utils.postprocess_runner.datetime', types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)))
+    monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=lambda *a, **k: None))
+    tpl = Template.model_validate({'template_name': 'PIT BID', 'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}], 'postprocess': {'url': 'https://example.com'}})
+    _, ret = run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), 'guid', operation_cd='OP', customer_name='Sonoco/Tegrant')
+    assert ret['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == 'OP - BID - SonocoTegrant_20200101.xlsm'
