@@ -165,7 +165,11 @@ class DummyStreamlit:
         return DummyContainer()
 
 
-def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
+def run_app(
+    monkeypatch,
+    button_sequence: list[set[str]] | None = None,
+    pre_state: dict[str, object] | None = None,
+):
     st = DummyStreamlit(button_sequence or [{"Generate PIT"}])
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
@@ -234,6 +238,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
         called["run"] = True
         called["runs"] = called.get("runs", 0) + 1
         called["guid"] = process_guid
+        called["flag_on_call"] = st.session_state.get("postprocess_running")
         payload = {
             "p": 1,
             "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
@@ -268,6 +273,8 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
             "customer_ids": ["1"],
         }
     )
+    if pre_state:
+        st.session_state.update(pre_state)
     sys.modules.pop("app", None)
     importlib.import_module("app")
     st.next_run()
@@ -311,7 +318,7 @@ def test_back_after_export(monkeypatch):
     for key in ["export_complete", "mapped_csv"]:
         assert key not in state
     assert "layer_confirmed_0" not in state
-    assert "postprocess_run_clicked" not in state
+    assert state.get("postprocess_running") is False
 
 
 def test_dataframe_previews(monkeypatch):
@@ -322,7 +329,7 @@ def test_dataframe_previews(monkeypatch):
 
 def test_postprocess_flag_cleared_after_export(monkeypatch):
     _, state, _ = run_app(monkeypatch)
-    assert "postprocess_run_clicked" not in state
+    assert state.get("postprocess_running") is False
 
 
 def test_postprocess_flag_cleared_on_reset(monkeypatch):
@@ -330,13 +337,24 @@ def test_postprocess_flag_cleared_on_reset(monkeypatch):
     import app
 
     app.do_reset()
-    assert "postprocess_run_clicked" not in state
+    assert state.get("postprocess_running") is False
+
+
+def test_postprocess_flag_set_on_click(monkeypatch):
+    called, _, _ = run_app(monkeypatch)
+    assert called.get("flag_on_call") is True
+
+
+def test_generate_pit_button_disabled_when_running(monkeypatch):
+    called, state, _ = run_app(monkeypatch, pre_state={"postprocess_running": True})
+    assert called.get("run") is None
+    assert state.get("postprocess_running") is True
 
 
 def test_export_button_reenabled_after_completion(monkeypatch):
     called, state, st = run_app(monkeypatch)
     assert called.get("runs") == 1
-    assert "postprocess_run_clicked" not in state
+    assert state.get("postprocess_running") is False
     state["export_complete"] = False
     st.button_sequence = [{"Generate PIT"}]
     st.run_idx = 0
