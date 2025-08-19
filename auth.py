@@ -327,42 +327,14 @@ else:
             height=0,
         )
 
-    def logout_button() -> None:
-        # Only show when logged in
+    def _logout_button_real() -> None:
         if "user_email" not in st.session_state or not st.session_state.get("id_token"):
             return
-
-        from msal_streamlit_t2 import msal_authentication  # uses the maintained popup component
-        import streamlit as st
-
-        AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
-        SCOPES = ["openid", "profile", "email", "User.Read"]
-
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
-
-            # Mount ONE instance here; when clicked, the component performs logout via MSAL.js.
-            token_sidebar = msal_authentication(
-                auth={
-                    "clientId": CLIENT_ID,
-                    "authority": AUTHORITY,
-                    "redirectUri": REDIRECT_URI,            # must match a SPA redirect exactly
-                    "postLogoutRedirectUri": REDIRECT_URI,
-                },
-                cache={
-                    "cacheLocation": "localStorage",
-                    "storeAuthStateInCookie": False,
-                },
-                login_request={"scopes": SCOPES},
-                logout_request={},                            # required by the component API
-                login_button_text="🔒 Sign in with Microsoft",
-                logout_button_text="Sign out",
-                key="msal_popup_logout_singleton",
-            )
-
-            # After the user clicks "Sign out", the component returns None on the next run.
-            if token_sidebar is None and st.session_state.get("id_token"):
+            if st.button("Sign out", type="primary", use_container_width=True, key="ksm_logout"):
+                # Clear server state first, then client-side wipe + reload (no st.rerun()).
                 for k in [
                     "user_email", "user_name", "groups",
                     "is_employee", "is_ksmta", "is_admin",
@@ -370,7 +342,8 @@ else:
                 ]:
                     st.session_state.pop(k, None)
                 st.query_params.clear()
-                st.rerun()
+                _clear_storage_and_reload()
+                st.stop()
 
     def _get_user_email_real() -> Optional[str]:
         return st.session_state.get("user_email")
@@ -387,6 +360,6 @@ else:
     require_employee = _require_employee_real
     require_admin = _require_admin_real
     require_ksmta = _require_ksmta_real
-    logout_button = logout_button
+    logout_button = _logout_button_real
     get_user_email = _get_user_email_real
     ensure_user_email = _ensure_user_email_real
