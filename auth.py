@@ -16,6 +16,18 @@ except Exception:
 
 load_dotenv()
 
+try:
+    vals = st.query_params.get("safe", [])
+    if isinstance(vals, str):
+        vals = [vals]
+    SAFE_MODE = ("1" in vals) or any(v.lower() in ("true","yes") for v in vals if isinstance(v, str))
+except Exception:
+    SAFE_MODE = False
+
+# If safe mode is requested, force dev bypass immediately
+if SAFE_MODE:
+    os.environ["DISABLE_AUTH"] = "1"
+
 
 def _get_config(name: str, default: Optional[str] = None) -> Optional[str]:
     try:
