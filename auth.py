@@ -24,11 +24,14 @@ def _get_config(name: str, default: Optional[str] = None) -> Optional[str]:
         return os.environ.get(name, default)
 
 
+# --------------------------------------------------------------------------- #
+# Common config & toggles
+# --------------------------------------------------------------------------- #
 DISABLE_AUTH = (_get_config("DISABLE_AUTH", "0") == "1")
 
 CLIENT_ID = _get_config("AAD_CLIENT_ID")
 TENANT_ID = _get_config("AAD_TENANT_ID")
-REDIRECT_URI = _get_config("AAD_REDIRECT_URI")
+REDIRECT_URI = _get_config("AAD_REDIRECT_URI")  # SPA redirect (exact match; may include ?msal=popup)
 
 EMPLOYEE_GROUP_IDS: Set[str] = {
     g.strip() for g in (_get_config("AAD_EMPLOYEE_GROUP_IDS", "") or "").split(",") if g.strip()
@@ -44,7 +47,11 @@ ADMIN_GROUP_IDS: Set[str] = {
 }
 
 if not DISABLE_AUTH:
-    missing = [k for k, v in {"AAD_CLIENT_ID": CLIENT_ID, "AAD_TENANT_ID": TENANT_ID, "AAD_REDIRECT_URI": REDIRECT_URI}.items() if not v]
+    missing = [k for k, v in {
+        "AAD_CLIENT_ID": CLIENT_ID,
+        "AAD_TENANT_ID": TENANT_ID,
+        "AAD_REDIRECT_URI": REDIRECT_URI,
+    }.items() if not v]
     if missing:
         DISABLE_AUTH = True
         msg = "Auth disabled: missing secrets -> " + ", ".join(missing)
@@ -54,6 +61,9 @@ if not DISABLE_AUTH:
             logging.warning(msg)
 
 
+# --------------------------------------------------------------------------- #
+# Dev bypass
+# --------------------------------------------------------------------------- #
 if DISABLE_AUTH:
     def _ensure_user() -> None:
         if "user_email" in st.session_state:
@@ -116,11 +126,16 @@ if DISABLE_AUTH:
         _ensure_user()
         return st.session_state.get("user_email")
 
+
+# --------------------------------------------------------------------------- #
+# Real auth (POPUP via maintained component)
+# --------------------------------------------------------------------------- #
 else:
-    from msal_streamlit_authentication import msal_authentication
+    # Use the maintained fork; it's a drop-in with the same API.
+    from msal_streamlit_t2 import msal_authentication  # pip: msal_streamlit_t2==1.1.5
 
     AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
-    SCOPES = ["openid","profile","email","User.Read"]
+    SCOPES = ["openid", "profile", "email", "User.Read"]
 
     def _render_login_ui() -> None:
         st.markdown(
@@ -129,15 +144,16 @@ else:
             unsafe_allow_html=True,
         )
 
+        # Single instance on the page; no auto-refresh.
         token = msal_authentication(
             auth={
                 "clientId": CLIENT_ID,
                 "authority": AUTHORITY,
-                "redirectUri": REDIRECT_URI,
+                "redirectUri": REDIRECT_URI,            # must match SPA redirect exactly
                 "postLogoutRedirectUri": REDIRECT_URI,
             },
             cache={
-                "cacheLocation": "localStorage",
+                "cacheLocation": "localStorage",         # stable across popup/opener
                 "storeAuthStateInCookie": False,
             },
             login_request={
@@ -147,19 +163,23 @@ else:
             logout_request={},
             login_button_text="🔒 Sign in with Microsoft",
             logout_button_text="Sign out",
-            key="msal_popup_login",
+            key="msal_popup_login_singleton",
         )
 
-        if token:
+        # Guard against rerun loops: only transition if we weren't already logged in.
+        if token and not st.session_state.get("id_token"):
             claims = token.get("idTokenClaims") or {}
             groups = set(claims.get("groups", []))
-            email = (claims.get("preferred_username") or claims.get("email") or claims.get("upn") or "")
+            email = (claims.get("preferred_username")
+                     or claims.get("email")
+                     or claims.get("upn")
+                     or "")
             domain = email.split("@")[-1].lower() if "@" in email else ""
             is_employee = bool(groups & EMPLOYEE_GROUP_IDS) or any(domain.endswith(d) for d in EMPLOYEE_DOMAINS)
 
             st.session_state.update(
                 user_email=email,
-                user_name=claims.get("name",""),
+                user_name=claims.get("name", ""),
                 groups=groups,
                 is_employee=is_employee,
                 is_ksmta=bool(groups & KSMTA_GROUP_IDS),
@@ -172,6 +192,7 @@ else:
         st.stop()
 
     def _ensure_user() -> None:
+        # If we already have a token in session, do not mount the component again.
         if st.session_state.get("user_email") and st.session_state.get("id_token"):
             return
         _render_login_ui()
@@ -214,11 +235,13 @@ else:
         return wrapper
 
     def logout_button() -> None:
-        if "user_email" not in st.session_state:
+        # Only mount the component in the sidebar after login to avoid duplicates.
+        if "user_email" not in st.session_state or not st.session_state.get("id_token"):
             return
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
+
             token_sidebar = msal_authentication(
                 auth={
                     "clientId": CLIENT_ID,
@@ -234,9 +257,11 @@ else:
                 logout_request={},
                 login_button_text="🔒 Sign in with Microsoft",
                 logout_button_text="Sign out",
-                key="msal_popup_logout",
+                key="msal_popup_logout_singleton",
             )
-            if st.session_state.get("id_token") and token_sidebar is None:
+
+            # If the component logged us out, clear server-side state too.
+            if token_sidebar is None and st.session_state.get("id_token"):
                 for k in ["user_email","user_name","groups","is_employee","is_ksmta","is_admin","id_token","token_acquired_at"]:
                     st.session_state.pop(k, None)
                 st.query_params.clear()
