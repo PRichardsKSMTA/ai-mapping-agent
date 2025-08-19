@@ -112,12 +112,14 @@ def run_app_with_labels(
     monkeypatch: MonkeyPatch,
 ) -> Tuple[Dict[str, object], Dict[str, object]]:
     st = DummyStreamlit([{"Generate PIT"}])
+    st.session_state.clear()
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setitem(
         sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None)
     )
     monkeypatch.setattr("auth.logout_button", lambda: None)
+    monkeypatch.setattr("auth.ensure_user_email", lambda: "test@example.com")
     monkeypatch.setattr("app_utils.excel_utils.list_sheets", lambda _u: ["Sheet1"])
     monkeypatch.setattr(
         "app_utils.excel_utils.read_tabular_file",
