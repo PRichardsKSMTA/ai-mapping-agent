@@ -207,7 +207,7 @@ else:
         )
 
         # Create three columns and render the login component in the center one
-        left, center, right = st.columns([.9, 1.2, .9])
+        left, center, right = st.columns([.8, 1.4, .8])
         token = None
         with center:
             token = msal_authentication(
