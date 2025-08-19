@@ -226,7 +226,7 @@ else:
                     "prompt": "select_account",
                 },
                 logout_request={},
-                login_button_text="🔒 Sign in with Microsoft",
+                login_button_text="🔒 Sign in",
                 logout_button_text="Sign out",
                 key="msal_popup_login_singleton",
             )
