@@ -230,7 +230,7 @@ def run_app(monkeypatch, button_sequence: list[set[str]] | None = None):
     monkeypatch.setattr("app_utils.azure_sql.log_mapping_process", fake_log)
     called: dict[str, object] = {}
 
-    def fake_runner(tpl, df, process_guid, *args):
+    def fake_runner(tpl, df, process_guid, *args, **kwargs):
         called["run"] = True
         called["runs"] = called.get("runs", 0) + 1
         called["guid"] = process_guid

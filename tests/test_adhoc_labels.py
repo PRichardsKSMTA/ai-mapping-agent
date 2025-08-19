@@ -169,7 +169,10 @@ def run_app_with_labels(
     )
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",
-        lambda tpl, df, guid, op=None, cust=None: ([], None),
+        lambda tpl, df, guid, customer_name=None, operation_cd=None, user_email=None: (
+            [],
+            None,
+        ),
     )
 
     tpl_path = Path("templates/pit-bid.json")

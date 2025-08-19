@@ -155,6 +155,7 @@ def main() -> None:
                 process_guid,
                 args.customer_name,
                 args.operation_code,
+                user_email=args.user_email,
             )
             for line in logs_post:
                 print(line)

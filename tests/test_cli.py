@@ -116,7 +116,10 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     monkeypatch.setattr(
         cli,
         "run_postprocess_if_configured",
-        lambda tpl_obj, df, guid, customer_name, operation_code=None: ([], None),
+        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
+            [],
+            None,
+        ),
     )
     monkeypatch.setattr(azure_sql, "log_mapping_process", lambda *a, **k: None)
     monkeypatch.setattr(
@@ -129,6 +132,8 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
             str(out_json),
             "--csv-output",
             str(out_csv),
+            "--user-email",
+            "user@example.com",
             "--operation-code",
             "OP",
             "--customer-name",
@@ -173,7 +178,10 @@ def test_cli_sql_insert_no_ids(monkeypatch, tmp_path: Path, capsys):
     monkeypatch.setattr(
         cli,
         "run_postprocess_if_configured",
-        lambda tpl_obj, df, guid, customer_name, operation_code=None: ([], None),
+        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
+            [],
+            None,
+        ),
     )
     monkeypatch.setattr(azure_sql, "log_mapping_process", lambda *a, **k: None)
     monkeypatch.setattr(
@@ -186,6 +194,8 @@ def test_cli_sql_insert_no_ids(monkeypatch, tmp_path: Path, capsys):
             str(out_json),
             "--csv-output",
             str(out_csv),
+            "--user-email",
+            "user@example.com",
             "--operation-code",
             "OP",
             "--customer-name",
@@ -213,11 +223,19 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
 
     captured: dict[str, object] = {}
 
-    def fake_postprocess(tpl_obj, df, process_guid, cust_name, op_cd):
+    def fake_postprocess(
+        tpl_obj,
+        df,
+        process_guid,
+        cust_name,
+        op_cd,
+        user_email=None,
+    ):
         captured["op"] = op_cd
         captured["cust"] = cust_name
         captured["guid"] = process_guid
-        return ["POST https://example.com/hook", "Done"], {"foo": "bar"}
+        captured["email"] = user_email
+        return ["POST https://example.com/hook", "Done"], {"NOTIFY_EMAIL": user_email}
 
     monkeypatch.setattr(azure_sql, "insert_pit_bid_rows", fake_insert)
     monkeypatch.setattr(azure_sql, "derive_adhoc_headers", lambda df: {})
@@ -233,6 +251,8 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
             str(out_json),
             "--csv-output",
             str(out_csv),
+            "--user-email",
+            "user@example.com",
             "--operation-code",
             "OP",
             "--customer-name",
@@ -243,11 +263,12 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     cli.main()
     out = capsys.readouterr().out
     assert "POST https://example.com/hook" in out
-    assert json.dumps({"foo": "bar"}, indent=2) in out
+    assert '"NOTIFY_EMAIL": "user@example.com"' in out
     data = json.loads(out_json.read_text())
     assert captured["op"] == "OP"
     assert captured["cust"] == "Cust"
     assert captured["guid"]
+    assert captured["email"] == "user@example.com"
     assert data["process_guid"] == captured["guid"]
 
 
@@ -297,7 +318,10 @@ def test_cli_sql_insert_without_customer_id(
     monkeypatch.setattr(
         cli,
         "run_postprocess_if_configured",
-        lambda tpl_obj, df, guid, customer_name, operation_code=None: ([], None),
+        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
+            [],
+            None,
+        ),
     )
     monkeypatch.setattr(azure_sql, "log_mapping_process", lambda *a, **k: None)
     monkeypatch.setattr(
@@ -310,6 +334,8 @@ def test_cli_sql_insert_without_customer_id(
             str(out_json),
             "--csv-output",
             str(out_csv),
+            "--user-email",
+            "user@example.com",
             "--operation-code",
             "OP",
             "--customer-name",
