@@ -213,7 +213,7 @@ else:
             /* Center any Streamlit component iframe (like msal_streamlit_t2) */
             div[data-testid="stIFrame"] {
                 display: flex;
-                justify-content: right;   /* centers the iframe horizontally */
+                justify-content: end;   /* centers the iframe horizontally */
             }
             div[data-testid="stIFrame"] > iframe {
                 max-width: 100%;
