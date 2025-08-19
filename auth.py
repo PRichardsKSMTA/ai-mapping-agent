@@ -276,29 +276,47 @@ else:
         )
 
     def logout_button() -> None:
-        # Simple server-side button + JS to clear MSAL cache; no extra component.
+        # Only show when logged in
         if "user_email" not in st.session_state or not st.session_state.get("id_token"):
             return
+
+        import streamlit.components.v1 as components
+        import json
+
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
-            if st.button("Sign out", type="primary", use_container_width=True):
-                _clear_msal_local_storage()
-                for k in [
-                    "user_email", "user_name", "groups",
-                    "is_employee", "is_ksmta", "is_admin",
-                    "id_token", "token_acquired_at",
-                ]:
-                    st.session_state.pop(k, None)
-                st.query_params.clear()
-                st.rerun()
 
-    def get_user_email() -> Optional[str]:
-        return st.session_state.get("user_email")
-
-    def ensure_user_email() -> Optional[str]:
-        email = st.session_state.get("user_email")
-        if email:
-            return email
-        _ensure_user()
-        return st.session_state.get("user_email")
+            if st.button("Sign out", type="primary", use_container_width=True, key="ksm_logout"):
+                # Client-side, synchronous logout: wipe MSAL caches then reload the app.
+                components.html(
+                    f"""
+                    <script>
+                    (function() {{
+                        try {{
+                        // Remove all MSAL-related keys from BOTH storages
+                        ['localStorage','sessionStorage'].forEach(function(storeName){{
+                            var store = window[storeName];
+                            if (!store) return;
+                            var keys = [];
+                            for (var i = 0; i < store.length; i++) {{
+                            var k = store.key(i);
+                            if (k && k.toLowerCase().indexOf('msal') !== -1) keys.push(k);
+                            }}
+                            keys.forEach(function(k) {{ try {{ store.removeItem(k); }} catch(e){{}} }});
+                        }});
+                        }} catch(e) {{}}
+                        // Hard navigate the TOP window so Streamlit gets a brand-new session
+                        var target = {json.dumps(REDIRECT_URI)};
+                        if (window.top) {{
+                        window.top.location.href = target;
+                        }} else {{
+                        window.location.href = target;
+                        }}
+                    }})();
+                    </script>
+                    """,
+                    height=0,
+                )
+                # Do NOT st.rerun(); the browser will navigate and create a fresh session.
+                st.stop()
