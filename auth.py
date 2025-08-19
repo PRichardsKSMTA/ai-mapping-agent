@@ -387,6 +387,6 @@ else:
     require_employee = _require_employee_real
     require_admin = _require_admin_real
     require_ksmta = _require_ksmta_real
-    logout_button = _logout_button
+    logout_button = logout_button
     get_user_email = _get_user_email_real
     ensure_user_email = _ensure_user_email_real
