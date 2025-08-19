@@ -20,13 +20,28 @@ def test_read_tabular_file_excel():
     with open('tests/fixtures/multi.xlsx', 'rb') as f:
         df, cols = read_tabular_file(f, sheet_name='Second')
     assert cols == ['B']
-    assert df.iloc[0]['B'] == 2
+    assert isinstance(df.iloc[0]['B'], str)
+    assert df.iloc[0]['B'] == '2'
 
 
 def test_read_tabular_file_drops_empty_columns():
     with open('tests/fixtures/blankcol.xlsx', 'rb') as f:
         df, cols = read_tabular_file(f, sheet_name='First')
     assert cols == ['A']
+
+
+def test_read_tabular_file_preserves_empty_cells():
+    import io
+
+    data = b"ZIP,Value\n12345,\n67890,1\n"
+    fake = io.BytesIO(data)
+    fake.name = "zip.csv"
+    df, cols = read_tabular_file(fake)
+    assert cols == ["ZIP", "Value"]
+    assert df.dtypes.tolist() == [object, object]
+    assert df.iloc[0]["ZIP"] == "12345"
+    assert df.iloc[0]["Value"] == ""
+    assert df.iloc[1]["Value"] == "1"
 
 
 def test_read_tabular_file_header_only():

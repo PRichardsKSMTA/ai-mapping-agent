@@ -52,7 +52,8 @@ def _clean_columns(df: pd.DataFrame) -> pd.DataFrame:
     drop_cols = [
         c
         for c in df.columns
-        if (c.strip() == "" or c.startswith("Unnamed")) and df[c].isna().all()
+        if (c.strip() == "" or c.startswith("Unnamed"))
+        and (df[c].isna() | (df[c] == "")).all()
     ]
     if drop_cols:
         df = df.drop(columns=drop_cols)
@@ -150,11 +151,17 @@ def read_tabular_file(
 
         tmp_path = _copy_to_temp(uploaded_file, ".xlsx")
         header_row = detect_header_row(tmp_path, sheet_name)
-        df = pd.read_excel(tmp_path, header=header_row, sheet_name=sheet_name)
+        df = pd.read_excel(
+            tmp_path,
+            header=header_row,
+            sheet_name=sheet_name,
+            dtype=str,
+            keep_default_na=False,
+        )
         os.unlink(tmp_path)
     else:  # CSV
         uploaded_file.seek(0)
-        df = pd.read_csv(uploaded_file)
+        df = pd.read_csv(uploaded_file, dtype=str, keep_default_na=False)
 
     df = _clean_columns(df)
     return df, list(df.columns)

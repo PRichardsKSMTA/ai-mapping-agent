@@ -25,7 +25,7 @@ def test_preview_pipeline(tmp_path: Path) -> None:
         mapped_df = save_mapped_csv(df, preview_json, tmp_path)
     tmp_path.unlink()
     assert list(mapped_df.columns) == ["Name", "Value"]
-    assert mapped_df.iloc[0]["Value"] == 1
+    assert mapped_df.iloc[0]["Value"] == "1"
 
 
 def test_preview_pipeline_custom_label(tmp_path: Path) -> None:
@@ -96,7 +96,7 @@ def test_preview_pipeline_expression_overrides_src(tmp_path: Path) -> None:
     state = {
         "header_mapping_0": {
             "Name": {"src": "Name"},
-            "Value": {"src": "Value", "expr": "df['Value'] * 10"},
+            "Value": {"src": "Value", "expr": "df['Value'].astype(int) * 10"},
         }
     }
     preview_json = build_output_template(template, state, "dummy-guid")
