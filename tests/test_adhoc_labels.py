@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import types
 from typing import Dict, Tuple
+import hashlib
 
 import pandas as pd
 from pytest import MonkeyPatch
@@ -204,6 +205,28 @@ def test_adhoc_labels_propagate(monkeypatch: MonkeyPatch) -> None:
     assert captured.get("insert_adhoc") == expected
     assert captured.get("log_adhoc") == expected
     assert state.get("header_adhoc_headers") == expected
+
+
+def test_preset_mapping_populates_label(monkeypatch: MonkeyPatch) -> None:
+    st = setup_header_env(monkeypatch)
+    monkeypatch.setattr(
+        header_step,
+        "read_tabular_file",
+        lambda _f, sheet_name=None: (pd.DataFrame(), ["Foo"]),
+    )
+    layer = HeaderLayer(
+        type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)]
+    )
+    cols_hash = hashlib.sha256("|".join(["Foo"]).encode()).hexdigest()
+    st.session_state.update(
+        {
+            "header_mapping_0": {"ADHOC_INFO1": {"src": "Foo"}},
+            "header_sheet_0": 0,
+            "header_cols_0": cols_hash,
+        }
+    )
+    header_step.render(layer, 0)
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "Foo"
 
 
 def test_default_label_updates_on_mapping(monkeypatch: MonkeyPatch) -> None:
