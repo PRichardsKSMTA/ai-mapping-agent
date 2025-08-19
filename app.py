@@ -97,7 +97,6 @@ def do_reset(user_email: str | None = None) -> None:
         "selected_customer",
         "new_customer_name",
         "mapped_preview_df",
-        "postprocess_run_clicked",
     ]:
         st.session_state.pop(k, None)
     old_key = st.session_state.get("upload_data_file_key")
@@ -105,6 +104,7 @@ def do_reset(user_email: str | None = None) -> None:
         st.session_state.pop(old_key, None)
     st.session_state["upload_data_file_key"] = str(uuid.uuid4())
     st.session_state["current_step"] = 0
+    st.session_state["postprocess_running"] = False
     if user_email:
         set_last_template(user_email, "")
     st.session_state["_reset_triggered"] = True
@@ -153,6 +153,7 @@ def main():
     TEMPLATES_DIR.mkdir(exist_ok=True)
 
     st.session_state.setdefault("upload_data_file_key", str(uuid.uuid4()))
+    st.session_state.setdefault("postprocess_running", False)
 
     if user_email and "selected_template_file" not in st.session_state:
         last = get_last_template(user_email)
@@ -556,9 +557,9 @@ def main():
                 "export_complete",
                 "mapped_csv",
                 "mapped_preview_df",
-                "postprocess_run_clicked",
             ]:
                 st.session_state.pop(key, None)
+            st.session_state["postprocess_running"] = False
             st.session_state.pop(f"layer_confirmed_{last_idx}", None)
             st.session_state["current_step"] = compute_current_step()
             st.rerun()
@@ -613,9 +614,9 @@ def main():
                 button_text,
                 key="postprocess_run",
                 type="primary",
-                disabled=st.session_state.get("postprocess_run_clicked", False),
+                disabled=st.session_state.get("postprocess_running", False),
             ):
-                st.session_state["postprocess_run_clicked"] = True
+                st.session_state["postprocess_running"] = True
                 with st.spinner("Gathering mileage and toll data…"):
                     st.markdown(":blue[This process can take up to 15 minutes...]")
                     preview_payload: dict[str, Any] = azure_sql.get_pit_url_payload(
@@ -691,7 +692,7 @@ def main():
                             "postprocess_payload": payload,
                         }
                     )
-                    st.session_state.pop("postprocess_run_clicked", None)
+                    st.session_state["postprocess_running"] = False
                     st.rerun()
         else:
             st.success(
