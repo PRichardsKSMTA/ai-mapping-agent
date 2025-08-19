@@ -129,6 +129,7 @@ def remove_template_manager_page() -> None:
 # ---------------------------------------------------------------------------
 @require_login
 def main():
+    st.set_page_config(layout="wide", initial_sidebar_state="expanded")
     remove_template_manager_page()
     st.set_page_config(page_title="AI Mapping Agent", layout="wide")
     apply_global_css()
