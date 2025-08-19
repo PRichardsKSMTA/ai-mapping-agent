@@ -9,19 +9,19 @@ from typing import Optional, Set
 
 import streamlit as st
 
-# Optional .env support (safe if not installed)
+# Optional .env support
 try:
     from dotenv import load_dotenv  # type: ignore
-except Exception:  # pragma: no cover
+except Exception:
     def load_dotenv() -> bool:  # type: ignore
         return False
 
 load_dotenv()
 
 
-# ------------------------------
+# -----------------------------------------------------------------------------
 # Config helpers
-# ------------------------------
+# -----------------------------------------------------------------------------
 def _get_config(name: str, default: Optional[str] = None) -> Optional[str]:
     """Read from st.secrets or environment."""
     try:
@@ -30,15 +30,14 @@ def _get_config(name: str, default: Optional[str] = None) -> Optional[str]:
         return os.environ.get(name, default)
 
 
-# ------------------------------
-# Common configuration
-# ------------------------------
+# -----------------------------------------------------------------------------
+# Shared configuration
+# -----------------------------------------------------------------------------
 DISABLE_AUTH = (_get_config("DISABLE_AUTH", "0") == "1")
 
 CLIENT_ID = _get_config("AAD_CLIENT_ID")
 TENANT_ID = _get_config("AAD_TENANT_ID")
-# IMPORTANT: this must be a SPA redirect you registered in Azure (can include ?msal=popup)
-REDIRECT_URI = _get_config("AAD_REDIRECT_URI")
+REDIRECT_URI = _get_config("AAD_REDIRECT_URI")  # SPA redirect (may include ?msal=popup)
 
 EMPLOYEE_GROUP_IDS: Set[str] = {
     g.strip() for g in (_get_config("AAD_EMPLOYEE_GROUP_IDS", "") or "").split(",") if g.strip()
@@ -68,12 +67,37 @@ if not DISABLE_AUTH:
             logging.warning(msg)
 
 
-# ============================================================
-# 1) Development bypass mode (unchanged)
-# ============================================================
+# -----------------------------------------------------------------------------
+# Exported API placeholders (bound below in each mode)
+# -----------------------------------------------------------------------------
+def require_login(func):  # type: ignore
+    return func
+
+def require_employee(func):  # type: ignore
+    return func
+
+def require_admin(func):  # type: ignore
+    return func
+
+def require_ksmta(func):  # type: ignore
+    return func
+
+def logout_button() -> None:  # type: ignore
+    return None
+
+def get_user_email() -> Optional[str]:  # type: ignore
+    return st.session_state.get("user_email")
+
+def ensure_user_email() -> Optional[str]:  # type: ignore
+    return st.session_state.get("user_email")
+
+
+# =============================================================================
+# 1) Development bypass (DISABLE_AUTH=1)
+# =============================================================================
 if DISABLE_AUTH:
 
-    def _ensure_user() -> None:
+    def _dev_ensure_user() -> None:
         if "user_email" in st.session_state:
             return
         email = _get_config("DEV_USER_EMAIL", "dev@ksmta.com")
@@ -89,35 +113,35 @@ if DISABLE_AUTH:
             token_acquired_at=time.time(),
         )
 
-    def require_login(func):
+    def _dev_require_login(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _dev_ensure_user()
             return func(*args, **kwargs)
         return wrapper
 
-    def require_employee(func):
+    def _dev_require_employee(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _dev_ensure_user()
             return func(*args, **kwargs)
         return wrapper
 
-    def require_admin(func):
+    def _dev_require_admin(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _dev_ensure_user()
             return func(*args, **kwargs)
         return wrapper
 
-    def require_ksmta(func):
+    def _dev_require_ksmta(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _dev_ensure_user()
             return func(*args, **kwargs)
         return wrapper
 
-    def logout_button() -> None:
+    def _dev_logout_button() -> None:
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
@@ -131,20 +155,29 @@ if DISABLE_AUTH:
                 st.query_params.clear()
                 st.rerun()
 
-    def get_user_email() -> Optional[str]:
+    def _dev_get_user_email() -> Optional[str]:
         return st.session_state.get("user_email")
 
-    def ensure_user_email() -> Optional[str]:
-        _ensure_user()
+    def _dev_ensure_user_email() -> Optional[str]:
+        _dev_ensure_user()
         return st.session_state.get("user_email")
 
+    # Bind exports
+    require_login = _dev_require_login
+    require_employee = _dev_require_employee
+    require_admin = _dev_require_admin
+    require_ksmta = _dev_require_ksmta
+    logout_button = _dev_logout_button
+    get_user_email = _dev_get_user_email
+    ensure_user_email = _dev_ensure_user_email
 
-# ============================================================
-# 2) Real authentication (POPUP via msal_streamlit_t2)
-# ============================================================
+
+# =============================================================================
+# 2) Real auth (POPUP via msal_streamlit_t2)
+# =============================================================================
 else:
-    # Use the maintained fork to avoid Chrome "token=None" glitches.
-    from msal_streamlit_t2 import msal_authentication  # pip: msal_streamlit_t2==1.1.5
+    # Maintained fork; add to requirements.txt: msal_streamlit_t2==1.1.5
+    from msal_streamlit_t2 import msal_authentication  # type: ignore
     import streamlit.components.v1 as components
 
     AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
@@ -158,12 +191,11 @@ else:
             unsafe_allow_html=True,
         )
 
-        # Mount ONE msal_authentication instance here only.
         token = msal_authentication(
             auth={
                 "clientId": CLIENT_ID,
                 "authority": AUTHORITY,
-                "redirectUri": REDIRECT_URI,            # must exactly match SPA redirect in Azure
+                "redirectUri": REDIRECT_URI,            # exact SPA redirect you added
                 "postLogoutRedirectUri": REDIRECT_URI,
             },
             cache={
@@ -174,14 +206,13 @@ else:
                 "scopes": SCOPES,
                 "prompt": "select_account",
             },
-            logout_request={},                            # required by the component API
+            logout_request={},                            # required by component API
             login_button_text="🔒 Sign in with Microsoft",
             logout_button_text="Sign out",
             key="msal_popup_login_singleton",
         )
 
-        # Only transition to "logged in" when we have a real token;
-        # NEVER clear state here on None (prevents flip-flop).
+        # Only transition when we have a real token; never treat None as logout.
         if isinstance(token, dict) and token.get("idToken"):
             claims = token.get("idTokenClaims") or {}
             groups = set(claims.get("groups", []))
@@ -210,113 +241,110 @@ else:
 
         st.stop()
 
-    def _ensure_user() -> None:
-        # If we already have a token, don't re-mount the login component.
+    def _real_ensure_user() -> None:
         if st.session_state.get("user_email") and st.session_state.get("id_token"):
             return
         _render_login_ui()
 
     # ---------- Decorators ----------
-    def require_login(func):
+    def _real_require_login(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _real_ensure_user()
             return func(*args, **kwargs)
         return wrapper
 
-    def require_employee(func):
+    def _real_require_employee(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _real_ensure_user()
             if not st.session_state.get("is_employee", False):
                 st.error("🚫 KSM employees only.")
                 st.stop()
             return func(*args, **kwargs)
         return wrapper
 
-    def require_admin(func):
+    def _real_require_admin(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _real_ensure_user()
             if not st.session_state.get("is_admin", False):
                 st.error("🚫 Admins only.")
                 st.stop()
             return func(*args, **kwargs)
         return wrapper
 
-    def require_ksmta(func):
+    def _real_require_ksmta(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            _ensure_user()
+            _real_ensure_user()
             if not st.session_state.get("is_ksmta", False):
                 st.error("🚫 KSMTA members only.")
                 st.stop()
             return func(*args, **kwargs)
         return wrapper
 
-    # ---------- Logout (no second component; prevents loops) ----------
-    def _clear_msal_local_storage() -> None:
-        """Remove MSAL keys from localStorage on the Streamlit origin."""
+    # ---------- Logout (client-side clear + hard navigate; no extra component) ----------
+    def _clear_msal_storage_and_reload() -> None:
+        """Remove MSAL keys from both storages and hard-reload to SPA redirect."""
         components.html(
-            """
+            f"""
             <script>
-              try {
-                var keys = [];
-                for (var i = 0; i < localStorage.length; i++) {
-                  var k = localStorage.key(i);
-                  if (!k) continue;
-                  var kl = k.toLowerCase();
-                  if (kl.indexOf('msal') !== -1) keys.push(k);
-                }
-                for (var j = 0; j < keys.length; j++) localStorage.removeItem(keys[j]);
-              } catch (e) {}
+              (function() {{
+                try {{
+                  ['localStorage','sessionStorage'].forEach(function(storeName){{
+                    var store = window[storeName];
+                    if (!store) return;
+                    var keys = [];
+                    for (var i = 0; i < store.length; i++) {{
+                      var k = store.key(i);
+                      if (k && k.toLowerCase().indexOf('msal') !== -1) keys.push(k);
+                    }}
+                    keys.forEach(function(k) {{ try {{ store.removeItem(k); }} catch(e){{}} }});
+                  }});
+                }} catch (e) {{}}
+                var target = {json.dumps(REDIRECT_URI)};
+                if (window.top) window.top.location.href = target;
+                else window.location.href = target;
+              }})();
             </script>
             """,
             height=0,
         )
 
-    def logout_button() -> None:
-        # Only show when logged in
+    def _real_logout_button() -> None:
         if "user_email" not in st.session_state or not st.session_state.get("id_token"):
             return
-
-        import streamlit.components.v1 as components
-        import json
-
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
-
             if st.button("Sign out", type="primary", use_container_width=True, key="ksm_logout"):
-                # Client-side, synchronous logout: wipe MSAL caches then reload the app.
-                components.html(
-                    f"""
-                    <script>
-                    (function() {{
-                        try {{
-                        // Remove all MSAL-related keys from BOTH storages
-                        ['localStorage','sessionStorage'].forEach(function(storeName){{
-                            var store = window[storeName];
-                            if (!store) return;
-                            var keys = [];
-                            for (var i = 0; i < store.length; i++) {{
-                            var k = store.key(i);
-                            if (k && k.toLowerCase().indexOf('msal') !== -1) keys.push(k);
-                            }}
-                            keys.forEach(function(k) {{ try {{ store.removeItem(k); }} catch(e){{}} }});
-                        }});
-                        }} catch(e) {{}}
-                        // Hard navigate the TOP window so Streamlit gets a brand-new session
-                        var target = {json.dumps(REDIRECT_URI)};
-                        if (window.top) {{
-                        window.top.location.href = target;
-                        }} else {{
-                        window.location.href = target;
-                        }}
-                    }})();
-                    </script>
-                    """,
-                    height=0,
-                )
-                # Do NOT st.rerun(); the browser will navigate and create a fresh session.
+                # Clear server-side state first to avoid any residual UI, then client clear+reload.
+                for k in [
+                    "user_email", "user_name", "groups",
+                    "is_employee", "is_ksmta", "is_admin",
+                    "id_token", "token_acquired_at",
+                ]:
+                    st.session_state.pop(k, None)
+                st.query_params.clear()
+                _clear_msal_storage_and_reload()
                 st.stop()
+
+    def _real_get_user_email() -> Optional[str]:
+        return st.session_state.get("user_email")
+
+    def _real_ensure_user_email() -> Optional[str]:
+        email = st.session_state.get("user_email")
+        if email:
+            return email
+        _real_ensure_user()
+        return st.session_state.get("user_email")
+
+    # Bind exports
+    require_login = _real_require_login
+    require_employee = _real_require_employee
+    require_admin = _real_require_admin
+    require_ksmta = _real_require_ksmta
+    logout_button = _real_logout_button
+    get_user_email = _real_get_user_email
+    ensure_user_email = _real_ensure_user_email
