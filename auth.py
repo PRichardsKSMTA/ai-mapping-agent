@@ -210,11 +210,13 @@ else:
         st.markdown(
             """
             <style>
-            /* Center the iframe that renders the msal_streamlit_t2 button */
+            /* Center any Streamlit component iframe (like msal_streamlit_t2) */
+            div[data-testid="stIFrame"] {
+                display: flex;
+                justify-content: center;   /* centers the iframe horizontally */
+            }
             div[data-testid="stIFrame"] > iframe {
-                display: block;
-                margin-left: auto !important;
-                margin-right: auto !important;
+                max-width: 100%;
             }
             </style>
             """,
@@ -229,14 +231,8 @@ else:
                 "redirectUri": REDIRECT_URI,
                 "postLogoutRedirectUri": REDIRECT_URI,
             },
-            cache={
-                "cacheLocation": "localStorage",
-                "storeAuthStateInCookie": False,
-            },
-            login_request={
-                "scopes": SCOPES,
-                "prompt": "select_account",
-            },
+            cache={"cacheLocation": "localStorage", "storeAuthStateInCookie": False},
+            login_request={"scopes": SCOPES, "prompt": "select_account"},
             logout_request={},
             login_button_text="🔒 Sign in with Microsoft",
             logout_button_text="Sign out",
