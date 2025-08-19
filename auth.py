@@ -6,10 +6,11 @@ from functools import wraps
 from typing import Optional, Set
 
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh
-from msal_streamlit_authentication import msal_authentication
 
 
+# ------------------------------
+# Config helper
+# ------------------------------
 def _get_config(key: str, default: Optional[str] = None) -> Optional[str]:
     try:
         if hasattr(st, "secrets") and key in st.secrets:
@@ -20,17 +21,13 @@ def _get_config(key: str, default: Optional[str] = None) -> Optional[str]:
     return os.environ.get(key, default)
 
 
+# -------------------------------------------------
+# Common flags and groups/domains configuration
+# -------------------------------------------------
 DISABLE_AUTH = (_get_config("DISABLE_AUTH", "0") == "1")
 
 CLIENT_ID = _get_config("AAD_CLIENT_ID", "")
 TENANT_ID = _get_config("AAD_TENANT_ID", "")
-AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
-
-# Use the exact SPA redirect you registered
-REDIRECT_URI = _get_config(
-    "AAD_REDIRECT_URI_JS",
-    "https://freightmath-rfp-automation.streamlit.app/",
-)
 
 EMPLOYEE_GROUP_IDS: Set[str] = {
     g.strip() for g in (_get_config("AAD_EMPLOYEE_GROUP_IDS", "") or "").split(",") if g.strip()
@@ -47,14 +44,11 @@ EMPLOYEE_DOMAINS: Set[str] = {
     if d.strip()
 }
 
-SCOPES = ["openid", "profile", "email", "User.Read"]
 
-
-# =============================
-# 1) Dev bypass (if enabled)
-# =============================
+# ============================================================
+# 1) Development bypass mode (DISABLE_AUTH = 1)
+# ============================================================
 if DISABLE_AUTH:
-
     def _ensure_user() -> None:
         if "user_email" in st.session_state:
             return
@@ -121,10 +115,22 @@ if DISABLE_AUTH:
         return st.session_state.get("user_email")
 
 
-# ==========================================
-# 2) Real auth (popup) — single component
-# ==========================================
+# ============================================================
+# 2) Real authentication (POPUP via msal-streamlit-authentication)
+# ============================================================
 else:
+    # Popup-based Streamlit component built on MSAL.js
+    from msal_streamlit_authentication import msal_authentication
+
+    AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
+    # Use the exact SPA redirect you registered (prod). Override via env/secrets if needed.
+    REDIRECT_URI = _get_config(
+        "AAD_REDIRECT_URI_JS",
+        "https://freightmath-rfp-automation.streamlit.app/",
+    )
+
+    # Scopes: OIDC basics + Graph profile
+    SCOPES = ["openid", "profile", "email", "User.Read"]
 
     def _render_login_ui() -> None:
         st.markdown(
@@ -133,11 +139,9 @@ else:
             unsafe_allow_html=True,
         )
 
-        # Short-lived auto-refresh while waiting for the popup to hand us the token.
-        # This works around a known sync issue where the popup succeeds but Python
-        # still sees `None` until the next rerun. (Same effect as pressing F5.) :contentReference[oaicite:2]{index=2}
-        st_autorefresh(interval=1200, limit=50, key="msal_wait_spin")
-
+        # ---- IMPORTANT ----
+        # Use localStorage so tokens written in the POPUP are visible to the main window.
+        # (sessionStorage is isolated per window and can leave the parent unaware.)
         token = msal_authentication(
             auth={
                 "clientId": CLIENT_ID,
@@ -146,31 +150,25 @@ else:
                 "postLogoutRedirectUri": REDIRECT_URI,
             },
             cache={
-                # Use the library's documented default storage for popup flow. :contentReference[oaicite:3]{index=3}
-                "cacheLocation": "sessionStorage",
+                "cacheLocation": "localStorage",
                 "storeAuthStateInCookie": False,
             },
-            login_request={
-                "scopes": SCOPES,
-                "prompt": "select_account",
-            },
+            login_request={"scopes": SCOPES},
             logout_request={},
             login_button_text="🔒 Sign in with Microsoft",
             logout_button_text="Sign out",
-            key="msal_popup_singleton",
+            key="msal_popup_login",
         )
 
         if token:
-            claims = token.get("idTokenClaims") if isinstance(token, dict) else {}
-            groups = set(claims.get("groups", [])) if isinstance(claims, dict) else set()
-            email = ""
-            if isinstance(claims, dict):
-                email = (
-                    claims.get("preferred_username")
-                    or claims.get("email")
-                    or claims.get("upn")
-                    or ""
-                )
+            claims = token.get("idTokenClaims") or {}
+            groups = set(claims.get("groups", []))
+            email = (
+                claims.get("preferred_username")
+                or claims.get("email")
+                or claims.get("upn")
+                or ""
+            )
             domain = email.split("@")[-1].lower() if "@" in email else ""
             is_employee = bool(groups & EMPLOYEE_GROUP_IDS) or any(
                 domain.endswith(d) for d in EMPLOYEE_DOMAINS
@@ -178,12 +176,12 @@ else:
 
             st.session_state.update(
                 user_email=email,
-                user_name=claims.get("name", "") if isinstance(claims, dict) else "",
+                user_name=claims.get("name", ""),
                 groups=groups,
                 is_employee=is_employee,
                 is_ksmta=bool(groups & KSMTA_GROUP_IDS),
                 is_admin=bool(groups & ADMIN_GROUP_IDS),
-                id_token=token.get("idToken") if isinstance(token, dict) else str(token),
+                id_token=token.get("idToken"),
                 token_acquired_at=time.time(),
             )
             st.rerun()
@@ -233,12 +231,14 @@ else:
         return wrapper
 
     def logout_button() -> None:
-        # Only mount the component in the sidebar after login to avoid 2 instances.
+        # Only render the component here *after* login, so we don’t mount two instances at once.
         if "user_email" not in st.session_state:
             return
+
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
+
             _ = msal_authentication(
                 auth={
                     "clientId": CLIENT_ID,
@@ -247,7 +247,7 @@ else:
                     "postLogoutRedirectUri": REDIRECT_URI,
                 },
                 cache={
-                    "cacheLocation": "sessionStorage",
+                    "cacheLocation": "localStorage",
                     "storeAuthStateInCookie": False,
                 },
                 login_request={"scopes": SCOPES},
@@ -256,7 +256,8 @@ else:
                 logout_button_text="Sign out",
                 key="msal_popup_logout",
             )
-            # If the component logged us out, clear server-side state too.
+
+            # If the component has logged us out, clear server-side state too.
             if "user_email" in st.session_state and not st.session_state.get("id_token"):
                 for k in [
                     "user_email", "user_name", "groups",
