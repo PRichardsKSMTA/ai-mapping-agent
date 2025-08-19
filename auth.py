@@ -206,31 +206,43 @@ else:
             unsafe_allow_html=True,
         )
 
-        # Center the login component
-        _, col, _ = st.columns((1, 2, 1))
-        with col:
-            token = msal_authentication(
-                auth={
-                    "clientId": CLIENT_ID,
-                    "authority": AUTHORITY,
-                    "redirectUri": REDIRECT_URI,            # must match SPA redirect exactly
-                    "postLogoutRedirectUri": REDIRECT_URI,
-                },
-                cache={
-                    "cacheLocation": "localStorage",         # popup & opener share cache
-                    "storeAuthStateInCookie": False,
-                },
-                login_request={
-                    "scopes": SCOPES,
-                    "prompt": "select_account",
-                },
-                logout_request={},                            # required param
-                login_button_text="🔒 Sign in with Microsoft",
-                logout_button_text="Sign out",
-                key="msal_popup_login_singleton",
-            )
+        # Center any Streamlit component iframe (the MSAL button lives inside one)
+        st.markdown(
+            """
+            <style>
+            /* Center the iframe that renders the msal_streamlit_t2 button */
+            div[data-testid="stIFrame"] > iframe {
+                display: block;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        # Only transition when a real token exists; ignore None
+        # Render the login component (no columns needed)
+        token = msal_authentication(
+            auth={
+                "clientId": CLIENT_ID,
+                "authority": AUTHORITY,
+                "redirectUri": REDIRECT_URI,
+                "postLogoutRedirectUri": REDIRECT_URI,
+            },
+            cache={
+                "cacheLocation": "localStorage",
+                "storeAuthStateInCookie": False,
+            },
+            login_request={
+                "scopes": SCOPES,
+                "prompt": "select_account",
+            },
+            logout_request={},
+            login_button_text="🔒 Sign in with Microsoft",
+            logout_button_text="Sign out",
+            key="msal_popup_login_singleton",
+        )
+
         if isinstance(token, dict) and token.get("idToken"):
             claims = token.get("idTokenClaims") or {}
             groups = set(claims.get("groups", []))
