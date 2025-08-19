@@ -127,6 +127,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         "guid",
         operation_cd='OP',
         customer_name='Cust',
+        user_email='user@example.com',
     )
     expected = 'OP - BID - Cust_20200101.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
@@ -134,6 +135,11 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     assert returned['CLIENT_DEST_FOLDER_PATH'] == CLIENT_BIDS_DEST_PATH
     assert all(
         item.get('CLIENT_DEST_FOLDER_PATH') == CLIENT_BIDS_DEST_PATH
+        for item in returned.get('item/In_dtInputData', [])
+    )
+    assert returned['NOTIFY_EMAIL'] == 'user@example.com'
+    assert all(
+        item.get('NOTIFY_EMAIL') == 'user@example.com'
         for item in returned.get('item/In_dtInputData', [])
     )
     assert called['url'] == tpl.postprocess.url
@@ -180,6 +186,7 @@ def test_pit_bid_posts(monkeypatch):
         "guid",
         operation_cd='OP',
         customer_name='Cust',
+        user_email='user@example.com',
     )
     assert "Payload loaded" in logs
     assert "Payload finalized" in logs
@@ -192,6 +199,11 @@ def test_pit_bid_posts(monkeypatch):
     assert returned['CLIENT_DEST_FOLDER_PATH'] == expected_path
     assert all(
         item.get('CLIENT_DEST_FOLDER_PATH') == expected_path
+        for item in returned.get('item/In_dtInputData', [])
+    )
+    assert returned['NOTIFY_EMAIL'] == 'user@example.com'
+    assert all(
+        item.get('NOTIFY_EMAIL') == 'user@example.com'
         for item in returned.get('item/In_dtInputData', [])
     )
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)

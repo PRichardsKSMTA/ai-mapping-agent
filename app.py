@@ -679,6 +679,7 @@ def main():
                         guid,
                         st.session_state.get("customer_name", ""),
                         st.session_state.get("operation_code"),
+                        user_email=user_email,
                     )
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()

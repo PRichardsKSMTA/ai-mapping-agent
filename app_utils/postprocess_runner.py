@@ -40,8 +40,14 @@ def run_postprocess_if_configured(
     customer_name: str,
     operation_cd: str | None = None,
     poll_interval: int = 30,
+    user_email: str | None = None,
 ) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None]:
-    """Run optional postprocess hooks based on ``template``."""
+    """Run optional postprocess hooks based on ``template``.
+
+    For PIT BID templates, ``user_email`` (if provided) will be added to the
+    outgoing payload under ``NOTIFY_EMAIL`` at both the root level and within
+    each ``item/In_dtInputData`` entry.
+    """
 
     logs: List[str] = []
     payload: Dict[str, Any] | List[Dict[str, Any]] | None = None
@@ -90,8 +96,12 @@ def run_postprocess_if_configured(
         if not payload["item/In_dtInputData"]:
             payload["item/In_dtInputData"].append({})
         payload["item/In_dtInputData"][0]["NEW_EXCEL_FILENAME"] = fname
+        if user_email:
+            payload["NOTIFY_EMAIL"] = user_email
         for entry in payload.get("item/In_dtInputData", []):
             entry["CLIENT_DEST_FOLDER_PATH"] = CLIENT_BIDS_DEST_PATH
+            if user_email:
+                entry["NOTIFY_EMAIL"] = user_email
         if "BID-Payload" in payload:
             payload["BID-Payload"] = process_guid
         else:
