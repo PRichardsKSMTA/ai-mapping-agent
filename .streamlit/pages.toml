@@ -1,9 +1,9 @@
 [[pages]]
-path = "Home.py"
+path = "app.py"
 name = "Home"
 icon = "🏠"
 
 [[pages]]
-path = "pages/Template_Manager.py"
+path = "pages/template_manager.py"
 name = "Template Manager"
 icon = "📝"
