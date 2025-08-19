@@ -1,0 +1,9 @@
+[[pages]]
+path = "Home.py"
+name = "Home"
+icon = "🏠"
+
+[[pages]]
+path = "pages/Template_Manager.py"
+name = "Template Manager"
+icon = "📝"
