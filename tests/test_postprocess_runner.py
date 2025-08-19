@@ -94,7 +94,6 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
-        "CLIENT_DEST_FOLDER_PATH": CLIENT_BIDS_DEST_PATH,
     }
 
     monkeypatch.setattr(
@@ -132,7 +131,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     expected = 'OP - BID - Cust_20200101.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
-    assert returned['CLIENT_DEST_FOLDER_PATH'] == CLIENT_BIDS_DEST_PATH
+    assert 'CLIENT_DEST_FOLDER_PATH' not in returned
     assert all(
         item.get('CLIENT_DEST_FOLDER_PATH') == CLIENT_BIDS_DEST_PATH
         for item in returned.get('item/In_dtInputData', [])
@@ -154,7 +153,6 @@ def test_pit_bid_posts(monkeypatch):
     payload = {
         "item/In_dtInputData": [{"NEW_EXCEL_FILENAME": "old.xlsm"}],
         "BID-Payload": "",
-        "CLIENT_DEST_FOLDER_PATH": CLIENT_BIDS_DEST_PATH,
     }
     monkeypatch.setattr(
         'app_utils.postprocess_runner.get_pit_url_payload',
@@ -196,7 +194,7 @@ def test_pit_bid_posts(monkeypatch):
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
     expected_path = CLIENT_BIDS_DEST_PATH
-    assert returned['CLIENT_DEST_FOLDER_PATH'] == expected_path
+    assert 'CLIENT_DEST_FOLDER_PATH' not in returned
     assert all(
         item.get('CLIENT_DEST_FOLDER_PATH') == expected_path
         for item in returned.get('item/In_dtInputData', [])
@@ -287,7 +285,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
 
 
 def test_pit_bid_customer_name_slashes_removed(monkeypatch):
-    payload = {"item/In_dtInputData": [{}], "BID-Payload": "", "CLIENT_DEST_FOLDER_PATH": CLIENT_BIDS_DEST_PATH}
+    payload = {"item/In_dtInputData": [{}], "BID-Payload": ""}
     monkeypatch.setattr('app_utils.postprocess_runner.get_pit_url_payload', lambda *a, **k: payload)
     monkeypatch.setattr('app_utils.postprocess_runner.wait_for_postprocess_completion', lambda *a, **k: None)
     monkeypatch.setattr('app_utils.postprocess_runner.datetime', types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)))

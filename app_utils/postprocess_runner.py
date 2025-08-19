@@ -86,7 +86,6 @@ def run_postprocess_if_configured(
         except RuntimeError as err:  # pragma: no cover - exercised in integration
             logs.append(f"Payload error: {err}")
             raise
-        payload["CLIENT_DEST_FOLDER_PATH"] = CLIENT_BIDS_DEST_PATH
         logs.append("Payload loaded")
 
         # Generate filename with current date

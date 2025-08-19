@@ -242,7 +242,9 @@ def run_app(
         payload = {
             "p": 1,
             "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
-            "CLIENT_DEST_FOLDER_PATH": "/docs/folder with spaces",
+            "item/In_dtInputData": [
+                {"CLIENT_DEST_FOLDER_PATH": "/docs/folder with spaces"}
+            ],
         }
         return ["ok"], payload
 
