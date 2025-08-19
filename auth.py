@@ -327,47 +327,50 @@ else:
             height=0,
         )
 
-    def _logout_button() -> None:
+    def logout_button() -> None:
+        # Only show when logged in
         if "user_email" not in st.session_state or not st.session_state.get("id_token"):
             return
 
-        import streamlit.components.v1 as components
-        import json
+        from msal_streamlit_t2 import msal_authentication  # uses the maintained popup component
+        import streamlit as st
+
+        AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}".rstrip("/")
+        SCOPES = ["openid", "profile", "email", "User.Read"]
 
         with st.sidebar:
             if hasattr(st.sidebar, "divider"):
                 st.sidebar.divider()
 
-            if st.button("Sign out", type="primary", use_container_width=True, key="ksm_logout"):
-                # Don’t clear server state or rerun; let the full-page navigation reset everything.
-                logout_url = _aad_logout_url()
+            # Mount ONE instance here; when clicked, the component performs logout via MSAL.js.
+            token_sidebar = msal_authentication(
+                auth={
+                    "clientId": CLIENT_ID,
+                    "authority": AUTHORITY,
+                    "redirectUri": REDIRECT_URI,            # must match a SPA redirect exactly
+                    "postLogoutRedirectUri": REDIRECT_URI,
+                },
+                cache={
+                    "cacheLocation": "localStorage",
+                    "storeAuthStateInCookie": False,
+                },
+                login_request={"scopes": SCOPES},
+                logout_request={},                            # required by the component API
+                login_button_text="🔒 Sign in with Microsoft",
+                logout_button_text="Sign out",
+                key="msal_popup_logout_singleton",
+            )
 
-                components.html(
-                    f"""
-                    <script>
-                    (function() {{
-                        try {{
-                        // Remove everything from both storages to avoid any cached MSAL state
-                        ['localStorage','sessionStorage'].forEach(function(storeName){{
-                            var store = window[storeName];
-                            if (!store) return;
-                            var keys = [];
-                            for (var i = store.length - 1; i >= 0; i--) {{
-                            var k = store.key(i);
-                            if (k) keys.push(k);
-                            }}
-                            keys.forEach(function(k) {{ try {{ store.removeItem(k); }} catch(e){{}} }});
-                        }});
-                        }} catch (e) {{}}
-                        var url = {json.dumps(logout_url)};
-                        if (window.top) window.top.location.href = url;
-                        else window.location.href = url;
-                    }})();
-                    </script>
-                    """,
-                    height=0,
-                )
-                st.stop()
+            # After the user clicks "Sign out", the component returns None on the next run.
+            if token_sidebar is None and st.session_state.get("id_token"):
+                for k in [
+                    "user_email", "user_name", "groups",
+                    "is_employee", "is_ksmta", "is_admin",
+                    "id_token", "token_acquired_at",
+                ]:
+                    st.session_state.pop(k, None)
+                st.query_params.clear()
+                st.rerun()
 
     def _get_user_email_real() -> Optional[str]:
         return st.session_state.get("user_email")
