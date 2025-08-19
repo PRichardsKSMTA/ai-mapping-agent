@@ -13,5 +13,4 @@ msal
 python-dotenv
 streamlit-tags
 msal-streamlit-authentication
-streamlit-autorefresh
 msal-streamlit-t2
