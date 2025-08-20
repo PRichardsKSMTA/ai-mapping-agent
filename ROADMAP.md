@@ -57,7 +57,7 @@
 | #   | Task                            | Status |
 | --- | ------------------------------- | ------ |
 | B-1 | Replace global `STEPS`          | ✅      |
-| B-2 | Refactor `app.py` to layer loop | ✅      |
+| B-2 | Refactor `🏠_Home.py` to layer loop | ✅      |
 | B-3 | Smoke-test header-only mapping  | ✅      |
 
 ### Phase C – Mapping UX polish (🔨 Active)
@@ -227,7 +227,7 @@ Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
     │   │   ├── header.py
     │   │   ├── lookup.py
     │   │   └── computed.py
-    │   ├── template_manager.py
+    │   ├── 📝_Template_Manager.py
     │   └── AGENTS.md
     ├── 📁schemas
     │   ├── template_v2.py
@@ -240,7 +240,7 @@ Repo root = ai-mapping-agent (see /AGENTS.md for guidelines).
     │   ├── test_excel_to_json.py
     │   └── AGENTS.md
     ├── .env
-    ├── app.py
+    ├── 🏠_Home.py
     ├── AGENTS.md
     ├── ROADMAP.md
     ├── requirements.txt

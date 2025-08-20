@@ -1,4 +1,11 @@
-import app
+import importlib.util
+from pathlib import Path
+
+spec = importlib.util.spec_from_file_location(
+    "app", Path(__file__).resolve().parents[1] / "🏠_Home.py"
+)
+app = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(app)
 
 
 def test_instruction_sheet_not_default():
