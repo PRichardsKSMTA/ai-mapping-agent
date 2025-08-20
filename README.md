@@ -94,7 +94,7 @@ rows to the configured URL after export.
 Example launch:
 
 ```bash
-streamlit run "🏠_Home.py"
+streamlit run app.py
 # or
 python start_postprocess.py
 ```

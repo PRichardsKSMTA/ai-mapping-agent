@@ -13,8 +13,6 @@ from app_utils.template_builder import (
 )
 import pandas as pd
 import json
-import importlib.util
-from pathlib import Path
 
 
 def test_scan_csv_columns():
@@ -176,12 +174,7 @@ def test_render_sidebar_columns(monkeypatch):
     )
     monkeypatch.setenv("DISABLE_AUTH", "1")
 
-    spec = importlib.util.spec_from_file_location(
-        "pages.template_manager",
-        Path(__file__).resolve().parents[1] / "pages/📝_Template_Manager.py",
-    )
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = importlib.import_module("pages.template_manager")
 
     dummy_st.sidebar.seen.clear()
     mod.render_sidebar_columns(["A", "B"])

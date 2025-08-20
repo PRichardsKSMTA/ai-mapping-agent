@@ -11,7 +11,7 @@ import sys
 def main() -> None:
     """Launch the Streamlit app with post-processing enabled."""
     os.environ["ENABLE_POSTPROCESS"] = "1"
-    subprocess.run(["streamlit", "run", "🏠_Home.py", *sys.argv[1:]], check=True)
+    subprocess.run(["streamlit", "run", "app.py", *sys.argv[1:]], check=True)
 
 
 if __name__ == "__main__":
