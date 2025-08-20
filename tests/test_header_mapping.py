@@ -153,7 +153,15 @@ def test_persist_template_clears_unsaved(monkeypatch):
 
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
-    from pages import template_manager
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "pages.template_manager",
+        Path(__file__).resolve().parents[1] / "pages/📝_Template_Manager.py",
+    )
+    template_manager = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(template_manager)
 
     def fake_save(_tpl):
         return "demo"

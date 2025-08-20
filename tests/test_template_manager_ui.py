@@ -1,5 +1,7 @@
 import types
 import importlib
+import importlib.util
+from pathlib import Path
 import sys
 
 class DummySidebar:
@@ -170,7 +172,12 @@ def run_manager(
             "app_utils.template_builder.save_template_file", save_patch
         )
     sys.modules.pop("pages.template_manager", None)
-    importlib.import_module("pages.template_manager")
+    spec = importlib.util.spec_from_file_location(
+        "pages.template_manager",
+        Path(__file__).resolve().parents[1] / "pages/📝_Template_Manager.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
     return dummy_st
 
 
