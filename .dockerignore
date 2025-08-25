@@ -1,0 +1,26 @@
+# Version control
+.git
+.gitignore
+
+# Documentation and misc
+AGENTS.md
+ROADMAP.md
+README.md
+LICENSE
+
+# Tests and docs
+tests
+docs
+
+# Caches and temporary files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.mypy_cache/
+.pytest_cache/
+*.sqlite
+
+# Development environments
+.env
+.env.*
