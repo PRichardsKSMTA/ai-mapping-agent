@@ -22,4 +22,4 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     STREAMLIT_SERVER_HEADLESS=true
 
 # Start the Streamlit app
-CMD ["streamlit", "run", "app.py", "--server.port=${PORT:-8501}", "--server.address=0.0.0.0"]
+CMD ["./start.sh"]
