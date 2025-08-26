@@ -13,4 +13,4 @@ msal
 python-dotenv
 streamlit-tags
 msal-streamlit-authentication
-msal-streamlit-tools
+
