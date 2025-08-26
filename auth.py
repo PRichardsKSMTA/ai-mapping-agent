@@ -61,10 +61,14 @@ load_dotenv()
 # Config helpers
 # -----------------------------
 def _get_config(name: str, default: Optional[str] = None) -> Optional[str]:
+    val = os.environ.get(name)
+    if val is not None:
+        return val
     try:
-        return str(st.secrets[name])
+        return str(st.secrets.get(name, default))  # type: ignore[attr-defined]
     except Exception:
-        return os.environ.get(name, default)
+        return default
+
 
 # -----------------------------
 # Settings & toggles
