@@ -110,3 +110,40 @@ All SharePoint exports must be uploaded to:
 ```
 
 This path is case-sensitive and includes two spaces between `CLIENT` and `Downloads`. Keep the exact spacing and capitalization to avoid broken links or misplaced files.
+
+## Azure Deployment
+
+To run the agent on Azure App Service using a container, push the Docker image to
+[Azure Container Registry (ACR)](https://learn.microsoft.com/azure/container-registry/).
+
+### Build and push the image
+
+```bash
+# build locally and push to your registry
+az acr login --name <acr_name>
+docker build -t <acr_login_server>/ai-mapping-agent:latest .
+docker push <acr_login_server>/ai-mapping-agent:latest
+
+# or build remotely with ACR
+az acr build --registry <acr_name> --image ai-mapping-agent:latest .
+```
+
+### Create the Web App
+
+```bash
+az webapp create --resource-group <rg> --plan <appservice_plan> \
+  --name <app_name> \
+  --deployment-container-image-name <acr_login_server>/ai-mapping-agent:latest
+
+# keep the container running
+az webapp config set --resource-group <rg> --name <app_name> --always-on true
+
+# supply required secrets
+az webapp config appsettings set --resource-group <rg> --name <app_name> --settings \
+  OPENAI_API_KEY=<key> \
+  AAD_CLIENT_ID=<client_id> AAD_TENANT_ID=<tenant_id> AAD_REDIRECT_URI=<uri> AAD_CLIENT_SECRET=<secret> \
+  SQL_SERVER=<server> SQL_DATABASE=<db> SQL_USERNAME=<user> SQL_PASSWORD=<password>
+```
+
+See the [App Service container docs](https://learn.microsoft.com/azure/app-service/tutorial-custom-container)
+for more details.
