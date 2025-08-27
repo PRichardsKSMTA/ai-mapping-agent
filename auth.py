@@ -367,7 +367,7 @@ else:
                 for k in [
                     "user_email", "user_name", "groups",
                     "is_employee", "is_ksmta", "is_admin",
-                    "id_token", "token_acquired_at",
+                    "id_token", "token_acquired_at", "_center_css_done",
                 ]:
                     st.session_state.pop(k, None)
                 st.query_params.clear()

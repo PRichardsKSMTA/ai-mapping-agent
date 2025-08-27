@@ -5,35 +5,33 @@ import pytest
 
 
 class DummySidebar:
-    def __init__(self):
-        self.calls: list[tuple[str, str | None, dict]] = []
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str | None, dict[str, object]]] = []
 
-    def __enter__(self):
+    def __enter__(self) -> "DummySidebar":
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc: object) -> None:
         pass
 
-    def divider(self) -> None:
-        self.calls.append(("divider", None, {}))
-
-    def button(self, label: str, **kwargs):
+    def button(self, label: str, **kwargs: object) -> bool:
         self.calls.append(("button", label, kwargs))
-        return False
+        return True
 
-def test_logout_button_adds_spacing(monkeypatch: pytest.MonkeyPatch) -> None:
+
+def test_logout_clears_center_css_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     sidebar = DummySidebar()
     components_v1 = types.ModuleType("streamlit.components.v1")
+    components_v1.html = lambda *a, **k: None
     components = types.ModuleType("streamlit.components")
     components.v1 = components_v1
     st = types.ModuleType("streamlit")
     st.sidebar = sidebar
-    st.session_state = {"user_email": "x", "id_token": "tok"}
+    st.session_state = {"user_email": "x", "id_token": "tok", "_center_css_done": True}
     st.secrets = {}
     st.query_params = types.SimpleNamespace(clear=lambda: None)
-    st.rerun = lambda: None
-    st.markdown = lambda text, **k: None
     st.button = lambda label, **k: sidebar.button(label, **k)
+    st.stop = lambda: None
     monkeypatch.setitem(sys.modules, "streamlit", st)
     monkeypatch.setitem(sys.modules, "streamlit.components", components)
     monkeypatch.setitem(sys.modules, "streamlit.components.v1", components_v1)
@@ -51,10 +49,10 @@ def test_logout_button_adds_spacing(monkeypatch: pytest.MonkeyPatch) -> None:
 
     auth = importlib.import_module("auth")
     importlib.reload(auth)
+    monkeypatch.setattr(auth, "_clear_storage_and_reload", lambda: None)
 
     auth.logout_button()
 
-    assert sidebar.calls[0][0] == "divider"
-    assert sidebar.calls[1][0] == "button"
-    assert sidebar.calls[1][1] == "Sign out"
-    assert sidebar.calls[1][2].get("use_container_width") is True
+    assert "_center_css_done" not in st.session_state
+    assert "user_email" not in st.session_state
+    assert "id_token" not in st.session_state
