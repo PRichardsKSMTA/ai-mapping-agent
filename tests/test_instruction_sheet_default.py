@@ -1,9 +1,9 @@
-import app
+import Home
 
 
 def test_instruction_sheet_not_default():
     sheets = ["Instructions", "Data"]
-    idx = app.default_sheet_index(sheets)
+    idx = Home.default_sheet_index(sheets)
     assert idx == 1
 
     session_state: dict[str, str] = {}

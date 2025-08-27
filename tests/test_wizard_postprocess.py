@@ -336,9 +336,9 @@ def test_postprocess_flag_cleared_after_export(monkeypatch):
 
 def test_postprocess_flag_cleared_on_reset(monkeypatch):
     called, state, _ = run_app(monkeypatch)
-    import app
+    import Home
 
-    app.do_reset()
+    Home.do_reset()
     assert state.get("postprocess_running") is False
 
 
@@ -360,7 +360,7 @@ def test_export_button_reenabled_after_completion(monkeypatch):
     state["export_complete"] = False
     st.button_sequence = [{"Generate PIT"}]
     st.run_idx = 0
-    import importlib, sys, app
+    import importlib, sys, Home
 
     importlib.reload(sys.modules["app"])
     assert called.get("runs") == 2
