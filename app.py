@@ -695,9 +695,6 @@ def main():
                     st.session_state["postprocess_running"] = False
                     st.rerun()
         else:
-            st.success(
-                "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
-            )
             payload: dict[str, Any] = st.session_state.get("postprocess_payload") or {}
             dest_site: str | None = payload.get("CLIENT_DEST_SITE")
             dest_path: str | None = payload.get("CLIENT_DEST_FOLDER_PATH")
@@ -711,6 +708,9 @@ def main():
             preview_df = st.session_state.get("mapped_preview_df")
             if preview_df is not None:
                 st.dataframe(preview_df)
+            st.success(
+                "Your PIT is being created and will be uploaded to your SharePoint site in ~5 minutes."
+            )
             if sharepoint_url:
                 st.link_button("Open SharePoint folder", sharepoint_url)
             csv_data = st.session_state.get("mapped_csv")
