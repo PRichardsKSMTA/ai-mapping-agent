@@ -52,7 +52,12 @@ from app_utils.ui_utils import (
     apply_global_css,
     section_card,
 )
-from app_utils.excel_utils import list_sheets, read_tabular_file, save_mapped_csv
+from app_utils.excel_utils import (
+    list_sheets,
+    read_tabular_file,
+    save_mapped_csv,
+    dedupe_adhoc_headers,
+)
 from app_utils.postprocess_runner import run_postprocess_if_configured
 from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.header_utils import save_current_template
@@ -590,9 +595,23 @@ def main():
                 mapped_df = save_mapped_csv(df, preview_json, tmp_path)
             tmp_path.unlink()
             adhoc_headers = st.session_state.get("header_adhoc_headers", {})
+            adhoc_headers = dedupe_adhoc_headers(
+                adhoc_headers,
+                [c for c in mapped_df.columns if c not in adhoc_headers],
+            )
+            st.session_state["header_adhoc_headers"] = adhoc_headers
             display_df = mapped_df.rename(columns=adhoc_headers)
-            st.session_state["mapped_preview_df"] = display_df
-            st.dataframe(display_df)
+            duplicate_headers: list[str] = (
+                display_df.columns[display_df.columns.duplicated()].tolist()
+            )
+            if duplicate_headers:
+                st.error(
+                    "Duplicate column names detected: "
+                    f"{', '.join(duplicate_headers)}. Please revise your mappings."
+                )
+            else:
+                st.session_state["mapped_preview_df"] = display_df
+                st.dataframe(display_df)
 
             st.markdown(
                 """

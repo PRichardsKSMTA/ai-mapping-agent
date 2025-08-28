@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import pandas as pd  # type: ignore
 import streamlit as st
 from pathlib import Path
-from typing import List
+from typing import Any, List
+from collections.abc import Collection
 from openpyxl import load_workbook
 from schemas.template_v2 import Template
 from app_utils.dataframe_transform import apply_header_mappings
 from types import SimpleNamespace
-from typing import Any
 
 
 def _copy_to_temp(uploaded_file, suffix: str) -> str:
@@ -208,3 +210,38 @@ def save_mapped_csv(
 
     mapped.to_csv(path, index=False)
     return mapped
+
+
+def dedupe_adhoc_headers(
+    adhoc_headers: dict[str, str], existing_cols: Collection[str]
+) -> dict[str, str]:
+    """Return ``adhoc_headers`` with duplicate values suffixed by ``" - Copy"``.
+
+    ``existing_cols`` should contain column names already present in the
+    destination DataFrame to avoid collisions with non-AdHoc fields.
+    """
+    seen: dict[str, int] = {col: 1 for col in existing_cols}
+    out: dict[str, str] = {}
+    for key in sorted(adhoc_headers):
+        header = adhoc_headers.get(key) or ""
+        if not header:
+            out[key] = header
+            continue
+        count = seen.get(header, 0)
+        new_header = header
+        if count > 0:
+            suffix_idx = count
+            new_header = (
+                f"{header} - Copy" if suffix_idx == 1 else f"{header} - Copy {suffix_idx}"
+            )
+            while new_header in seen:
+                suffix_idx += 1
+                new_header = (
+                    f"{header} - Copy"
+                    if suffix_idx == 1
+                    else f"{header} - Copy {suffix_idx}"
+                )
+        seen[header] = count + 1
+        seen[new_header] = 1
+        out[key] = new_header
+    return out

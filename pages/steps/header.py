@@ -261,10 +261,20 @@ def render(layer, idx: int) -> None:
         )
         row[4].markdown(status)
 
-        # ── Delete button for user-added fields ────────────────────────
+        # ── Field actions (delete or reset) ────────────────────────────
         if key in extra_fields:
             if row[5].button("🗑️", key=f"del_{key}", help="Remove field"):
                 remove_field(key, idx)
+                st.rerun()
+        elif key.startswith("ADHOC_INFO"):
+            if row[5].button("↺", key=f"reset_{key}", help="Reset to default"):
+                set_field_mapping(key, idx, {})
+                st.session_state[f"src_{key}"] = ""
+                match = re.findall(r"\d+", key)
+                default = f"AdHoc{match[0] if match else ''}"
+                adhoc_labels[key] = default
+                adhoc_autogen[key] = True
+                st.session_state[f"adhoc_label_{key}"] = default
                 st.rerun()
         else:
             row[5].markdown("")

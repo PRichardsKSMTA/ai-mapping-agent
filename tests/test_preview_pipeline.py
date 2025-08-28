@@ -5,6 +5,7 @@ from pathlib import Path
 from app_utils.excel_utils import read_tabular_file, save_mapped_csv
 from app_utils.mapping.exporter import build_output_template
 from schemas.template_v2 import Template
+from app_utils.excel_utils import dedupe_adhoc_headers
 
 
 def test_preview_pipeline(tmp_path: Path) -> None:
@@ -50,6 +51,36 @@ def test_preview_pipeline_custom_label(tmp_path: Path) -> None:
     adhoc_headers = state["header_adhoc_headers"]
     display_df = mapped_df.rename(columns=adhoc_headers)
     assert list(display_df.columns) == ["Name", "Value", "Custom"]
+
+
+def test_preview_pipeline_duplicate_adhoc_labels(tmp_path: Path) -> None:
+    template = Template.model_validate(
+        json.loads(Path("tests/fixtures/simple-template.json").read_text())
+    )
+    with open("tests/fixtures/simple.csv", "rb") as f:
+        df, _ = read_tabular_file(f)
+    state = {
+        "header_mapping_0": {
+            "Name": {"src": "Name"},
+            "ADHOC_INFO1": {"src": "Value"},
+            "ADHOC_INFO2": {"src": "Value"},
+        },
+        "header_extra_fields_0": ["ADHOC_INFO1", "ADHOC_INFO2"],
+        "header_adhoc_headers": {
+            "ADHOC_INFO1": "Dup",
+            "ADHOC_INFO2": "Dup",
+        },
+    }
+    preview_json = build_output_template(template, state, "dummy-guid")
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        mapped_df = save_mapped_csv(df, preview_json, tmp_path)
+    tmp_path.unlink()
+    adhoc_headers = dedupe_adhoc_headers(
+        state["header_adhoc_headers"], [c for c in mapped_df.columns if c not in state["header_adhoc_headers"]]
+    )
+    display_df = mapped_df.rename(columns=adhoc_headers)
+    assert list(display_df.columns) == ["Name", "Value", "Dup", "Dup - Copy"]
 
 
 def test_preview_pipeline_duplicate_mapping(tmp_path: Path) -> None:
