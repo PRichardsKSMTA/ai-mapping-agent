@@ -109,6 +109,19 @@ def test_saved_suggestion_overrides_fuzzy(monkeypatch, tmp_path):
     assert mapping["Name"]["confidence"] == 1.0
 
 
+def test_recent_suggestion_preferred(monkeypatch, tmp_path):
+    sug = tmp_path / "mapping_suggestions.json"; monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug)
+    hdr = suggestion_store._headers_id(["Old", "New"])
+    sug.write_text(json.dumps([
+        {"template": "simple-template", "field": "Name", "type": "direct", "formula": None, "columns": ["Old"], "display": "Old", "header_id": hdr, "added": "2022-01-01T00:00:00+00:00"},
+        {"template": "simple-template", "field": "Name", "type": "direct", "formula": None, "columns": ["New"], "display": "New", "header_id": hdr, "added": "2024-01-01T00:00:00+00:00"},
+    ]))
+    import pandas as pd; cols = ["Old", "New"]; mapping = suggest_header_mapping(["Name"], cols)
+    for s in suggestion_store.get_suggestions("simple-template", "Name", headers=cols):
+        if s["type"] == "direct": mapping["Name"] = {"src": s["columns"][0], "confidence": 1.0}; break
+    assert mapping["Name"]["src"] == "New"
+
+
 
 def test_add_field_sets_unsaved(monkeypatch):
     idx = 0

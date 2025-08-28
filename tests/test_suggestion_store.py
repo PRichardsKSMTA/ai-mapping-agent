@@ -89,6 +89,28 @@ def test_add_suggestion_updates_header_id(monkeypatch, tmp_path):
     assert saved[0]["header_id"] == suggestion_store._headers_id(["X", "Y"])
 
 
+def test_add_suggestion_sets_added(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    path.write_text("[]")
+    monkeypatch.setenv("SUGGESTION_FILE", str(path))
+    importlib.reload(suggestion_store)
+
+    base = {
+        "template": "Demo",
+        "field": "Name",
+        "type": "direct",
+        "formula": None,
+        "columns": ["ColA"],
+        "display": "ColA",
+    }
+    suggestion_store.add_suggestion(base)
+    saved = json.loads(path.read_text())
+    assert saved[0].get("added")
+    from datetime import datetime
+
+    datetime.fromisoformat(saved[0]["added"])
+
+
 def test_display_dedup(monkeypatch, tmp_path):
     path = tmp_path / "mapping_suggestions.json"
     data = [
@@ -119,6 +141,44 @@ def test_display_dedup(monkeypatch, tmp_path):
 
     suggestion_store.add_suggestion(data[1])
     assert len(json.loads(path.read_text())) == 1
+
+
+def test_get_suggestions_recency_sort(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    data = [
+        {
+            "template": "Demo",
+            "field": "Name",
+            "type": "direct",
+            "formula": None,
+            "columns": ["Old"],
+            "display": "Old",
+            "added": "2020-01-01T00:00:00+00:00",
+        },
+        {
+            "template": "Demo",
+            "field": "Name",
+            "type": "direct",
+            "formula": None,
+            "columns": ["New"],
+            "display": "New",
+            "added": "2024-01-01T00:00:00+00:00",
+        },
+        {
+            "template": "Demo",
+            "field": "Name",
+            "type": "direct",
+            "formula": None,
+            "columns": ["No"],
+            "display": "No",
+        },
+    ]
+    path.write_text(json.dumps(data))
+    monkeypatch.setenv("SUGGESTION_FILE", str(path))
+    importlib.reload(suggestion_store)
+
+    res = suggestion_store.get_suggestions("Demo", "Name")
+    assert [s["columns"][0] for s in res] == ["New", "Old", "No"]
 
 
 def test_round_trip_persistence(monkeypatch, tmp_path):

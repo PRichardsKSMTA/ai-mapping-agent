@@ -25,6 +25,7 @@ import json
 import os
 import re
 import hashlib
+from datetime import datetime, timezone
 from typing import List, Optional, TypedDict
 
 _default_path = Path.cwd() / "data" / "mapping_suggestions.json"
@@ -39,6 +40,7 @@ class Suggestion(TypedDict, total=False):
     columns: List[str]            # canonical source column names involved
     display: str                  # nice string for UI (optional for direct)
     header_id: str                # optional fingerprint of source headers
+    added: str                    # ISO-8601 timestamp when suggestion confirmed
 
 
 def _load() -> List[Suggestion]:
@@ -94,8 +96,7 @@ def add_suggestion(s: Suggestion, headers: Optional[List[str]] | None = None) ->
     cols_c = [_canon(c) for c in s.get("columns", [])]
     display_c = _canon(s.get("display", ""))
     h_id = s.get("header_id") or _headers_id(headers)
-    if h_id:
-        s = {**s, "header_id": h_id}
+    now = datetime.now(timezone.utc).isoformat()
     for i, existing in enumerate(data):
         if (
             _canon(existing["template"]) == t_c
@@ -105,12 +106,18 @@ def add_suggestion(s: Suggestion, headers: Optional[List[str]] | None = None) ->
             and [_canon(c) for c in existing.get("columns", [])] == cols_c
             and _canon(existing.get("display", "")) == display_c
         ):
+            updated = dict(existing)
             if h_id:
-                data[i] = {**existing, "header_id": h_id}
-                _save(data)
-                return
+                updated["header_id"] = h_id
+            updated["added"] = now
+            data[i] = updated
+            _save(data)
             return
-    data.append(s)
+    new_s = dict(s)
+    if h_id:
+        new_s["header_id"] = h_id
+    new_s["added"] = now
+    data.append(new_s)
     _save(data)
 
 
@@ -120,12 +127,24 @@ def get_suggestions(
     t_c = _canon(template)
     f_c = _canon(field)
     h_id = _headers_id(headers)
-    matches = []
-    for s in _load():
-        if _canon(s["template"]) == t_c and _canon(s["field"]) == f_c:
-            matches.append(s)
-    if h_id:
-        matches.sort(key=lambda x: 0 if x.get("header_id") == h_id else 1)
+    matches = [
+        s
+        for s in _load()
+        if _canon(s["template"]) == t_c and _canon(s["field"]) == f_c
+    ]
+
+    def sort_key(x: Suggestion) -> tuple[int, float]:
+        hdr = 0 if not h_id or x.get("header_id") == h_id else 1
+        added = x.get("added")
+        if added:
+            try:
+                ts = datetime.fromisoformat(added).timestamp()
+            except ValueError:
+                ts = float("-inf")
+            return (hdr, -ts)
+        return (hdr, float("inf"))
+
+    matches.sort(key=sort_key)
     return matches
 
 
