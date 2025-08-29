@@ -68,6 +68,10 @@ def edit_suggestions(filename: str, template_name: str) -> None:
                         field,
                         columns=match.get("columns"),
                     )
+                    st.session_state["suggestions_dialog_open"] = (
+                        filename,
+                        template_name,
+                    )
                     st.rerun()
             added = set(new_direct) - set(direct_labels)
             for lbl in added:
@@ -80,6 +84,10 @@ def edit_suggestions(filename: str, template_name: str) -> None:
                         "columns": cols,
                         "display": lbl,
                     }
+                )
+                st.session_state["suggestions_dialog_open"] = (
+                    filename,
+                    template_name,
                 )
                 st.rerun()
 
@@ -99,6 +107,10 @@ def edit_suggestions(filename: str, template_name: str) -> None:
                         field,
                         formula=match.get("formula"),
                     )
+                    st.session_state["suggestions_dialog_open"] = (
+                        filename,
+                        template_name,
+                    )
                     st.rerun()
             added_f = set(new_formulas) - set(formula_labels)
             for lbl in added_f:
@@ -111,6 +123,10 @@ def edit_suggestions(filename: str, template_name: str) -> None:
                         "columns": [],
                         "display": "",
                     }
+                )
+                st.session_state["suggestions_dialog_open"] = (
+                    filename,
+                    template_name,
                 )
                 st.rerun()
 

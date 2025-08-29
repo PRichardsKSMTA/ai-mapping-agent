@@ -17,6 +17,8 @@ class DummyStreamlit:
         self.tags_add = tags_add or {}
         self.tags_remove = tags_remove or {}
         self.tag_calls: list[tuple[str, list[str]]] = []
+        self.session_state: dict[str, Any] = {}
+        self.rerun_called = False
 
     def dialog(self, *a, **k):
         def wrap(func):
@@ -31,7 +33,7 @@ class DummyStreamlit:
         pass
 
     def rerun(self) -> None:  # pragma: no cover - trivial
-        pass
+        self.rerun_called = True
 
 
 def run_dialog(
@@ -127,4 +129,27 @@ def test_delete_suggestion(monkeypatch, tmp_path):
         tags_remove={"tags_Name": ["ColA"]},
     )
     assert store.get_suggestions("Demo", "Name") == []
+
+
+def test_dialog_state_persists_after_removal(monkeypatch, tmp_path):
+    dummy, store = run_dialog(
+        monkeypatch,
+        tmp_path,
+        suggestions=[
+            {
+                "template": "Demo",
+                "field": "Name",
+                "type": "direct",
+                "columns": ["ColA"],
+                "display": "ColA",
+            }
+        ],
+        tags_remove={"tags_Name": ["ColA"]},
+    )
+    assert store.get_suggestions("Demo", "Name") == []
+    assert dummy.session_state.get("suggestions_dialog_open") == (
+        "demo.json",
+        "Demo",
+    )
+    assert dummy.rerun_called
 
