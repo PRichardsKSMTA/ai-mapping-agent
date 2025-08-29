@@ -145,6 +145,17 @@ def render(layer, idx: int) -> None:
         # Source | ⚙ | Expr | Template | Status | 🗑️
         row = st.columns([3, 1, 4, 3, 1, 1])
 
+        reset_flag = f"reset_src_{key}"
+        if st.session_state.pop(reset_flag, False):
+            set_field_mapping(key, idx, {})
+            st.session_state[f"src_{key}"] = ""
+            if key.startswith("ADHOC_INFO"):
+                match = re.findall(r"\d+", key)
+                default = f"AdHoc{match[0] if match else ''}"
+                adhoc_labels[key] = default
+                adhoc_autogen[key] = True
+                st.session_state[f"adhoc_label_{key}"] = default
+
         # ── Source dropdown ──────────────────────────────────────────────
         src_val = mapping.get(key, {}).get("src", "")
         new_src = row[0].selectbox(
@@ -268,13 +279,7 @@ def render(layer, idx: int) -> None:
                 st.rerun()
         elif key.startswith("ADHOC_INFO"):
             if row[5].button("↺", key=f"reset_{key}", help="Reset to default"):
-                set_field_mapping(key, idx, {})
-                st.session_state[f"src_{key}"] = ""
-                match = re.findall(r"\d+", key)
-                default = f"AdHoc{match[0] if match else ''}"
-                adhoc_labels[key] = default
-                adhoc_autogen[key] = True
-                st.session_state[f"adhoc_label_{key}"] = default
+                st.session_state[reset_flag] = True
                 st.rerun()
         else:
             row[5].markdown("")
