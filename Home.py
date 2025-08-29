@@ -177,8 +177,11 @@ def main():
 
     with st.sidebar:
         st.subheader("Select Operation Code")
+        if user_email is None:
+            st.error("Please sign in to select an operation code.")
+            return
         try:
-            op_codes = fetch_operation_codes()
+            op_codes = fetch_operation_codes(user_email)
         except RuntimeError as err:
             st.error(f"Operation lookup failed: {err}")
             return
