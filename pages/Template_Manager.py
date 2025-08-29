@@ -49,6 +49,11 @@ def render_sidebar_columns(columns: List[str]) -> None:
 def show() -> None:
     st.title("Template Manager")
 
+    dialog_state = st.session_state.get("suggestions_dialog_open")
+    if dialog_state:
+        edit_suggestions(*dialog_state)
+        st.session_state.pop("suggestions_dialog_open", None)
+
     st.session_state["current_step"] = compute_current_step()
     progress_box = st.empty()
     render_progress(progress_box)

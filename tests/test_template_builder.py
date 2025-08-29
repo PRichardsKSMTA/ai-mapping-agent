@@ -174,7 +174,8 @@ def test_render_sidebar_columns(monkeypatch):
     )
     monkeypatch.setenv("DISABLE_AUTH", "1")
 
-    mod = importlib.import_module("pages.template_manager")
+    sys.modules.pop("pages.Template_Manager", None)
+    mod = importlib.import_module("pages.Template_Manager")
 
     dummy_st.sidebar.seen.clear()
     mod.render_sidebar_columns(["A", "B"])

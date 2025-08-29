@@ -17,6 +17,8 @@ class DummyStreamlit:
         self.tags_add = tags_add or {}
         self.tags_remove = tags_remove or {}
         self.tag_calls: list[tuple[str, list[str]]] = []
+        self.session_state: dict[str, Any] = {}
+        self.rerun_called = False
 
     def dialog(self, *a, **k):
         def wrap(func):
@@ -31,7 +33,7 @@ class DummyStreamlit:
         pass
 
     def rerun(self) -> None:  # pragma: no cover - trivial
-        pass
+        self.rerun_called = True
 
 
 def run_dialog(
@@ -66,12 +68,14 @@ def run_dialog(
         def st_tags(
             self, label: str, text: str, value: list[str], key: str, **k: Any
         ) -> list[str]:
-            self.parent.tag_calls.append((label, value))
-            new_vals = value[:]
+            current = self.parent.session_state.get(key, value)
+            self.parent.tag_calls.append((label, current))
+            new_vals = current[:]
             new_vals.extend(self.parent.tags_add.get(key, []))
             for tag in self.parent.tags_remove.get(key, []):
                 if tag in new_vals:
                     new_vals.remove(tag)
+            self.parent.session_state[key] = new_vals
             return new_vals
 
     monkeypatch.setitem(sys.modules, "streamlit", dummy)
@@ -127,4 +131,53 @@ def test_delete_suggestion(monkeypatch, tmp_path):
         tags_remove={"tags_Name": ["ColA"]},
     )
     assert store.get_suggestions("Demo", "Name") == []
+
+
+def test_dialog_state_persists_after_removal(monkeypatch, tmp_path):
+    dummy, store = run_dialog(
+        monkeypatch,
+        tmp_path,
+        suggestions=[
+            {
+                "template": "Demo",
+                "field": "Name",
+                "type": "direct",
+                "columns": ["ColA"],
+                "display": "ColA",
+            }
+        ],
+        tags_remove={"tags_Name": ["ColA"]},
+    )
+    assert store.get_suggestions("Demo", "Name") == []
+    assert dummy.session_state.get("suggestions_dialog_open") == (
+        "demo.json",
+        "Demo",
+    )
+    assert dummy.rerun_called
+    assert "tags_Name" not in dummy.session_state
+
+
+def test_removed_suggestion_not_shown_on_reopen(monkeypatch, tmp_path):
+    dummy, store = run_dialog(
+        monkeypatch,
+        tmp_path,
+        suggestions=[
+            {
+                "template": "Demo",
+                "field": "Name",
+                "type": "direct",
+                "columns": ["ColA"],
+                "display": "ColA",
+            }
+        ],
+        tags_remove={"tags_Name": ["ColA"]},
+    )
+    assert store.get_suggestions("Demo", "Name") == []
+    dummy.tags_remove = {}
+    dummy.tags_add = {}
+    dummy.tag_calls.clear()
+    suggestion_dialog = importlib.import_module("app_utils.ui.suggestion_dialog")
+    suggestion_dialog.edit_suggestions("demo.json", "Demo")
+    sys.modules.pop("app_utils.ui.suggestion_dialog", None)
+    assert ("Columns", []) in dummy.tag_calls
 
