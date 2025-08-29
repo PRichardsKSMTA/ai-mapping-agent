@@ -222,17 +222,28 @@ def fetch_operation_codes(email: str | None = None) -> List[str]:
 
     Falls back to the demo user when ``email`` is ``None``.
     """
-    # email = email or os.getenv("DEV_USER_EMAIL", "")
+    local_part, _, domain = email.partition("@")
+    domain = domain.lower()
+    alias: str | None = None
+    if domain == "ksmcpa.com":
+        alias = f"{local_part}@ksmta.com"
+    elif domain == "ksmta.com":
+        alias = f"{local_part}@ksmcpa.com"
+    emails = [email]
+    if alias:
+        emails.append(alias)
+    placeholders = ",".join("?" for _ in emails)
+    query = (
+        "SELECT DISTINCT OPERATION_CD FROM dbo.V_O365_MEMBER_OPERATIONS "
+        f"WHERE EMAIL IN ({placeholders}) AND PIT_REFRESH = 1"
+    )
     try:
         conn = _connect()
     except RuntimeError as err:  # pragma: no cover - exercised in integration
         raise RuntimeError(f"Operation code lookup failed: {err}") from err
     with conn:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT OPERATION_CD FROM dbo.V_O365_MEMBER_OPERATIONS WHERE EMAIL = ? AND PIT_REFRESH = 1",
-            email,
-        )
+        cur.execute(query, *emails)
         rows = cur.fetchall()
     return sorted(row[0] for row in rows)
 
