@@ -6,7 +6,7 @@ from pathlib import Path
 from schemas.template_v2 import FieldSpec, Template
 from app_utils.excel_utils import read_tabular_file, save_mapped_csv
 from app_utils.mapping_utils import suggest_header_mapping
-from app_utils.suggestion_store import get_suggestions, add_suggestion
+from app_utils.suggestion_store import get_suggestions, add_suggestion, remove_suggestion
 import re
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.mapping.exporter import build_output_template
@@ -149,6 +149,9 @@ def render(layer, idx: int) -> None:
         if st.session_state.pop(reset_flag, False):
             set_field_mapping(key, idx, {})
             st.session_state[f"src_{key}"] = ""
+            remove_suggestion(
+                st.session_state["current_template"], key, suggestion_type=None
+            )
             if key.startswith("ADHOC_INFO"):
                 match = re.findall(r"\d+", key)
                 default = f"AdHoc{match[0] if match else ''}"
