@@ -126,7 +126,7 @@ def remove_template_manager_page() -> None:
     if not get_pages:
         return
     pages = get_pages()
-    pages.pop("pages/template_manager.py", None)
+    pages.pop("pages/Template_Manager.py", None)
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +151,7 @@ def main():
         save_col.button("Save Template", on_click=save_current_template)
         if st.session_state.get("is_admin"):
             mgr_col.page_link(
-                "pages/template_manager.py", label="Template Manager", icon="📝"
+                "pages/Template_Manager.py", label="Template Manager", icon="📝"
             )
 
     TEMPLATES_DIR = Path("templates")
