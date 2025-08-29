@@ -436,22 +436,10 @@ def main():
                                 def deselect_all_ids() -> None:
                                     st.session_state["customer_ids"] = []
 
-                                # Single label for both columns keeps the row visually grouped
-                                # st.markdown("**Customer ID**")
 
-                                try:
-                                    cid_col, actions_col = st.columns(
-                                        [3, 1], gap="small"
-                                    )
-                                except TypeError:
-                                    try:
-                                        cid_col, actions_col = st.columns([3, 1])
-                                    except TypeError:
-                                        cid_col, actions_col = st.columns(2)
-
-                                # The input itself (label collapsed so tops align)
+                                cid_container = st.container()
                                 multiselect_fn = getattr(
-                                    cid_col, "multiselect", st.multiselect
+                                    cid_container, "multiselect", st.multiselect
                                 )
                                 multiselect_fn(
                                     "Customer ID",
@@ -462,45 +450,17 @@ def main():
                                     placeholder="Select Customer ID",
                                 )
 
-                                # Buttons column, vertically centered to the input row
-                                with actions_col:
-                                    anchor_id = f"cid_actions_{uuid.uuid4().hex[:6]}"
-                                    st.markdown(
-                                        f"<span id='{anchor_id}'></span>",
-                                        unsafe_allow_html=True,
-                                    )
-
-                                    b1, b2 = st.columns(2, gap="small")
-                                    b1.button(
-                                        "Select all",
-                                        on_click=select_all_ids,
-                                        key="cid_select_all",
-                                    )
-                                    b2.button(
-                                        "Deselect all",
-                                        on_click=deselect_all_ids,
-                                        key="cid_clear_all",
-                                    )
-
-                                    st.markdown(
-                                        f"""
-                                        <style>
-                                        /* Make this column a flexbox and center the buttons vertically */
-                                        div[data-testid=\"stVerticalBlock\"]:has(> span#{anchor_id}) {{
-                                            height: 100%;
-                                            display: flex;
-                                            align-items: start;   /* center relative to the multiselect height */
-                                            justify-content: flex-start;
-                                        }}
-                                        /* Compact button styling scoped to this column only */
-                                        div[data-testid=\"stVerticalBlock\"]:has(> span#{anchor_id}) button {{
-                                            padding: 0rem 0rem;
-                                            border: 1px solid rgba(212,212,212,0.65);
-                                        }}
-                                        </style>
-                                        """,
-                                        unsafe_allow_html=True,
-                                    )
+                                c1, c2 = st.columns(2, gap="small")
+                                c1.button(
+                                    "Select all",
+                                    on_click=select_all_ids,
+                                    key="cid_select_all",
+                                )
+                                c2.button(
+                                    "Deselect all",
+                                    on_click=deselect_all_ids,
+                                    key="cid_clear_all",
+                                )
                     else:
                         st.session_state["customer_id_options"] = []
                         st.session_state["customer_ids"] = []
