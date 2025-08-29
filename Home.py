@@ -452,14 +452,15 @@ def main():
                                     label_visibility="collapsed",
                                     placeholder="Select Customer ID",
                                 )
-
-                                c1, c2 = st.columns(2, gap="small")
-                                c1.button(
+                                btn1, btn2, _ = cid_col.columns(
+                                    [1, 1, 20], gap="small"
+                                )
+                                btn1.button(
                                     "Select all",
                                     on_click=select_all_ids,
                                     key="cid_select_all",
                                 )
-                                c2.button(
+                                btn2.button(
                                     "Deselect all",
                                     on_click=deselect_all_ids,
                                     key="cid_clear_all",
