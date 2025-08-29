@@ -37,9 +37,12 @@ def test_pit_bid_field_map_alignment():
 
 def test_fetch_operation_codes(monkeypatch):
     class FakeCursor:
-        def execute(self, query, email):  # pragma: no cover - exercised via call
+        def execute(self, query, *params):  # pragma: no cover - exercised via call
+            assert "SELECT DISTINCT OPERATION_CD" in query
             assert "FROM dbo.V_O365_MEMBER_OPERATIONS" in query
-            assert email == "user@example.com"
+            assert "EMAIL IN" in query
+            assert query.count("?") == 1
+            assert params == ("user@example.com",)
             self.description = [("OPERATION_CD",)]
             self.rows = [("DEK1_REF",), ("ADSJ_VAN",)]
             return self
@@ -65,8 +68,13 @@ def test_fetch_operation_codes(monkeypatch):
 
 def test_fetch_operation_codes_default_email(monkeypatch):
     class FakeCursor:
-        def execute(self, query, email):  # pragma: no cover - exercised via call
-            assert email == "pete.richards@ksmta.com"
+        def execute(self, query, *params):  # pragma: no cover - exercised via call
+            assert "EMAIL IN" in query
+            assert query.count("?") == 2
+            assert params == (
+                "pete.richards@ksmta.com",
+                "pete.richards@ksmcpa.com",
+            )
             self.description = [("OPERATION_CD",)]
             self.rows = [("DEK1_REF",)]
             return self
@@ -88,6 +96,35 @@ def test_fetch_operation_codes_default_email(monkeypatch):
     monkeypatch.delenv("DEV_USER_EMAIL", raising=False)
 
     codes = azure_sql.fetch_operation_codes()
+    assert codes == ["DEK1_REF"]
+
+
+def test_fetch_operation_codes_alias(monkeypatch):
+    class FakeCursor:
+        def execute(self, query, *params):  # pragma: no cover - exercised via call
+            assert "EMAIL IN" in query
+            assert query.count("?") == 2
+            assert params == ("user@ksmcpa.com", "user@ksmta.com")
+            self.description = [("OPERATION_CD",)]
+            self.rows = [("DEK1_REF",)]
+            return self
+
+        def fetchall(self):
+            return self.rows
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+    monkeypatch.setattr(azure_sql, "_connect", lambda: FakeConn())
+
+    codes = azure_sql.fetch_operation_codes("user@ksmcpa.com")
     assert codes == ["DEK1_REF"]
 
 
