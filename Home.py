@@ -178,7 +178,7 @@ def main():
     with st.sidebar:
         st.subheader("Select Operation Code")
         try:
-            op_codes = fetch_operation_codes()
+            op_codes = fetch_operation_codes(user_email)
         except RuntimeError as err:
             st.error(f"Operation lookup failed: {err}")
             return
@@ -453,7 +453,7 @@ def main():
                                     placeholder="Select Customer ID",
                                 )
                                 btn1, btn2, _ = cid_col.columns(
-                                    [1, 1, 20], gap="small"
+                                    [2, 2, 18], gap="small"
                                 )
                                 btn1.button(
                                     "Select all",

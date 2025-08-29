@@ -222,7 +222,7 @@ def fetch_operation_codes(email: str | None = None) -> List[str]:
 
     Falls back to the demo user when ``email`` is ``None``.
     """
-    email = email or os.getenv("DEV_USER_EMAIL", "pete.richards@ksmta.com")
+    # email = email or os.getenv("DEV_USER_EMAIL", "")
     try:
         conn = _connect()
     except RuntimeError as err:  # pragma: no cover - exercised in integration
