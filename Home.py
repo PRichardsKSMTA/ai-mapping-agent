@@ -437,9 +437,12 @@ def main():
                                     st.session_state["customer_ids"] = []
 
 
-                                cid_container = st.container()
+                                try:
+                                    cid_col, _ = st.columns([3, 1])
+                                except TypeError:
+                                    cid_col, _ = st.columns(2)
                                 multiselect_fn = getattr(
-                                    cid_container, "multiselect", st.multiselect
+                                    cid_col, "multiselect", st.multiselect
                                 )
                                 multiselect_fn(
                                     "Customer ID",
