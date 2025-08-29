@@ -169,8 +169,8 @@ def run_manager(
         monkeypatch.setattr(
             "app_utils.template_builder.save_template_file", save_patch
         )
-    sys.modules.pop("pages.template_manager", None)
-    importlib.import_module("pages.template_manager")
+    sys.modules.pop("pages.Template_Manager", None)
+    importlib.import_module("pages.Template_Manager")
     return dummy_st
 
 

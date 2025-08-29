@@ -166,7 +166,7 @@ def test_persist_template_clears_unsaved(monkeypatch):
 
     monkeypatch.setenv("DISABLE_AUTH", "1")
     monkeypatch.setitem(sys.modules, "dotenv", types.SimpleNamespace(load_dotenv=lambda: None))
-    from pages import template_manager
+    from pages import Template_Manager as template_manager
 
     def fake_save(_tpl):
         return "demo"
@@ -174,7 +174,7 @@ def test_persist_template_clears_unsaved(monkeypatch):
     monkeypatch.setattr(template_manager, "save_template_file", fake_save)
     template_manager.persist_template({"template_name": "demo", "layers": []})
     assert st.session_state["unsaved_changes"] is False
-    sys.modules.pop("pages.template_manager", None)
+    sys.modules.pop("pages.Template_Manager", None)
 
 
 
