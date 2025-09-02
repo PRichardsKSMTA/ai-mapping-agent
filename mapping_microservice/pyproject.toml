@@ -1,0 +1,10 @@
+[project]
+name = "mapping-microservice"
+version = "0.1.0"
+description = "Placeholder microservice for mapping operations"
+authors = [{name = "AI Mapping Agent"}]
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
