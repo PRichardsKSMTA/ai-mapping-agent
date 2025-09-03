@@ -89,7 +89,14 @@ def _headers_id(headers: Optional[List[str]]) -> Optional[str]:
     return hashlib.sha1(canon.encode()).hexdigest()[:8]
 
 
+def _is_adhoc(field: str) -> bool:
+    """Return True if ``field`` refers to an ADHOC_INFO slot."""
+    return field.upper().startswith("ADHOC_INFO")
+
+
 def add_suggestion(s: Suggestion, headers: Optional[List[str]] | None = None) -> None:
+    if _is_adhoc(s["field"]):
+        return
     data = _load()
     t_c = _canon(s["template"])
     f_c = _canon(s["field"])
@@ -124,6 +131,8 @@ def add_suggestion(s: Suggestion, headers: Optional[List[str]] | None = None) ->
 def get_suggestions(
     template: str, field: str, headers: Optional[List[str]] | None = None
 ) -> List[Suggestion]:
+    if _is_adhoc(field):
+        return []
     t_c = _canon(template)
     f_c = _canon(field)
     h_id = _headers_id(headers)
@@ -154,6 +163,7 @@ def get_suggestion(
     *,
     columns: Optional[List[str]] | None = None,
     formula: str | None = None,
+
 ) -> Optional[Suggestion]:
     """Return a single suggestion matching ``template``/``field``.
 
@@ -161,6 +171,8 @@ def get_suggestion(
     suggestion. Matching on columns is case/whitespace insensitive.
     """
 
+    if _is_adhoc(field):
+        return None
     t_c = _canon(template)
     f_c = _canon(field)
     cols_c = [_canon(c) for c in columns] if columns else None
@@ -191,6 +203,8 @@ def update_suggestion(
     or ``formula``. Returns ``True`` if a suggestion was updated.
     """
 
+    if _is_adhoc(field):
+        return False
     data = _load()
     t_c = _canon(template)
     f_c = _canon(field)
@@ -223,9 +237,12 @@ def delete_suggestion(
     *,
     columns: Optional[List[str]] | None = None,
     formula: str | None = None,
+
 ) -> bool:
     """Delete a single suggestion identified by columns or formula."""
 
+    if _is_adhoc(field):
+        return False
     t_c = _canon(template)
     f_c = _canon(field)
     cols_c = [_canon(c) for c in columns] if columns else None
@@ -249,6 +266,8 @@ def delete_suggestion(
 
 def remove_suggestion(template: str, field: str, suggestion_type: str | None = "formula") -> None:
     """Remove stored suggestions matching ``template`` and ``field``."""
+    if _is_adhoc(field):
+        return
     t_c = _canon(template)
     f_c = _canon(field)
     data = [

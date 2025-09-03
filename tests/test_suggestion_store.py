@@ -264,3 +264,23 @@ def test_delete_suggestion(monkeypatch, tmp_path):
     )
     assert removed_formula
     assert json.loads(path.read_text()) == []
+
+
+def test_skip_adhoc_info(monkeypatch, tmp_path):
+    path = tmp_path / "mapping_suggestions.json"
+    path.write_text("[]")
+    monkeypatch.setenv("SUGGESTION_FILE", str(path))
+    importlib.reload(suggestion_store)
+
+    s = {
+        "template": "Demo",
+        "field": "ADHOC_INFO1",
+        "type": "direct",
+        "formula": None,
+        "columns": ["ColA"],
+        "display": "ColA",
+    }
+    suggestion_store.add_suggestion(s)
+    assert json.loads(path.read_text()) == []
+    assert suggestion_store.get_suggestions("Demo", "ADHOC_INFO1") == []
+    assert suggestion_store.get_suggestion("Demo", "ADHOC_INFO1") is None
