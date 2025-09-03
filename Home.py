@@ -646,21 +646,7 @@ def main():
                         adhoc_headers,
                     )
                     user_email = auth.ensure_user_email()
-                    if user_email:
-                        azure_sql.log_mapping_process(
-                            guid,
-                            st.session_state.get("operation_code"),
-                            slugify(template_obj.template_name),
-                            template_obj.template_name,
-                            user_email,
-                            selected_file,
-                            json.dumps(final_json),
-                            template_obj.template_guid,
-                            adhoc_headers,
-                        )
-                    else:
-                        st.warning("User email missing; export not logged.")
-                    _, payload = run_postprocess_if_configured(
+                    logs_post, payload, fname = run_postprocess_if_configured(
                         template_obj,
                         df,
                         guid,
@@ -668,6 +654,20 @@ def main():
                         st.session_state.get("operation_code"),
                         user_email=user_email,
                     )
+                    if user_email:
+                        azure_sql.log_mapping_process(
+                            guid,
+                            st.session_state.get("operation_code"),
+                            slugify(template_obj.template_name),
+                            template_obj.template_name,
+                            user_email,
+                            fname or selected_file,
+                            json.dumps(final_json),
+                            template_obj.template_guid,
+                            adhoc_headers,
+                        )
+                    else:
+                        st.warning("User email missing; export not logged.")
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
 

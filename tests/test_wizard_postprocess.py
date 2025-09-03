@@ -246,7 +246,7 @@ def run_app(
                 {"CLIENT_DEST_FOLDER_PATH": "/docs/folder with spaces"}
             ],
         }
-        return ["ok"], payload
+        return ["ok"], payload, None
 
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",

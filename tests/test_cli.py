@@ -119,6 +119,7 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
         lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
             [],
             None,
+            None,
         ),
     )
     monkeypatch.setattr(azure_sql, "log_mapping_process", lambda *a, **k: None)
@@ -181,6 +182,7 @@ def test_cli_sql_insert_no_ids(monkeypatch, tmp_path: Path, capsys):
         lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
             [],
             None,
+            None,
         ),
     )
     monkeypatch.setattr(azure_sql, "log_mapping_process", lambda *a, **k: None)
@@ -222,6 +224,7 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
         return len(df)
 
     captured: dict[str, object] = {}
+    log_captured: dict[str, object] = {}
 
     def fake_postprocess(
         tpl_obj,
@@ -235,12 +238,26 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
         captured["cust"] = cust_name
         captured["guid"] = process_guid
         captured["email"] = user_email
-        return ["POST https://example.com/hook", "Done"], {"NOTIFY_EMAIL": user_email}
+        return ["POST https://example.com/hook", "Done"], {"NOTIFY_EMAIL": user_email}, "fname.xlsm"
 
     monkeypatch.setattr(azure_sql, "insert_pit_bid_rows", fake_insert)
     monkeypatch.setattr(azure_sql, "derive_adhoc_headers", lambda df: {})
     monkeypatch.setattr(cli, "run_postprocess_if_configured", fake_postprocess)
-    monkeypatch.setattr(azure_sql, "log_mapping_process", lambda *a, **k: None)
+
+    def fake_log(
+        process_guid,
+        operation_cd,
+        template_name,
+        friendly_name,
+        user_email,
+        file_name_string,
+        process_json,
+        template_guid,
+        adhoc_headers=None,
+    ):
+        log_captured["file"] = file_name_string
+
+    monkeypatch.setattr(azure_sql, "log_mapping_process", fake_log)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -270,6 +287,7 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
     assert captured["guid"]
     assert captured["email"] == "user@example.com"
     assert data["process_guid"] == captured["guid"]
+    assert log_captured["file"] == "fname.xlsm"
 
 
 def test_cli_runs_without_customer_id(monkeypatch, tmp_path: Path):
@@ -320,6 +338,7 @@ def test_cli_sql_insert_without_customer_id(
         "run_postprocess_if_configured",
         lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
             [],
+            None,
             None,
         ),
     )
