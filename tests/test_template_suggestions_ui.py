@@ -162,12 +162,12 @@ def test_dialog_state_persists_after_removal(monkeypatch, tmp_path):
     assert dummy.rerun_called
 
 
-def test_filter_out_adhoc_fields(monkeypatch, tmp_path):
+def test_edit_suggestions_skips_adhoc_info_fields(monkeypatch, tmp_path):
     dummy, _ = run_dialog(
         monkeypatch,
         tmp_path,
         template_name="PIT BID",
-        fields=[{"key": "Name"}, {"key": "ADHOC_INFO_EXTRA"}],
+        fields=[{"key": "Name"}, {"key": "ADHOC_INFO1"}],
     )
     assert dummy.subheaders == ["Name"]
     assert len(dummy.tag_calls) == 2
