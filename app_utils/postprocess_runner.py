@@ -89,7 +89,7 @@ def run_postprocess_if_configured(
         logs.append("Payload loaded")
 
         # Generate filename with current date
-        current_date = datetime.now().strftime("%Y%m%d")
+        current_date = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
         safe_customer = re.sub(r"[\\/]+", "", customer_name)
         fname = f"{operation_cd} - BID - {safe_customer}_{current_date}.xlsm"
 
