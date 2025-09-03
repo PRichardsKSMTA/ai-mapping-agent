@@ -116,7 +116,7 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
     monkeypatch.setattr(
         cli,
         "run_postprocess_if_configured",
-        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
+        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None, filename=None: (
             [],
             None,
             None,
@@ -179,7 +179,7 @@ def test_cli_sql_insert_no_ids(monkeypatch, tmp_path: Path, capsys):
     monkeypatch.setattr(
         cli,
         "run_postprocess_if_configured",
-        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
+        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None, filename=None: (
             [],
             None,
             None,
@@ -233,6 +233,7 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
         cust_name,
         op_cd,
         user_email=None,
+        filename=None,
     ):
         captured["op"] = op_cd
         captured["cust"] = cust_name
@@ -336,7 +337,7 @@ def test_cli_sql_insert_without_customer_id(
     monkeypatch.setattr(
         cli,
         "run_postprocess_if_configured",
-        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None: (
+        lambda tpl_obj, df, guid, customer_name, operation_code=None, user_email=None, filename=None: (
             [],
             None,
             None,

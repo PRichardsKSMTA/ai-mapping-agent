@@ -58,7 +58,10 @@ from app_utils.excel_utils import (
     save_mapped_csv,
     dedupe_adhoc_headers,
 )
-from app_utils.postprocess_runner import run_postprocess_if_configured
+from app_utils.postprocess_runner import (
+    run_postprocess_if_configured,
+    generate_bid_filename,
+)
 from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.header_utils import save_current_template
 import uuid
@@ -645,15 +648,11 @@ def main():
                         guid,
                         adhoc_headers,
                     )
-                    user_email = auth.ensure_user_email()
-                    logs_post, payload, fname = run_postprocess_if_configured(
-                        template_obj,
-                        df,
-                        guid,
+                    bid_filename = generate_bid_filename(
+                        st.session_state["operation_code"],
                         st.session_state.get("customer_name", ""),
-                        st.session_state.get("operation_code"),
-                        user_email=user_email,
                     )
+                    user_email = auth.ensure_user_email()
                     if user_email:
                         azure_sql.log_mapping_process(
                             guid,
@@ -661,13 +660,22 @@ def main():
                             slugify(template_obj.template_name),
                             template_obj.template_name,
                             user_email,
-                            fname or selected_file,
+                            bid_filename,
                             json.dumps(final_json),
                             template_obj.template_guid,
                             adhoc_headers,
                         )
                     else:
                         st.warning("User email missing; export not logged.")
+                    logs_post, payload, _ = run_postprocess_if_configured(
+                        template_obj,
+                        df,
+                        guid,
+                        st.session_state.get("customer_name", ""),
+                        st.session_state.get("operation_code"),
+                        user_email=user_email,
+                        filename=bid_filename,
+                    )
                     csv_bytes = tmp_path.read_bytes()
                     tmp_path.unlink()
 

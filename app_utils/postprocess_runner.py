@@ -6,12 +6,22 @@ from typing import Any, Dict, List, Tuple
 import json
 import logging
 import re
+from datetime import datetime
+
 import pandas as pd
+
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
 from app_utils.azure_sql import get_pit_url_payload, wait_for_postprocess_completion
 
 CLIENT_BIDS_DEST_PATH: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
+
+
+def generate_bid_filename(operation_cd: str, customer_name: str) -> str:
+    """Return sanitized PIT BID filename."""
+    current_date = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
+    safe_customer = re.sub(r"[\\/]+", "", customer_name)
+    return f"{operation_cd} - BID - {safe_customer}_{current_date}.xlsm"
 
 
 def run_postprocess(
@@ -32,8 +42,6 @@ def run_postprocess(
             log.append("Done")
 
 
-from datetime import datetime
-
 def run_postprocess_if_configured(
     template: Template,
     df: pd.DataFrame,
@@ -42,6 +50,7 @@ def run_postprocess_if_configured(
     operation_cd: str | None = None,
     poll_interval: int = 30,
     user_email: str | None = None,
+    filename: str | None = None,
 ) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None, str | None]:
     """Run optional postprocess hooks based on ``template``.
 
@@ -89,10 +98,7 @@ def run_postprocess_if_configured(
             raise
         logs.append("Payload loaded")
 
-        # Generate filename with current date
-        current_date = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
-        safe_customer = re.sub(r"[\\/]+", "", customer_name)
-        fname = f"{operation_cd} - BID - {safe_customer}_{current_date}.xlsm"
+        fname = filename or generate_bid_filename(operation_cd, customer_name)
 
         payload.setdefault("item/In_dtInputData", [{}])
         if not payload["item/In_dtInputData"]:
