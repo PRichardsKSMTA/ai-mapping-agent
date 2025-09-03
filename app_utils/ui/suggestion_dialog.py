@@ -18,14 +18,12 @@ except Exception:  # noqa: BLE001
 from app_utils.suggestion_store import add_suggestion, delete_suggestion, get_suggestions
 
 
-def _field_names(tpl: dict, template_name: str) -> List[str]:
+def _field_names(tpl: dict, _template_name: str) -> List[str]:
     names: List[str] = []
     for layer in tpl.get("layers", []):
         for field in layer.get("fields", []):
             target = field.get("key") or field.get("target")
-            if target and not (
-                template_name == "PIT BID" and target.startswith("ADHOC_INFO")
-            ):
+            if target and not target.startswith("ADHOC_INFO"):
                 names.append(target)
     return names
 
