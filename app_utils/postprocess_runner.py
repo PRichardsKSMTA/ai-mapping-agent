@@ -42,7 +42,7 @@ def run_postprocess_if_configured(
     operation_cd: str | None = None,
     poll_interval: int = 30,
     user_email: str | None = None,
-) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None]:
+) -> Tuple[List[str], Dict[str, Any] | List[Dict[str, Any]] | None, str | None]:
     """Run optional postprocess hooks based on ``template``.
 
     For PIT BID templates, ``user_email`` (if provided) will be added to the
@@ -52,9 +52,10 @@ def run_postprocess_if_configured(
 
     logs: List[str] = []
     payload: Dict[str, Any] | List[Dict[str, Any]] | None = None
+    fname: str | None = None
     df = apply_header_mappings(df, template)
     if not template.postprocess:
-        return logs, payload
+        return logs, payload, fname
     if template.template_name == "PIT BID":
         if not operation_cd:
             raise ValueError("operation_cd required for PIT BID postprocess")
@@ -127,5 +128,5 @@ def run_postprocess_if_configured(
     else:
         payload = df.to_dict(orient="records")
         run_postprocess(template.postprocess, df, logs)
-    return logs, payload
+    return logs, payload, fname
 

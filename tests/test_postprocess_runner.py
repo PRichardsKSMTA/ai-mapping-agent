@@ -55,10 +55,13 @@ def test_if_configured_helper(load_env, monkeypatch):
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
         'postprocess': {'url': 'https://example.com'}
     })
-    logs, payload = run_postprocess_if_configured(tpl, pd.DataFrame(), "guid", "Cust")
+    logs, payload, fname = run_postprocess_if_configured(
+        tpl, pd.DataFrame(), "guid", "Cust"
+    )
     assert called.get('run') is True
     assert isinstance(logs, list)
     assert payload == []
+    assert fname is None
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)
 
 
@@ -82,11 +85,12 @@ def test_if_configured_applies_header_mappings(load_env, monkeypatch):
 
     df = pd.DataFrame({'Lane Code': ['L1']})
 
-    logs, _ = run_postprocess_if_configured(tpl, df, "guid", "Cust")
+    logs, _, fname = run_postprocess_if_configured(tpl, df, "guid", "Cust")
 
     assert captured['lane'] == 'L1'
     # Original source column should remain alongside the mapped one
     assert captured['cols'] == ['Lane Code', 'LANE_ID']
+    assert fname is None
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)
 
 
@@ -120,7 +124,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
         'postprocess': {'url': 'https://example.com/post'},
     })
-    logs, returned = run_postprocess_if_configured(
+    logs, returned, fname = run_postprocess_if_configured(
         tpl,
         pd.DataFrame({'A': [1]}),
         "guid",
@@ -146,6 +150,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
     assert "Payload loaded" in logs
     assert "Payload finalized" in logs
     assert logs[-1] == 'Done'
+    assert fname == expected
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)
 
 
@@ -178,7 +183,7 @@ def test_pit_bid_posts(monkeypatch):
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
         'postprocess': {'url': 'https://example.com/post'},
     })
-    logs, returned = run_postprocess_if_configured(
+    logs, returned, fname = run_postprocess_if_configured(
         tpl,
         pd.DataFrame({'A': [1]}),
         "guid",
@@ -204,6 +209,7 @@ def test_pit_bid_posts(monkeypatch):
         item.get('NOTIFY_EMAIL') == 'user@example.com'
         for item in returned.get('item/In_dtInputData', [])
     )
+    assert fname == expected
     assert not any("ENABLE_POSTPROCESS" in msg for msg in logs)
 
 
@@ -272,7 +278,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
         "layers": [{"type": "header", "fields": [{"key": "A"}]}],
         "postprocess": {"url": "https://example.com/post"},
     })
-    logs, _ = run_postprocess_if_configured(
+    logs, _, fname = run_postprocess_if_configured(
         tpl,
         pd.DataFrame({"A": [1]}),
         "guid",
@@ -282,6 +288,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
     )
     assert called["args"] == ("guid", "OP", 1, 12)
     assert "cycle" in logs
+    assert fname is not None
 
 
 def test_pit_bid_customer_name_slashes_removed(monkeypatch):
@@ -291,8 +298,16 @@ def test_pit_bid_customer_name_slashes_removed(monkeypatch):
     monkeypatch.setattr('app_utils.postprocess_runner.datetime', types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)))
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=lambda *a, **k: None))
     tpl = Template.model_validate({'template_name': 'PIT BID', 'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}], 'postprocess': {'url': 'https://example.com'}})
-    _, ret = run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), 'guid', operation_cd='OP', customer_name='Sonoco/Tegrant')
+    _, ret, fname = run_postprocess_if_configured(
+        tpl,
+        pd.DataFrame({'A': [1]}),
+        'guid',
+        operation_cd='OP',
+        customer_name='Sonoco/Tegrant'
+    )
+    expected_name = 'OP - BID - SonocoTegrant_20200101000000000.xlsm'
     assert (
         ret['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME']
-        == 'OP - BID - SonocoTegrant_20200101000000000.xlsm'
+        == expected_name
     )
+    assert fname == expected_name

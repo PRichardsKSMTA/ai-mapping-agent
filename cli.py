@@ -138,24 +138,24 @@ def main() -> None:
                 adhoc_headers,
             )
             print(f"Inserted {rows} rows into RFP_OBJECT_DATA")
-            azure_sql.log_mapping_process(
-                process_guid,
-                args.operation_code,
-                args.template.stem,
-                template.template_name,
-                args.user_email,
-                args.template.name,
-                json.dumps(mapped),
-                template.template_guid,
-                adhoc_headers,
-            )
-            logs_post, payload = run_postprocess_if_configured(
+            logs_post, payload, fname = run_postprocess_if_configured(
                 template,
                 df,
                 process_guid,
                 args.customer_name,
                 args.operation_code,
                 user_email=args.user_email,
+            )
+            azure_sql.log_mapping_process(
+                process_guid,
+                args.operation_code,
+                args.template.stem,
+                template.template_name,
+                args.user_email,
+                fname or args.template.name,
+                json.dumps(mapped),
+                template.template_guid,
+                adhoc_headers,
             )
             for line in logs_post:
                 print(line)
