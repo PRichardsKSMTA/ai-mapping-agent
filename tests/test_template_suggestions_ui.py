@@ -172,3 +172,16 @@ def test_edit_suggestions_skips_adhoc_info_fields(monkeypatch, tmp_path):
     assert dummy.subheaders == ["Name"]
     assert len(dummy.tag_calls) == 2
 
+
+def test_edit_suggestions_skips_adhoc_info_fields_non_pit_bid(
+    monkeypatch, tmp_path
+):
+    dummy, _ = run_dialog(
+        monkeypatch,
+        tmp_path,
+        template_name="Demo",  # any non-PIT BID template
+        fields=[{"key": "Name"}, {"key": "ADHOC_INFO2"}],
+    )
+    assert dummy.subheaders == ["Name"]
+    assert len(dummy.tag_calls) == 2
+
