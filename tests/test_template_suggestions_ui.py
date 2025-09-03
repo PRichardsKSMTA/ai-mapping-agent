@@ -17,6 +17,7 @@ class DummyStreamlit:
         self.tags_add = tags_add or {}
         self.tags_remove = tags_remove or {}
         self.tag_calls: list[tuple[str, list[str]]] = []
+        self.subheaders: list[str] = []
         self.session_state: dict[str, Any] = {}
         self.rerun_called = False
 
@@ -26,8 +27,8 @@ class DummyStreamlit:
 
         return wrap
 
-    def subheader(self, *a, **k) -> None:  # pragma: no cover - trivial
-        pass
+    def subheader(self, label, *a, **k) -> None:  # pragma: no cover - trivial
+        self.subheaders.append(label)
 
     def error(self, *a, **k) -> None:  # pragma: no cover - trivial
         pass
@@ -40,6 +41,8 @@ def run_dialog(
     monkeypatch,
     tmp_path,
     *,
+    template_name: str = "Demo",
+    fields: list[dict[str, str]] | None = None,
     suggestions: list[dict] | None = None,
     tags_add: dict[str, list[str]] | None = None,
     tags_remove: dict[str, list[str]] | None = None,
@@ -49,7 +52,12 @@ def run_dialog(
     tpl_dir.mkdir()
     (tpl_dir / "demo.json").write_text(
         json.dumps(
-            {"template_name": "Demo", "layers": [{"type": "header", "fields": [{"key": "Name"}]}]}
+            {
+                "template_name": template_name,
+                "layers": [
+                    {"type": "header", "fields": fields or [{"key": "Name"}]}
+                ],
+            }
         )
     )
     sugg_file = Path("mapping_suggestions.json")
@@ -81,7 +89,7 @@ def run_dialog(
     sys.modules.pop("app_utils.ui.suggestion_dialog", None)
     suggestion_dialog = importlib.import_module("app_utils.ui.suggestion_dialog")
 
-    suggestion_dialog.edit_suggestions("demo.json", "Demo")
+    suggestion_dialog.edit_suggestions("demo.json", template_name)
     sys.modules.pop("app_utils.ui.suggestion_dialog", None)
     return dummy, suggestion_store
 
@@ -152,4 +160,15 @@ def test_dialog_state_persists_after_removal(monkeypatch, tmp_path):
         "Demo",
     )
     assert dummy.rerun_called
+
+
+def test_filter_out_adhoc_fields(monkeypatch, tmp_path):
+    dummy, _ = run_dialog(
+        monkeypatch,
+        tmp_path,
+        template_name="PIT BID",
+        fields=[{"key": "Name"}, {"key": "ADHOC_INFO_EXTRA"}],
+    )
+    assert dummy.subheaders == ["Name"]
+    assert len(dummy.tag_calls) == 2
 
