@@ -18,12 +18,14 @@ except Exception:  # noqa: BLE001
 from app_utils.suggestion_store import add_suggestion, delete_suggestion, get_suggestions
 
 
-def _field_names(tpl: dict) -> List[str]:
+def _field_names(tpl: dict, template_name: str) -> List[str]:
     names: List[str] = []
     for layer in tpl.get("layers", []):
         for field in layer.get("fields", []):
             target = field.get("key") or field.get("target")
-            if target:
+            if target and not (
+                template_name == "PIT BID" and target.startswith("ADHOC_INFO")
+            ):
                 names.append(target)
     return names
 
@@ -40,7 +42,7 @@ def edit_suggestions(filename: str, template_name: str) -> None:
 
     @st.dialog(f"Manage Suggestions – {template_name}", width="large")
     def _dlg() -> None:
-        for field in _field_names(tpl):
+        for field in _field_names(tpl, template_name):
             st.subheader(field)
 
             suggestions = get_suggestions(template_name, field)
