@@ -126,6 +126,8 @@ def persist_suggestions_from_mapping(layer, mapping: dict, source_cols: list[str
     if template is None:
         return
     for field in layer.fields:  # type: ignore
+        if field.key.startswith("ADHOC_INFO"):
+            continue
         info = mapping.get(field.key, {})
         if "src" in info:
             add_suggestion(
