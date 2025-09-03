@@ -1,5 +1,6 @@
 import importlib
 import json
+import pytest
 from app_utils import suggestion_store
 
 
@@ -266,9 +267,16 @@ def test_delete_suggestion(monkeypatch, tmp_path):
     assert json.loads(path.read_text()) == []
 
 
-def test_skip_adhoc_info(monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    "existing",
+    [
+        [],
+        [{"template": "Demo", "field": "Name", "type": "direct", "formula": None, "columns": ["ColA"], "display": "ColA"}],
+    ],
+)
+def test_skip_adhoc_info(monkeypatch, tmp_path, existing):
     path = tmp_path / "mapping_suggestions.json"
-    path.write_text("[]")
+    path.write_text(json.dumps(existing))
     monkeypatch.setenv("SUGGESTION_FILE", str(path))
     importlib.reload(suggestion_store)
 
@@ -281,6 +289,6 @@ def test_skip_adhoc_info(monkeypatch, tmp_path):
         "display": "ColA",
     }
     suggestion_store.add_suggestion(s)
-    assert json.loads(path.read_text()) == []
+    assert json.loads(path.read_text()) == existing
     assert suggestion_store.get_suggestions("Demo", "ADHOC_INFO1") == []
     assert suggestion_store.get_suggestion("Demo", "ADHOC_INFO1") is None
