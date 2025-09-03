@@ -84,9 +84,13 @@ def render(layer, idx: int) -> None:
         st.session_state[sheet_key] = sheet_name
         st.session_state[cols_key] = cols_hash
         st.session_state.pop(f"header_ai_done_{idx}", None)
+        st.session_state["header_adhoc_headers"] = {}
+        st.session_state["header_adhoc_autogen"] = {}
     else:
         st.session_state[cols_key] = cols_hash
     mapping = st.session_state[map_key]
+    for k in adhoc_keys:
+        mapping[k] = {}
 
     # List of user-added fields
     extra_key = f"header_extra_fields_{idx}"
