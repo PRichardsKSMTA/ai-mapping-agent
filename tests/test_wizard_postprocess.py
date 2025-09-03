@@ -293,7 +293,10 @@ def test_postprocess_runner_called(monkeypatch):
     assert called.get("log_guid") == called.get("guid")
     assert called.get("log_template") == "pit-bid"
     assert called.get("log_friendly") == "PIT BID"
-    assert called.get("log_file") == "pit-bid.json"
+    log_file = called.get("log_file")
+    assert isinstance(log_file, str)
+    assert log_file.startswith("ADSJ_VAN - BID - Cust_")
+    assert log_file.endswith(".xlsm")
     assert "final_json" not in state
 
 
