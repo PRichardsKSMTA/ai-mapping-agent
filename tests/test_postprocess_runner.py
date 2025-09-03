@@ -128,7 +128,7 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         customer_name='Cust',
         user_email='user@example.com',
     )
-    expected = 'OP - BID - Cust_20200101.xlsm'
+    expected = 'OP - BID - Cust_20200101000000000.xlsm'
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == "guid"
     assert 'CLIENT_DEST_FOLDER_PATH' not in returned
@@ -188,7 +188,7 @@ def test_pit_bid_posts(monkeypatch):
     )
     assert "Payload loaded" in logs
     assert "Payload finalized" in logs
-    expected = 'OP - BID - Cust_20200101.xlsm'
+    expected = 'OP - BID - Cust_20200101000000000.xlsm'
     assert logs[-1] == 'Done'
     assert called['url'] == tpl.postprocess.url
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
@@ -249,7 +249,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
     called: dict[str, Any] = {}
 
     def fake_wait(
-        pg: str, op: str, poll_interval: int = 30, max_attempts: int = 3
+        pg: str, op: str, poll_interval: int = 30, max_attempts: int = 12
     ) -> None:
         called["args"] = (pg, op, poll_interval, max_attempts)
         logging.getLogger("app_utils.azure_sql").info("cycle")
@@ -280,7 +280,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
         operation_cd="OP",
         poll_interval=1,
     )
-    assert called["args"] == ("guid", "OP", 1, 3)
+    assert called["args"] == ("guid", "OP", 1, 12)
     assert "cycle" in logs
 
 
@@ -292,4 +292,7 @@ def test_pit_bid_customer_name_slashes_removed(monkeypatch):
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=lambda *a, **k: None))
     tpl = Template.model_validate({'template_name': 'PIT BID', 'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}], 'postprocess': {'url': 'https://example.com'}})
     _, ret = run_postprocess_if_configured(tpl, pd.DataFrame({'A': [1]}), 'guid', operation_cd='OP', customer_name='Sonoco/Tegrant')
-    assert ret['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == 'OP - BID - SonocoTegrant_20200101.xlsm'
+    assert (
+        ret['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME']
+        == 'OP - BID - SonocoTegrant_20200101000000000.xlsm'
+    )

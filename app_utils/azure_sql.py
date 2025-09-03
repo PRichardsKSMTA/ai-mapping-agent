@@ -299,15 +299,17 @@ def wait_for_postprocess_completion(
     process_guid: str,
     operation_cd: str,
     poll_interval: int = 30,
-    max_attempts: int = 3,
+    max_attempts: int = 12,
 ) -> None:
     """Poll ``dbo.MAPPING_AGENT_PROCESSES`` until postprocess is complete.
+
+    By default, the loop spans up to 60 minutes.
 
     Executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` and then checks
     ``POST_PROCESS_COMPLETE_DTTM`` every ``poll_interval`` seconds. After
     ten polls (5 minutes with the default 30-second interval) without a
     completion timestamp, the stored procedure is invoked again. The cycle
-    repeats until ``max_attempts`` is reached (15 minutes by default). The
+    repeats until ``max_attempts`` is reached (60 minutes by default). The
     connection is committed after each poll so subsequent ``SELECT``
     statements read freshly committed data.
     """
