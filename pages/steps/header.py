@@ -98,6 +98,8 @@ def render(layer, idx: int) -> None:
 
     for field in layer.fields:  # type: ignore
         key = field.key
+        if key.startswith("ADHOC_INFO"):
+            continue
         for s in get_suggestions(
             st.session_state["current_template"], key, headers=source_cols
         ):
@@ -149,9 +151,10 @@ def render(layer, idx: int) -> None:
         if st.session_state.pop(reset_flag, False):
             set_field_mapping(key, idx, {})
             st.session_state[f"src_{key}"] = ""
-            remove_suggestion(
-                st.session_state["current_template"], key, suggestion_type=None
-            )
+            if not key.startswith("ADHOC_INFO"):
+                remove_suggestion(
+                    st.session_state["current_template"], key, suggestion_type=None
+                )
             if key.startswith("ADHOC_INFO"):
                 match = re.findall(r"\d+", key)
                 default = f"AdHoc{match[0] if match else ''}"
@@ -170,17 +173,18 @@ def render(layer, idx: int) -> None:
         )
         if new_src:
             set_field_mapping(key, idx, {"src": new_src})  # user override
-            add_suggestion(
-                {
-                    "template": st.session_state["current_template"],
-                    "field": key,
-                    "type": "direct",
-                    "formula": None,
-                    "columns": [new_src],
-                    "display": new_src,
-                },
-                headers=source_cols,
-            )
+            if not key.startswith("ADHOC_INFO"):
+                add_suggestion(
+                    {
+                        "template": st.session_state["current_template"],
+                        "field": key,
+                        "type": "direct",
+                        "formula": None,
+                        "columns": [new_src],
+                        "display": new_src,
+                    },
+                    headers=source_cols,
+                )
             if key.startswith("ADHOC_INFO"):
                 match = re.findall(r"\d+", key)
                 default = f"AdHoc{match[0] if match else ''}"
@@ -208,17 +212,18 @@ def render(layer, idx: int) -> None:
             expr = st.session_state.pop(res_key)
             display = st.session_state.pop(res_disp_key, "")
             set_field_mapping(key, idx, {"expr": expr, "expr_display": display})
-            add_suggestion(
-                {
-                    "template": st.session_state["current_template"],
-                    "field": key,
-                    "type": "formula",
-                    "formula": expr,
-                    "columns": [],
-                    "display": display or expr,
-                },
-                headers=source_cols,
-            )
+            if not key.startswith("ADHOC_INFO"):
+                add_suggestion(
+                    {
+                        "template": st.session_state["current_template"],
+                        "field": key,
+                        "type": "formula",
+                        "formula": expr,
+                        "columns": [],
+                        "display": display or expr,
+                    },
+                    headers=source_cols,
+                )
 
         # ── Expression / confidence cell ────────────────────────────────
         expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(key, {}).get("expr")

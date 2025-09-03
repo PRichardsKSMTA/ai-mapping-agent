@@ -197,6 +197,24 @@ def test_persist_suggestions_from_mapping(monkeypatch, tmp_path):
     assert saved[1]["formula"] == "df['A'] + df['B']"
 
 
+def test_persist_suggestions_from_mapping_skips_adhoc(monkeypatch, tmp_path):
+    st.session_state.clear()
+    sug_file = tmp_path / "mapping_suggestions.json"
+    monkeypatch.setattr(suggestion_store, "SUGGESTION_FILE", sug_file)
+
+    st.session_state["current_template"] = "demo"
+    layer = types.SimpleNamespace(
+        fields=[FieldSpec(key="ADHOC_INFO1"), FieldSpec(key="Name")]
+    )
+    mapping = {"ADHOC_INFO1": {"src": "ColA"}, "Name": {"src": "ColB"}}
+
+    persist_suggestions_from_mapping(layer, mapping, ["ColA", "ColB"])
+
+    saved = json.loads(sug_file.read_text())
+    assert len(saved) == 1
+    assert saved[0]["field"] == "Name"
+
+
 def _prepare_suggestion(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> tuple[int, str, list[dict], Path]:
