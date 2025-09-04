@@ -606,8 +606,8 @@ def main():
                 disabled=st.session_state.get("postprocess_running", False),
             ):
                 st.session_state["postprocess_running"] = True
-                with st.spinner("Gathering mileage and toll data may take a while…"):
-                    # st.markdown(":blue[You'll receive an email notification when the process is complete...]")
+                with st.spinner("Gathering mileage and toll data…"):
+                    st.markdown(":blue[You'll receive an email notification when the process is complete...]")
                     preview_payload: dict[str, Any] = azure_sql.get_pit_url_payload(
                         st.session_state["operation_code"]
                     )
