@@ -401,7 +401,7 @@ def main():
                     new_name: str = st.text_input(
                         "Customer Name", key="new_customer_name"
                     )
-                    customer_name = new_name.strip().title() if new_name else ""
+                    customer_name = new_name.strip() if new_name else ""
                     st.session_state["customer_name"] = customer_name
                     st.session_state["customer_id_options"] = []
                     st.session_state["customer_ids"] = []
@@ -418,14 +418,16 @@ def main():
                     matches = [
                         c
                         for c in cust_records
-                        if c["BILLTO_NAME"].strip().title() == customer_name
+                        if c["BILLTO_NAME"].strip().casefold()
+                        == customer_name.casefold()
                     ]
                     if matches:
                         st.session_state["selected_customer"] = matches[0]
                         billto_ids: list[str] = [
                             c["BILLTO_ID"]
                             for c in cust_records
-                            if c["BILLTO_NAME"].strip().title() == customer_name
+                            if c["BILLTO_NAME"].strip().casefold()
+                            == customer_name.casefold()
                             and c.get("BILLTO_ID")
                         ]
                         st.session_state["customer_id_options"] = billto_ids

@@ -5,7 +5,7 @@ SINGLE_CUSTOMER = [
     {
         "CLIENT_SCAC": "ADSJ",
         "BILLTO_ID": "1",
-        "BILLTO_NAME": "Acme",
+        "BILLTO_NAME": "acme",
         "BILLTO_TYPE": "T",
         "OPERATIONAL_SCAC": "ADSJ",
     }
