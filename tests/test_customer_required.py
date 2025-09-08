@@ -11,7 +11,7 @@ CUSTOMERS = [
     {
         "CLIENT_SCAC": "ADSJ",
         "BILLTO_ID": "1",
-        "BILLTO_NAME": "Acme",
+        "BILLTO_NAME": "acme",
         "BILLTO_TYPE": "T",
         "OPERATIONAL_SCAC": "ADSJ",
     }
@@ -195,7 +195,7 @@ def test_no_error_when_customer_has_no_ids(monkeypatch):
         {
             "CLIENT_SCAC": "ADSJ",
             "BILLTO_ID": "",
-            "BILLTO_NAME": "Acme",
+            "BILLTO_NAME": "acme",
             "BILLTO_TYPE": "T",
             "OPERATIONAL_SCAC": "ADSJ",
         }
@@ -232,7 +232,7 @@ def test_pit_bid_requires_customer_id(monkeypatch):
         {
             "CLIENT_SCAC": "ADSJ",
             "BILLTO_ID": "2",
-            "BILLTO_NAME": "Acme",
+            "BILLTO_NAME": "ACME",
             "BILLTO_TYPE": "T",
             "OPERATIONAL_SCAC": "ADSJ",
         }
