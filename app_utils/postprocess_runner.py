@@ -18,9 +18,13 @@ CLIENT_BIDS_DEST_PATH: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
 
 
 def generate_bid_filename(operation_cd: str, customer_name: str) -> str:
-    """Return sanitized PIT BID filename."""
+    """Return sanitized PIT BID filename.
+
+    Only letters, digits, hyphens and underscores are retained from
+    ``customer_name``; character casing is preserved.
+    """
     current_date = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
-    safe_customer = re.sub(r"[\\/]+", "", customer_name)
+    safe_customer = re.sub(r"[^A-Za-z0-9_-]", "", customer_name)
     return f"{operation_cd} - BID - {safe_customer}_{current_date}.xlsm"
 
 
