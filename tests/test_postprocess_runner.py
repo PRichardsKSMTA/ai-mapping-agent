@@ -8,6 +8,7 @@ import pytest
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.postprocess_runner import (
     CLIENT_BIDS_DEST_PATH,
+    generate_bid_filename,
     run_postprocess,
     run_postprocess_if_configured,
 )
@@ -291,7 +292,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
     assert fname is not None
 
 
-def test_pit_bid_customer_name_slashes_removed(monkeypatch):
+def test_pit_bid_customer_name_sanitized(monkeypatch):
     payload = {"item/In_dtInputData": [{}], "BID-Payload": ""}
     monkeypatch.setattr('app_utils.postprocess_runner.get_pit_url_payload', lambda *a, **k: payload)
     monkeypatch.setattr('app_utils.postprocess_runner.wait_for_postprocess_completion', lambda *a, **k: None)
@@ -303,11 +304,29 @@ def test_pit_bid_customer_name_slashes_removed(monkeypatch):
         pd.DataFrame({'A': [1]}),
         'guid',
         operation_cd='OP',
-        customer_name='Sonoco/Tegrant'
+        customer_name='Sonoco/Tegrant, Inc.'
     )
-    expected_name = 'OP - BID - SonocoTegrant_20200101000000000.xlsm'
+    expected_name = 'OP - BID - SonocoTegrantInc_20200101000000000.xlsm'
     assert (
         ret['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME']
         == expected_name
     )
     assert fname == expected_name
+
+
+def test_generate_bid_filename_preserves_case(monkeypatch):
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.datetime',
+        types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)),
+    )
+    fname = generate_bid_filename('OP', 'AOD')
+    assert fname == 'OP - BID - AOD_20200101000000000.xlsm'
+
+
+def test_generate_bid_filename_sanitizes_forbidden_chars(monkeypatch):
+    monkeypatch.setattr(
+        'app_utils.postprocess_runner.datetime',
+        types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)),
+    )
+    fname = generate_bid_filename('OP', 'ACME, Inc.')
+    assert fname == 'OP - BID - ACMEInc_20200101000000000.xlsm'
