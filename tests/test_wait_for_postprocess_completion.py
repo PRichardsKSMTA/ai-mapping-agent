@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from app_utils import azure_sql
+from app_utils.azure_sql import PostprocessTimeoutError
 
 
 def test_wait_for_postprocess_completion_reexec(
@@ -115,7 +116,8 @@ def test_wait_for_postprocess_completion_max_attempts(
     monkeypatch.setattr(azure_sql.time, "sleep", lambda s: calls.append(("sleep", (s,))))
 
     caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
-    azure_sql.wait_for_postprocess_completion("pg", "OP", max_attempts=2)
+    with pytest.raises(PostprocessTimeoutError) as exc:
+        azure_sql.wait_for_postprocess_completion("pg", "OP", max_attempts=2)
 
     selects = [c for c in calls if c[0].startswith("SELECT")]
     execs = [c for c in calls if c[0].startswith("EXEC")]
@@ -129,6 +131,7 @@ def test_wait_for_postprocess_completion_max_attempts(
         if sql.startswith("SELECT") or sql.startswith("EXEC"):
             assert calls[idx + 1][0] == "commit"
     assert any("did not complete" in m for m in caplog.messages)
+    assert "did not complete" in str(exc.value)
 
 
 def test_wait_for_postprocess_completion_exits_early(

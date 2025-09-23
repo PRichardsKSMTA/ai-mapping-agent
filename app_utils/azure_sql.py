@@ -299,17 +299,17 @@ def wait_for_postprocess_completion(
     process_guid: str,
     operation_cd: str,
     poll_interval: int = 30,
-    max_attempts: int = 12,
+    max_attempts: int = 24,
 ) -> None:
     """Poll ``dbo.MAPPING_AGENT_PROCESSES`` until postprocess is complete.
 
-    By default, the loop spans up to 60 minutes.
+    By default, the loop spans up to 120 minutes.
 
     Executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` and then checks
     ``POST_PROCESS_COMPLETE_DTTM`` every ``poll_interval`` seconds. After
     ten polls (5 minutes with the default 30-second interval) without a
     completion timestamp, the stored procedure is invoked again. The cycle
-    repeats until ``max_attempts`` is reached (60 minutes by default). The
+    repeats until ``max_attempts`` is reached (120 minutes by default). The
     connection is committed after each poll so subsequent ``SELECT``
     statements read freshly committed data.
     """
@@ -352,11 +352,15 @@ def wait_for_postprocess_completion(
                     "Re-running postprocess after %s seconds of polling",
                     poll_interval * checks_per_attempt,
                 )
-        logger.warning(
-            "Post-process did not complete for %s after %s attempts",
-            process_guid,
-            max_attempts,
+        wait_seconds = poll_interval * checks_per_attempt * max_attempts
+        wait_minutes = wait_seconds / 60
+        message = (
+            "Post-process did not complete for "
+            f"{process_guid} (operation {operation_cd}) after {max_attempts} attempts"
+            f" (~{wait_minutes:.1f} minutes of polling)."
         )
+        logger.warning(message)
+        raise PostprocessTimeoutError(message)
 
 
 def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
@@ -375,6 +379,10 @@ def get_pit_url_payload(op_cd: str, week_ct: int = 12) -> Dict[str, Any]:
         raise RuntimeError(msg)
     raw = row[0]
     return json.loads(raw)
+
+
+class PostprocessTimeoutError(RuntimeError):
+    """Raised when the postprocess polling loop exceeds ``max_attempts``."""
 
 
 def get_operational_scac(operation_cd: str) -> str:
