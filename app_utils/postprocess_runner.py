@@ -12,7 +12,11 @@ import pandas as pd
 
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
-from app_utils.azure_sql import get_pit_url_payload, wait_for_postprocess_completion
+from app_utils.azure_sql import (
+    PostprocessTimeoutError,
+    get_pit_url_payload,
+    wait_for_postprocess_completion,
+)
 
 CLIENT_BIDS_DEST_PATH: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
 
@@ -91,6 +95,10 @@ def run_postprocess_if_configured(
             wait_for_postprocess_completion(
                 process_guid, operation_cd, poll_interval=poll_interval
             )
+        except PostprocessTimeoutError as exc:
+            logs.append(str(exc))
+            logger.error(str(exc))
+            raise
         finally:
             logger.removeHandler(handler)
             logger.setLevel(old_level)

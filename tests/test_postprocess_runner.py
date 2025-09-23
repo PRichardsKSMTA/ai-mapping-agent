@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 from schemas.template_v2 import PostprocessSpec, Template
+from app_utils.azure_sql import PostprocessTimeoutError
 from app_utils.postprocess_runner import (
     CLIENT_BIDS_DEST_PATH,
     generate_bid_filename,
@@ -256,7 +257,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
     called: dict[str, Any] = {}
 
     def fake_wait(
-        pg: str, op: str, poll_interval: int = 30, max_attempts: int = 12
+        pg: str, op: str, poll_interval: int = 30, max_attempts: int = 24
     ) -> None:
         called["args"] = (pg, op, poll_interval, max_attempts)
         logging.getLogger("app_utils.azure_sql").info("cycle")
@@ -287,7 +288,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
         operation_cd="OP",
         poll_interval=1,
     )
-    assert called["args"] == ("guid", "OP", 1, 12)
+    assert called["args"] == ("guid", "OP", 1, 24)
     assert "cycle" in logs
     assert fname is not None
 
@@ -312,6 +313,53 @@ def test_pit_bid_customer_name_sanitized(monkeypatch):
         == expected_name
     )
     assert fname == expected_name
+
+
+def test_pit_bid_postprocess_timeout_logs_and_raises(monkeypatch, caplog):
+    def fake_wait(*args, **kwargs):
+        logging.getLogger("app_utils.azure_sql").info("attempt logged")
+        raise PostprocessTimeoutError("timeout occurred")
+
+    monkeypatch.setattr(
+        "app_utils.postprocess_runner.wait_for_postprocess_completion",
+        fake_wait,
+    )
+    payload = {"item/In_dtInputData": [{}], "BID-Payload": ""}
+    monkeypatch.setattr(
+        "app_utils.postprocess_runner.get_pit_url_payload",
+        lambda *a, **k: payload,
+    )
+    called: dict[str, Any] = {}
+
+    def fake_post(*args, **kwargs):
+        called["post"] = True
+
+    monkeypatch.setitem(
+        sys.modules,
+        "requests",
+        types.SimpleNamespace(post=fake_post),
+    )
+
+    tpl = Template.model_validate(
+        {
+            "template_name": "PIT BID",
+            "layers": [{"type": "header", "fields": [{"key": "A"}]}],
+            "postprocess": {"url": "https://example.com/post"},
+        }
+    )
+
+    caplog.set_level(logging.INFO, logger="app_utils.azure_sql")
+    with pytest.raises(PostprocessTimeoutError, match="timeout occurred"):
+        run_postprocess_if_configured(
+            tpl,
+            pd.DataFrame({"A": [1]}),
+            "guid",
+            customer_name="Cust",
+            operation_cd="OP",
+        )
+    assert "post" not in called
+    assert "attempt logged" in caplog.messages
+    assert any("timeout occurred" in msg for msg in caplog.messages)
 
 
 def test_generate_bid_filename_preserves_case(monkeypatch):
