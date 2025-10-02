@@ -3,7 +3,10 @@ from __future__ import annotations
 """DataFrame transformation utilities."""
 
 from typing import Any
+
 import pandas as pd
+
+from app_utils.dataframe_numeric import coerce_numeric_like
 
 
 def apply_header_mappings(df: pd.DataFrame, template: Any) -> pd.DataFrame:
@@ -20,7 +23,8 @@ def apply_header_mappings(df: pd.DataFrame, template: Any) -> pd.DataFrame:
             expr = getattr(field, "expression", None)
             if expr:
                 # Expressions take precedence over ``source`` when provided.
-                out[field.key] = eval(expr, {"df": out})  # controlled templates
+                numeric_out = coerce_numeric_like(out)
+                out[field.key] = eval(expr, {"df": numeric_out})  # controlled templates
             elif src and src in out.columns:
                 # Copy values to the destination key without removing the original
                 out[field.key] = out[src]

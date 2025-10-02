@@ -3,6 +3,7 @@ import sys
 from typing import Any, List
 
 import pandas as pd
+import pytest
 
 
 class DummyColumn:
@@ -18,6 +19,7 @@ class DummyColumn:
 class DummyStreamlit:
     def __init__(self) -> None:
         self.session_state: dict[str, Any] = {}
+        self.last_dataframe: pd.DataFrame | None = None
 
     def dialog(self, *a: Any, **k: Any):  # pragma: no cover - trivial
         def wrap(func: Any) -> Any:
@@ -38,8 +40,11 @@ class DummyStreamlit:
     def error(self, *a: Any, **k: Any) -> None:  # pragma: no cover - trivial
         pass
 
-    def dataframe(self, *a: Any, **k: Any) -> None:  # pragma: no cover - trivial
-        pass
+    def dataframe(self, data: Any, *a: Any, **k: Any) -> None:  # pragma: no cover
+        if isinstance(data, pd.DataFrame):
+            self.last_dataframe = data
+        else:
+            self.last_dataframe = pd.DataFrame(data)
 
     def rerun(self) -> None:  # pragma: no cover - trivial
         pass
@@ -50,25 +55,39 @@ class DummyStreamlit:
         return [DummyColumn(False) for _ in spec]
 
 
-def run_dialog(monkeypatch, key: str) -> List[Any]:
-    df = pd.DataFrame({"A": [1, 2]})
+def run_dialog(
+    monkeypatch: Any,
+    key: str,
+    df: pd.DataFrame | None = None,
+    expr: str = "df['A']",
+) -> tuple[list[Any], DummyStreamlit]:
+    df = df if df is not None else pd.DataFrame({"A": [1, 2]})
     dummy = DummyStreamlit()
     dummy.session_state["current_template"] = "Demo"
-    dummy.session_state[f"{key}_expr_text"] = "df['A']"
+    dummy.session_state[f"{key}_expr_text"] = expr
     monkeypatch.setitem(sys.modules, "streamlit", dummy)
     sys.modules.pop("app_utils.ui.formula_dialog", None)
     mod = importlib.import_module("app_utils.ui.formula_dialog")
     calls: list[Any] = []
     monkeypatch.setattr(mod, "add_suggestion", lambda *a, **k: calls.append(1))
     mod.open_formula_dialog(df, key)
-    return calls
+    return calls, dummy
 
 
 def test_persist_for_standard_field(monkeypatch) -> None:
-    calls = run_dialog(monkeypatch, "Total")
+    calls, _ = run_dialog(monkeypatch, "Total")
     assert calls
 
 
 def test_skip_persist_for_adhoc(monkeypatch) -> None:
-    calls = run_dialog(monkeypatch, "ADHOC_INFO1")
+    calls, _ = run_dialog(monkeypatch, "ADHOC_INFO1")
     assert not calls
+
+
+def test_preview_coerces_numeric_strings(monkeypatch) -> None:
+    df = pd.DataFrame({"A": ["12", "3.14"], "B": ["3", "0.5"]})
+    _, dummy = run_dialog(monkeypatch, "Total", df=df, expr="df['A'] / df['B']")
+    assert dummy.last_dataframe is not None
+    results = dummy.last_dataframe["Result"].tolist()
+    assert results == pytest.approx([4.0, 6.28])
+    assert dummy.last_dataframe["Result"].dtype.kind in {"f", "i"}
