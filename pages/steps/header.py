@@ -175,7 +175,7 @@ def render(layer, idx: int) -> None:
             key=f"src_{key}",
             label_visibility="collapsed",
         )
-        if new_src:
+        if new_src and not mapping.get(key, {}).get("expr"):
             set_field_mapping(key, idx, {"src": new_src})  # user override
             if not key.startswith("ADHOC_INFO"):
                 add_suggestion(
@@ -216,6 +216,8 @@ def render(layer, idx: int) -> None:
             expr = st.session_state.pop(res_key)
             display = st.session_state.pop(res_disp_key, "")
             set_field_mapping(key, idx, {"expr": expr, "expr_display": display})
+            mapping.get(key, {}).pop("src", None)
+            st.session_state[f"src_{key}"] = ""
             if not key.startswith("ADHOC_INFO"):
                 add_suggestion(
                     {
