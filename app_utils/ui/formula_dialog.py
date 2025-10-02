@@ -14,6 +14,7 @@ from typing import List
 import pandas as pd
 import streamlit as st
 
+from app_utils.dataframe_numeric import coerce_numeric_like
 from app_utils.suggestion_store import add_suggestion
 
 # ─────────────────────────── configuration ────────────────────────────
@@ -37,6 +38,7 @@ def open_formula_dialog(df: pd.DataFrame, dialog_key: str) -> None:
     """Open the modal formula builder (gear-icon handler)."""
     result_key = RETURN_KEY_TEMPLATE.format(key=dialog_key)
     expr_key = f"{dialog_key}_expr_text"
+    numeric_df = coerce_numeric_like(df)
 
     # Prefill on first open each run
     if result_key in st.session_state and expr_key not in st.session_state:
@@ -75,7 +77,7 @@ def open_formula_dialog(df: pd.DataFrame, dialog_key: str) -> None:
             st.info("Build your expression or click tokens above.")
             return bool(e)
         try:
-            res = eval(e, {"df": df})                   # noqa: S307 – user code
+            res = eval(e, {"df": numeric_df})          # noqa: S307 – user code
             if not isinstance(res, pd.Series):
                 res = pd.Series([res] * len(df))
             st.dataframe(

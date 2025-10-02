@@ -16,9 +16,13 @@ Usage in a dialog:
 """
 
 from __future__ import annotations
-import streamlit as st
-import pandas as pd
+
 from typing import List, Tuple
+
+import pandas as pd
+import streamlit as st
+
+from app_utils.dataframe_numeric import coerce_numeric_like
 
 OPS = {"+": "+", "-": "-", "×": "*", "÷": "/"}
 
@@ -39,6 +43,7 @@ def build_expression(df: pd.DataFrame, key_prefix: str = "") -> Tuple[str, bool]
     state = st.session_state[parts_key]
     cols = state["cols"]
     ops = state["ops"]
+    numeric_df = coerce_numeric_like(df)
 
     st.markdown("#### Build your formula")
 
@@ -124,7 +129,7 @@ def build_expression(df: pd.DataFrame, key_prefix: str = "") -> Tuple[str, bool]
 
         # Live preview
         try:
-            preview = pd.DataFrame({"Result": eval(expr, {"df": df})}).head()
+            preview = pd.DataFrame({"Result": eval(expr, {"df": numeric_df})}).head()
             st.dataframe(preview, use_container_width=True)
             valid = True
         except Exception as e:
