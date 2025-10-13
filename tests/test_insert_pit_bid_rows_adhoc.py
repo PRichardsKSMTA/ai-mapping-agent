@@ -36,7 +36,7 @@ def _fake_conn(captured, columns: dict[str, int | None] | None = None):
     return FakeConn()
 
 
-def test_insert_pit_bid_rows_adhoc_sequential(monkeypatch):
+def test_insert_pit_bid_rows_leaves_adhoc_blank_without_mapping(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
@@ -52,14 +52,14 @@ def test_insert_pit_bid_rows_adhoc_sequential(monkeypatch):
     assert rows == 1
     params = captured["params"]
     assert params[3] == "L1"  # LANE_ID
-    assert params[15] == "x"  # ADHOC_INFO1
-    assert params[16] == "y"  # ADHOC_INFO2
-    assert params[17] == "z"  # ADHOC_INFO3
-    assert params[18] is None  # ADHOC_INFO4
-    assert params[24] is None  # ADHOC_INFO10
+    assert params[15] is None  # ADHOC_INFO1 remains blank without manual mapping
+    assert params[16] is None  # ADHOC_INFO2 remains blank without manual mapping
+    assert params[17] is None  # ADHOC_INFO3 remains blank without manual mapping
+    assert params[18] is None  # ADHOC_INFO4 remains blank without manual mapping
+    assert params[24] is None  # ADHOC_INFO10 remains blank without manual mapping
 
 
-def test_insert_pit_bid_rows_preserves_existing_adhoc(monkeypatch):
+def test_insert_pit_bid_rows_preserves_manual_adhoc(monkeypatch):
     captured: dict = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
@@ -74,7 +74,7 @@ def test_insert_pit_bid_rows_preserves_existing_adhoc(monkeypatch):
     assert rows == 1
     params = captured["params"]
     assert params[15] == "keep"  # existing ADHOC_INFO1 preserved
-    assert params[16] == "new"  # ADHOC_INFO2 filled with extra column
+    assert params[16] is None  # ADHOC_INFO2 not auto-filled by extra column
     assert params[17] is None  # ADHOC_INFO3 remains None
     assert params[24] is None  # ADHOC_INFO10 remains None
 

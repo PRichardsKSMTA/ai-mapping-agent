@@ -123,7 +123,7 @@ def main() -> None:
     adhoc_headers: dict[str, str] | None = None
     if args.csv_output:
         mapped_df = save_mapped_csv(df, mapped, args.csv_output)
-        adhoc_headers = azure_sql.derive_adhoc_headers(mapped_df)
+        adhoc_headers = {}
         if (
             args.operation_code
             and args.customer_name

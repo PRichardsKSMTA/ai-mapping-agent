@@ -68,7 +68,6 @@ def test_cli_csv_output(monkeypatch, tmp_path: Path):
     out_csv = tmp_path / "out.csv"
 
     monkeypatch.setattr(azure_sql, "log_mapping_process", lambda *a, **k: None)
-    monkeypatch.setattr(azure_sql, "derive_adhoc_headers", lambda df: {})
     monkeypatch.setattr(
         sys,
         "argv",
@@ -109,7 +108,6 @@ def test_cli_sql_insert(monkeypatch, tmp_path: Path, capsys):
         return len(df)
 
     monkeypatch.setattr(azure_sql, "insert_pit_bid_rows", fake_insert)
-    monkeypatch.setattr(azure_sql, "derive_adhoc_headers", lambda df: {})
     monkeypatch.setattr(
         "app_utils.postprocess_runner.get_pit_url_payload", lambda op_cd: {}
     )
@@ -172,7 +170,6 @@ def test_cli_sql_insert_no_ids(monkeypatch, tmp_path: Path, capsys):
         return len(df)
 
     monkeypatch.setattr(azure_sql, "insert_pit_bid_rows", fake_insert)
-    monkeypatch.setattr(azure_sql, "derive_adhoc_headers", lambda df: {})
     monkeypatch.setattr(
         "app_utils.postprocess_runner.get_pit_url_payload", lambda op_cd: {}
     )
@@ -242,7 +239,6 @@ def test_cli_postprocess_receives_codes(monkeypatch, tmp_path: Path, capsys):
         return ["POST https://example.com/hook", "Done"], {"NOTIFY_EMAIL": user_email}, "fname.xlsm"
 
     monkeypatch.setattr(azure_sql, "insert_pit_bid_rows", fake_insert)
-    monkeypatch.setattr(azure_sql, "derive_adhoc_headers", lambda df: {})
     monkeypatch.setattr(cli, "run_postprocess_if_configured", fake_postprocess)
 
     def fake_log(
@@ -333,7 +329,6 @@ def test_cli_sql_insert_without_customer_id(
         return len(df)
 
     monkeypatch.setattr(azure_sql, "insert_pit_bid_rows", fake_insert)
-    monkeypatch.setattr(azure_sql, "derive_adhoc_headers", lambda df: {})
     monkeypatch.setattr(
         cli,
         "run_postprocess_if_configured",
