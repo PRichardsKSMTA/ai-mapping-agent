@@ -263,7 +263,7 @@ def test_insert_pit_bid_rows(monkeypatch):
             "Bid Volume": [5],
             "LH Rate": [1.2],
             "Bid Miles": [100],
-            "Foo": ["bar"],
+            "ADHOC_INFO1": ["bar"],
         }
     )
     customer_ids = ["1", "2"]
@@ -421,7 +421,7 @@ def test_insert_pit_bid_rows_nvarchar_max(monkeypatch):
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured, cols))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
     long_val = "x" * 5000
-    df = pd.DataFrame({"Lane ID": ["L1"], "Foo": [long_val]})
+    df = pd.DataFrame({"Lane ID": ["L1"], "ADHOC_INFO1": [long_val]})
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
     assert rows == 1
     assert captured["params"][15] == long_val
@@ -497,8 +497,8 @@ def test_insert_pit_bid_rows_unmapped_no_alias(monkeypatch):
     assert rows == 1
     assert captured["params"][1] == "Customer"  # CUSTOMER_NAME
     assert captured["params"][12] == "V"  # FREIGHT_TYPE
-    assert captured["params"][15] == "Acme"  # ADHOC_INFO1
-    assert captured["params"][16] == "bar"  # ADHOC_INFO2
+    assert captured["params"][15] is None  # ADHOC_INFO1 remains empty
+    assert captured["params"][16] is None  # ADHOC_INFO2 remains empty
 
 
 def test_insert_pit_bid_rows_extends_known_columns(monkeypatch):
@@ -515,7 +515,7 @@ def test_insert_pit_bid_rows_extends_known_columns(monkeypatch):
     assert len(captured["params"]) == 31
 
 
-def test_insert_pit_bid_rows_unknown_columns_to_adhoc(monkeypatch):
+def test_insert_pit_bid_rows_unknown_columns_leave_adhoc_blank(monkeypatch):
     captured = {}
     monkeypatch.setattr(azure_sql, "_connect", lambda: _fake_conn(captured))
     monkeypatch.setattr(azure_sql, "fetch_freight_type", lambda op: None)
@@ -523,7 +523,7 @@ def test_insert_pit_bid_rows_unknown_columns_to_adhoc(monkeypatch):
     df = pd.DataFrame({"Lane ID": ["L1"], "Extra Field": ["val"]})
     rows = azure_sql.insert_pit_bid_rows(df, "OP", "Customer", ["1"])
     assert rows == 1
-    assert captured["params"][15] == "val"  # ADHOC_INFO1
+    assert captured["params"][15] is None  # ADHOC_INFO1 remains empty
     assert len(captured["params"]) == 30
 
 

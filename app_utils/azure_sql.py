@@ -604,18 +604,6 @@ def insert_pit_bid_rows(
         columns = base_columns + extra_columns + adhoc_slots + tail_columns
 
         transform_start = time.perf_counter()
-        unmapped = [
-            c
-            for c in df_db.columns
-            if c not in base_columns
-            and c not in extra_columns
-            and c not in adhoc_slots
-            and c not in tail_columns
-        ]
-        available_slots = [slot for slot in adhoc_slots if slot not in df_db.columns]
-        for slot, col in zip(available_slots, unmapped):
-            df_db[slot] = df_db[col]
-
         for col in df_db.columns.intersection(float_fields):
             df_db[col] = df_db[col].map(_to_float)
         for col in df_db.columns.difference(float_fields):
