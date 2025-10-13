@@ -211,7 +211,7 @@ def test_adhoc_labels_propagate(monkeypatch: MonkeyPatch) -> None:
     assert state.get("header_adhoc_headers") == expected
 
 
-def test_preset_mapping_populates_label(monkeypatch: MonkeyPatch) -> None:
+def test_preset_mapping_defaults_to_placeholder(monkeypatch: MonkeyPatch) -> None:
     st = setup_header_env(monkeypatch)
     monkeypatch.setattr(
         header_step,
@@ -230,7 +230,8 @@ def test_preset_mapping_populates_label(monkeypatch: MonkeyPatch) -> None:
         }
     )
     header_step.render(layer, 0)
-    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "Foo"
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "AdHoc1"
+    assert st.session_state["header_adhoc_autogen"]["ADHOC_INFO1"] is True
 
 
 def test_default_label_updates_on_mapping(monkeypatch: MonkeyPatch) -> None:
@@ -238,6 +239,7 @@ def test_default_label_updates_on_mapping(monkeypatch: MonkeyPatch) -> None:
     layer = HeaderLayer(
         type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)]
     )
+    header_step.render(layer, 0)
     st.session_state["src_ADHOC_INFO1"] = "A"
     header_step.render(layer, 0)
     assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"
@@ -249,6 +251,7 @@ def test_custom_label_persists(monkeypatch: MonkeyPatch) -> None:
     layer = HeaderLayer(
         type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)]
     )
+    header_step.render(layer, 0)
     st.session_state["src_ADHOC_INFO1"] = "A"
     header_step.render(layer, 0)
     st.session_state["adhoc_label_ADHOC_INFO1"] = "Custom"
@@ -264,6 +267,7 @@ def test_label_updates_after_multiple_source_changes(monkeypatch: MonkeyPatch) -
     layer = HeaderLayer(
         type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)]
     )
+    header_step.render(layer, 0)
     st.session_state["src_ADHOC_INFO1"] = "A"
     header_step.render(layer, 0)
     assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "A"
