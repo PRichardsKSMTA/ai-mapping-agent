@@ -79,7 +79,7 @@ def render(layer, idx: int) -> None:
     ):
         auto = suggest_header_mapping([f.key for f in layer.fields], source_cols)
         for k in adhoc_keys:
-            auto[k] = {}
+            auto.setdefault(k, {})
         st.session_state[map_key] = auto
         st.session_state[sheet_key] = sheet_name
         st.session_state[cols_key] = cols_hash
@@ -90,7 +90,7 @@ def render(layer, idx: int) -> None:
         st.session_state[cols_key] = cols_hash
     mapping = st.session_state[map_key]
     for k in adhoc_keys:
-        mapping[k] = {}
+        mapping.setdefault(k, {})
 
     # List of user-added fields
     extra_key = f"header_extra_fields_{idx}"
@@ -104,21 +104,25 @@ def render(layer, idx: int) -> None:
         key = field.key
         if key.startswith("ADHOC_INFO"):
             continue
-        for s in get_suggestions(
-            st.session_state["current_template"], key, headers=source_cols
-        ):
-            if s["type"] == "direct":
-                for col in source_cols:
-                    if col.lower() == s["columns"][0].lower():
-                        mapping[key] = {"src": col, "confidence": 1.0}
+
+        # Only apply suggestions if no mapping yet
+        if not mapping.get(key, {}).get("src") and not mapping.get(key, {}).get("expr"):
+            for s in get_suggestions(
+                st.session_state["current_template"], key, headers=source_cols
+            ):
+                if s["type"] == "direct":
+                    for col in source_cols:
+                        if col.lower() == s["columns"][0].lower():
+                            mapping[key] = {"src": col, "confidence": 1.0}
+                            break
+                    if mapping.get(key):
                         break
-                if mapping.get(key):
+                else:  # formula suggestion
+                    mapping[key] = {
+                        "expr": s["formula"],
+                        "expr_display": s["display"],
+                    }
                     break
-            else:  # formula suggestion
-                mapping[key] = {
-                    "expr": s["formula"],
-                    "expr_display": s["display"],
-                }
 
     ai_flag = f"header_ai_done_{idx}"
     if not st.session_state.get(ai_flag):
@@ -141,7 +145,7 @@ def render(layer, idx: int) -> None:
         if mapping != before:
             st.rerun()
 
-    st.caption("• ✅ mapped  • 🛈 suggested  • ❌ required & missing")
+    st.caption("• ✅ mapped  • ⚙️ calculated  • ❌ required & missing")
 
     all_fields = list(layer.fields) + [FieldSpec(key=f) for f in extra_fields]
     adhoc_labels = st.session_state.setdefault("header_adhoc_headers", {})
@@ -167,6 +171,9 @@ def render(layer, idx: int) -> None:
                 st.session_state[f"adhoc_label_{key}"] = default
 
         # ── Source dropdown ──────────────────────────────────────────────
+        if st.session_state.pop(f"clear_src_{key}", False):
+            st.session_state.pop(f"src_{key}", None)
+
         src_val = mapping.get(key, {}).get("src", "")
         new_src = row[0].selectbox(
             f"src_{key}",
@@ -217,7 +224,7 @@ def render(layer, idx: int) -> None:
             display = st.session_state.pop(res_disp_key, "")
             set_field_mapping(key, idx, {"expr": expr, "expr_display": display})
             mapping.get(key, {}).pop("src", None)
-            st.session_state[f"src_{key}"] = ""
+
             if not key.startswith("ADHOC_INFO"):
                 add_suggestion(
                     {
@@ -230,6 +237,9 @@ def render(layer, idx: int) -> None:
                     },
                     headers=source_cols,
                 )
+
+            st.session_state[f"clear_src_{key}"] = True
+            st.rerun()
 
         # ── Expression / confidence cell ────────────────────────────────
         expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(key, {}).get("expr")
