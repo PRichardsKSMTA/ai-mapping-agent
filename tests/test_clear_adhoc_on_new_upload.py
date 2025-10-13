@@ -1,4 +1,5 @@
 import hashlib
+
 import pandas as pd
 from pytest import MonkeyPatch
 
@@ -34,6 +35,44 @@ def test_new_upload_clears_adhoc_mapping_and_label(monkeypatch: MonkeyPatch) -> 
     )
 
     st.session_state["uploaded_file"] = "file2"
+
+    layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
+    header_step.render(layer, 0)
+
+    assert st.session_state["header_mapping_0"]["ADHOC_INFO1"] == {}
+    assert st.session_state["header_adhoc_headers"]["ADHOC_INFO1"] == "AdHoc1"
+    assert st.session_state["header_adhoc_autogen"]["ADHOC_INFO1"] is True
+    assert st.session_state["adhoc_label_ADHOC_INFO1"] == "AdHoc1"
+
+
+def test_new_upload_same_columns_clears_adhoc(monkeypatch: MonkeyPatch) -> None:
+    st = setup_header_env(monkeypatch)
+
+    def fake_read(file, sheet_name=None):
+        return pd.DataFrame({"A": [1]}), ["A"]
+
+    monkeypatch.setattr(header_step, "read_tabular_file", fake_read)
+
+    cols = ["A"]
+    cols_hash = hashlib.sha256("|".join(cols).encode()).hexdigest()
+    first_file = object()
+    st.session_state.update(
+        {
+            "uploaded_file": first_file,
+            "upload_sheet": "Sheet1",
+            "upload_sheets": ["Sheet1"],
+            "current_template": "demo",
+            "header_mapping_0": {"ADHOC_INFO1": {"src": "A"}},
+            "header_sheet_0": "Sheet1",
+            "header_cols_0": cols_hash,
+            "header_file_0": first_file,
+            "header_adhoc_headers": {"ADHOC_INFO1": "Custom"},
+            "header_adhoc_autogen": {"ADHOC_INFO1": False},
+            "adhoc_label_ADHOC_INFO1": "Custom",
+        }
+    )
+
+    st.session_state["uploaded_file"] = object()
 
     layer = HeaderLayer(type="header", fields=[FieldSpec(key="ADHOC_INFO1", required=False)])
     header_step.render(layer, 0)
