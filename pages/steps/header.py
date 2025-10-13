@@ -71,11 +71,14 @@ def render(layer, idx: int) -> None:
     map_key = f"header_mapping_{idx}"
     sheet_key = f"header_sheet_{idx}"
     cols_key = f"header_cols_{idx}"
+    file_key = f"header_file_{idx}"
+    file_token = st.session_state.get("uploaded_file")
     cols_hash = hashlib.sha256("|".join(source_cols).encode()).hexdigest()
     if (
         map_key not in st.session_state
         or st.session_state.get(sheet_key) != sheet_name
         or st.session_state.get(cols_key) != cols_hash
+        or st.session_state.get(file_key) is not file_token
     ):
         auto = suggest_header_mapping([f.key for f in layer.fields], source_cols)
         for k in adhoc_keys:
@@ -83,11 +86,16 @@ def render(layer, idx: int) -> None:
         st.session_state[map_key] = auto
         st.session_state[sheet_key] = sheet_name
         st.session_state[cols_key] = cols_hash
+        st.session_state[file_key] = file_token
         st.session_state.pop(f"header_ai_done_{idx}", None)
         st.session_state["header_adhoc_headers"] = {}
         st.session_state["header_adhoc_autogen"] = {}
+        for k in adhoc_keys:
+            st.session_state.pop(f"src_{k}", None)
+            st.session_state.pop(f"adhoc_label_{k}", None)
     else:
         st.session_state[cols_key] = cols_hash
+        st.session_state[file_key] = file_token
     mapping = st.session_state[map_key]
     for k in adhoc_keys:
         mapping.setdefault(k, {})
