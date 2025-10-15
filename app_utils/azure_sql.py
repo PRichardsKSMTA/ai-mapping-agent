@@ -172,7 +172,7 @@ def _build_conn_str_freetds_path(lib_path: str) -> str:
     )
 
 
-def _connect() -> "pyodbc.Connection":
+def _connect() -> "pyodbc.Connection": # type: ignore
     """Return a DB connection using Microsoft ODBC 18 or 17. No FreeTDS fallback."""
     try:
         import pyodbc  # type: ignore
