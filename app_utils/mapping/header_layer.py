@@ -32,6 +32,12 @@ def gpt_header_completion(unmapped: List[str], source_columns: List[str]) -> Dic
     return json.loads(resp.choices[0].message.content)
 
 
+def _is_adhoc(field: str) -> bool:
+    """Return ``True`` when ``field`` refers to an ``ADHOC_INFO`` slot."""
+
+    return field.upper().startswith("ADHOC_INFO")
+
+
 def apply_gpt_header_fallback(
     mapping: Dict[str, Dict[str, str]],
     source_columns: List[str],
@@ -49,9 +55,15 @@ def apply_gpt_header_fallback(
         Specific field keys to consider. If empty or ``None`` all unmapped
         fields are targeted.
     """
-    unmapped = [k for k, v in mapping.items() if not v.get("src") and not v.get("expr")]
+    unmapped = [
+        key
+        for key, value in mapping.items()
+        if not value.get("src") and not value.get("expr") and not _is_adhoc(key)
+    ]
     if targets:
-        target_set = set(targets)
+        target_set = {t for t in targets if not _is_adhoc(t)}
+        if not target_set:
+            return mapping
         unmapped = [k for k in unmapped if k in target_set]
     if not unmapped:
         return mapping
@@ -60,6 +72,6 @@ def apply_gpt_header_fallback(
     except Exception:
         return mapping
     for field, col in suggestions.items():
-        if col:
+        if col and not _is_adhoc(field):
             mapping[field] = {"src": col}
     return mapping
