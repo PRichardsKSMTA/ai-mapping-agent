@@ -9,6 +9,8 @@ from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.azure_sql import PostprocessTimeoutError
 from app_utils.postprocess_runner import (
     CLIENT_BIDS_DEST_PATH,
+    POSTPROCESS_TIMEOUT_FLOW_ENV,
+    _trigger_postprocess_timeout_flow,
     generate_bid_filename,
     run_postprocess,
     run_postprocess_if_configured,
@@ -257,7 +259,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
     called: dict[str, Any] = {}
 
     def fake_wait(
-        pg: str, op: str, poll_interval: int = 30, max_attempts: int = 24
+        pg: str, op: str, poll_interval: int = 30, max_attempts: int = 12
     ) -> None:
         called["args"] = (pg, op, poll_interval, max_attempts)
         logging.getLogger("app_utils.azure_sql").info("cycle")
@@ -288,7 +290,7 @@ def test_wait_for_postprocess_completion_called(monkeypatch):
         operation_cd="OP",
         poll_interval=1,
     )
-    assert called["args"] == ("guid", "OP", 1, 24)
+    assert called["args"] == ("guid", "OP", 1, 12)
     assert "cycle" in logs
     assert fname is not None
 
@@ -329,16 +331,24 @@ def test_pit_bid_postprocess_timeout_logs_and_raises(monkeypatch, caplog):
         "app_utils.postprocess_runner.get_pit_url_payload",
         lambda *a, **k: payload,
     )
-    called: dict[str, Any] = {}
+    calls: list[Dict[str, Any]] = []
 
-    def fake_post(*args, **kwargs):
-        called["post"] = True
+    class DummyResponse:
+        status_code = 202
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def fake_post(url: str, json: Any | None = None, timeout: int = 10):
+        calls.append({"url": url, "json": json, "timeout": timeout})
+        return DummyResponse()
 
     monkeypatch.setitem(
         sys.modules,
         "requests",
         types.SimpleNamespace(post=fake_post),
     )
+    monkeypatch.setenv(POSTPROCESS_TIMEOUT_FLOW_ENV, "https://flow.example.com")
 
     tpl = Template.model_validate(
         {
@@ -357,9 +367,29 @@ def test_pit_bid_postprocess_timeout_logs_and_raises(monkeypatch, caplog):
             customer_name="Cust",
             operation_cd="OP",
         )
-    assert "post" not in called
-    assert "attempt logged" in caplog.messages
-    assert any("timeout occurred" in msg for msg in caplog.messages)
+    assert len(calls) == 1
+    assert calls[0]["url"] == "https://flow.example.com"
+    assert calls[0]["json"]["OPERATION_CD"] == "OP"
+    assert calls[0]["json"]["REFERENCE_ID"] == "guid"
+
+
+def test_trigger_postprocess_timeout_flow_skips_without_url(monkeypatch, caplog):
+    called: dict[str, Any] = {}
+
+    def fake_post(*args, **kwargs):
+        called["post"] = True
+
+    monkeypatch.setitem(
+        sys.modules,
+        "requests",
+        types.SimpleNamespace(post=fake_post),
+    )
+    monkeypatch.delenv(POSTPROCESS_TIMEOUT_FLOW_ENV, raising=False)
+
+    caplog.set_level(logging.WARNING, logger="app_utils.postprocess_runner")
+    _trigger_postprocess_timeout_flow("OP", "guid", "message")
+    assert called == {}
+    assert any("timeout URL not configured" in msg for msg in caplog.messages)
 
 
 def test_generate_bid_filename_preserves_case(monkeypatch):

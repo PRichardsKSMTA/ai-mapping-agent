@@ -2,23 +2,53 @@ from __future__ import annotations
 
 """Minimal post-process utility."""
 
-from typing import Any, Dict, List, Tuple
 import json
 import logging
 import re
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
 from app_utils.azure_sql import (
+    POSTPROCESS_TIMEOUT_FLOW_ENV,
     PostprocessTimeoutError,
     get_pit_url_payload,
+    get_postprocess_timeout_flow_url,
     wait_for_postprocess_completion,
 )
 
 CLIENT_BIDS_DEST_PATH: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
+POSTPROCESS_TIMEOUT_SUBJECT = "FAILED TO RESOLVE RFP LANES WITHIN 1 HOUR TIME LIMIT"
+
+
+def _trigger_postprocess_timeout_flow(
+    operation_cd: str, process_guid: str, message: str
+) -> None:
+    """Notify the team that the PIT BID postprocess exceeded the time budget."""
+
+    flow_url = get_postprocess_timeout_flow_url()
+    logger = logging.getLogger(__name__)
+    if not flow_url:
+        logger.warning(
+            "Power Automate timeout URL not configured; skipping timeout notification"
+        )
+        return
+    import requests  # type: ignore
+
+    payload = {
+        "OPERATION_CD": operation_cd,
+        "REFERENCE_ID": process_guid,
+        "SUBJECT": POSTPROCESS_TIMEOUT_SUBJECT,
+        "MESSAGE": message,
+    }
+    try:
+        resp = requests.post(flow_url, json=payload, timeout=10)
+        resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        logger.error("Failed to trigger timeout notification: %s", err, exc_info=True)
 
 
 def generate_bid_filename(operation_cd: str, customer_name: str) -> str:
@@ -98,6 +128,7 @@ def run_postprocess_if_configured(
         except PostprocessTimeoutError as exc:
             logs.append(str(exc))
             logger.error(str(exc))
+            _trigger_postprocess_timeout_flow(operation_cd, process_guid, str(exc))
             raise
         finally:
             logger.removeHandler(handler)
