@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
@@ -24,6 +23,29 @@ from app_utils.azure_sql import (
 CLIENT_BIDS_DEST_PATH: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
 POSTPROCESS_TIMEOUT_FLOW_ENV = "POSTPROCESS_TIMEOUT_FLOW_URL"
 POSTPROCESS_TIMEOUT_SUBJECT = "FAILED TO RESOLVE RFP LANES WITHIN 1 HOUR TIME LIMIT"
+POSTPROCESS_USAGE_SUBJECT = "RFP Tool In Use"
+
+
+def _post_to_power_automate(
+    payload: Dict[str, str],
+    warning_message: str,
+    error_prefix: str,
+) -> None:
+    """Send ``payload`` to the configured Power Automate flow."""
+
+    flow_url = get_postprocess_timeout_flow_url()
+    logger = logging.getLogger(__name__)
+    if not flow_url:
+        logger.warning(warning_message)
+        return
+    import requests  # type: ignore
+
+    try:
+        resp = requests.post(flow_url, json=payload, timeout=10)
+        if resp is not None:
+            resp.raise_for_status()
+    except Exception as err:  # noqa: BLE001
+        logger.error("%s: %s", error_prefix, err, exc_info=True)
 
 
 def _trigger_postprocess_timeout_flow(
@@ -31,26 +53,35 @@ def _trigger_postprocess_timeout_flow(
 ) -> None:
     """Notify the team that the PIT BID postprocess exceeded the time budget."""
 
-    flow_url = os.getenv(POSTPROCESS_TIMEOUT_FLOW_ENV)
-    logger = logging.getLogger(__name__)
-    if not flow_url:
-        logger.warning(
-            "Power Automate timeout URL not configured; skipping timeout notification"
-        )
-        return
-    import requests  # type: ignore
-
     payload = {
         "OPERATION_CD": operation_cd,
         "REFERENCE_ID": process_guid,
         "SUBJECT": POSTPROCESS_TIMEOUT_SUBJECT,
         "MESSAGE": message,
     }
-    try:
-        resp = requests.post(flow_url, json=payload, timeout=10)
-        resp.raise_for_status()
-    except Exception as err:  # noqa: BLE001
-        logger.error("Failed to trigger timeout notification: %s", err, exc_info=True)
+    _post_to_power_automate(
+        payload,
+        "Power Automate timeout URL not configured; skipping timeout notification",
+        "Failed to trigger timeout notification",
+    )
+
+
+def _trigger_postprocess_usage_flow(
+    operation_cd: str, process_guid: str, user_email: str | None
+) -> None:
+    """Notify the team that the PIT BID postprocess completed successfully."""
+
+    payload = {
+        "OPERATION_CD": operation_cd,
+        "REFERENCE_ID": process_guid,
+        "SUBJECT": POSTPROCESS_USAGE_SUBJECT,
+        "MESSAGE": user_email or "",
+    }
+    _post_to_power_automate(
+        payload,
+        "Power Automate timeout URL not configured; skipping usage notification",
+        "Failed to trigger usage notification",
+    )
 
 
 def generate_bid_filename(operation_cd: str, customer_name: str) -> str:
@@ -176,6 +207,7 @@ def run_postprocess_if_configured(
             raise
         else:
             logs.append("Done")
+            _trigger_postprocess_usage_flow(operation_cd, process_guid, user_email)
     else:
         payload = df.to_dict(orient="records")
         run_postprocess(template.postprocess, df, logs)
