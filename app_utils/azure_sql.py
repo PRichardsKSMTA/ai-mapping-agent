@@ -14,6 +14,8 @@ import logging
 import pandas as pd
 from .state_abbrev import abbreviate_state
 
+POSTPROCESS_TIMEOUT_FLOW_ENV = "POSTPROCESS_TIMEOUT_FLOW_URL"
+
 PIT_BID_FIELD_MAP: Dict[str, str] = {
     "Lane ID": "LANE_ID",
     "Origin City": "ORIG_CITY",
@@ -398,6 +400,12 @@ class PostprocessTimeoutError(RuntimeError):
 def get_operational_scac(operation_cd: str) -> str:
     """Derive the operational SCAC from an operation code."""
     return operation_cd.split("_", 1)[0]
+
+
+def get_postprocess_timeout_flow_url() -> str | None:
+    """Return the configured Power Automate timeout notification endpoint."""
+
+    return _load_secret(POSTPROCESS_TIMEOUT_FLOW_ENV)
 
 
 def derive_adhoc_headers(df: pd.DataFrame) -> Dict[str, str]:
