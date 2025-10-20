@@ -303,60 +303,70 @@ def wait_for_postprocess_completion(
 ) -> None:
     """Poll ``dbo.MAPPING_AGENT_PROCESSES`` until postprocess is complete.
 
-    By default, the loop spans up to 120 minutes.
-
-    Executes ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` and then checks
-    ``POST_PROCESS_COMPLETE_DTTM`` every ``poll_interval`` seconds. After
-    ten polls (5 minutes with the default 30-second interval) without a
-    completion timestamp, the stored procedure is invoked again. The cycle
-    repeats until ``max_attempts`` is reached (120 minutes by default). The
-    connection is committed after each poll so subsequent ``SELECT``
-    statements read freshly committed data.
+    Each poll sleeps ``poll_interval`` seconds and selects
+    ``POST_PROCESS_COMPLETE_DTTM`` alongside ``POST_PROCESS_RERUN``. When a
+    completion timestamp is observed the loop exits immediately. If the
+    rerun flag is set, ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` runs right away
+    before the next poll. The connection commits after every ``SELECT`` and
+    ``EXEC`` so subsequent polls see fresh data. ``max_attempts`` controls the
+    two-hour polling budget (24 five-minute windows by default); the budget is
+    translated into the equivalent number of polls so the timeout remains 120
+    minutes even if ``poll_interval`` changes.
     """
     logger = logging.getLogger(__name__)
-    checks_per_attempt = 10
+    # Preserve the historical 2-hour timeout (24 windows × 5 minutes).
+    timeout_seconds = max_attempts * 300
+    max_polls = max(1, int(timeout_seconds / poll_interval))
+    polls_completed = 0
     with _connect() as conn:
         cur = conn.cursor()
-        for attempt in range(max_attempts):
+        while polls_completed < max_polls:
+            logger.info("Sleeping %s seconds before next poll", poll_interval)
+            time.sleep(poll_interval)
             logger.info(
-                "Executing RFP_OBJECT_DATA_POST_PROCESS for %s / %s (attempt %s/%s)",
+                "Polling post-process status for %s / %s (poll %s/%s)",
                 operation_cd,
                 process_guid,
-                attempt + 1,
-                max_attempts,
+                polls_completed + 1,
+                max_polls,
             )
             cur.execute(
-                "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
+                (
+                    "SELECT POST_PROCESS_COMPLETE_DTTM, POST_PROCESS_RERUN "
+                    "FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?"
+                ),
                 process_guid,
-                operation_cd,
             )
+            row = cur.fetchone()
             conn.commit()
-            for _ in range(checks_per_attempt):
-                logger.info("Sleeping %s seconds before next poll", poll_interval)
-                time.sleep(poll_interval)
-                cur.execute(
-                    "SELECT POST_PROCESS_COMPLETE_DTTM FROM dbo.MAPPING_AGENT_PROCESSES WHERE PROCESS_GUID = ?",
+            logger.debug("Committed transaction after polling for post-process status")
+            polls_completed += 1
+            complete = row[0] if row else None
+            rerun = row[1] if row and len(row) > 1 else None
+            if complete is not None:
+                logger.info(
+                    "Post-process complete for %s at %s", process_guid, complete
+                )
+                return
+            if rerun:
+                logger.info(
+                    "Rerun flag detected for %s / %s; executing post-process",
+                    operation_cd,
                     process_guid,
                 )
-                row = cur.fetchone()
-                conn.commit()
-                logger.debug("Committed transaction to start a new polling transaction")
-                complete = row[0] if row else None
-                if complete is not None:
-                    logger.info(
-                        "Post-process complete for %s at %s", process_guid, complete
-                    )
-                    return
-            if attempt < max_attempts - 1:
-                logger.info(
-                    "Re-running postprocess after %s seconds of polling",
-                    poll_interval * checks_per_attempt,
+                cur.execute(
+                    "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
+                    process_guid,
+                    operation_cd,
                 )
-        wait_seconds = poll_interval * checks_per_attempt * max_attempts
-        wait_minutes = wait_seconds / 60
+                conn.commit()
+                logger.debug(
+                    "Committed transaction after rerunning RFP_OBJECT_DATA_POST_PROCESS"
+                )
+        wait_minutes = (max_polls * poll_interval) / 60
         message = (
             "Post-process did not complete for "
-            f"{process_guid} (operation {operation_cd}) after {max_attempts} attempts"
+            f"{process_guid} (operation {operation_cd}) after {max_polls} polls"
             f" (~{wait_minutes:.1f} minutes of polling)."
         )
         logger.warning(message)
