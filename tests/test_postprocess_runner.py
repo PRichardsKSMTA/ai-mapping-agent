@@ -10,6 +10,7 @@ from app_utils.azure_sql import PostprocessTimeoutError
 from app_utils.postprocess_runner import (
     CLIENT_BIDS_DEST_PATH,
     POSTPROCESS_TIMEOUT_FLOW_ENV,
+    POSTPROCESS_USAGE_SUBJECT,
     _trigger_postprocess_timeout_flow,
     generate_bid_filename,
     run_postprocess,
@@ -116,13 +117,14 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         'app_utils.postprocess_runner.datetime',
         types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)),
     )
-    called = {}
+    calls: list[Dict[str, Any]] = []
 
     def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
-        called['url'] = url
-        called['json'] = json
+        calls.append({"url": url, "json": json, "timeout": timeout})
+        return types.SimpleNamespace(status_code=202, raise_for_status=lambda: None)
 
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=fake_post))
+    monkeypatch.setenv(POSTPROCESS_TIMEOUT_FLOW_ENV, "https://flow.example.com")
     tpl = Template.model_validate({
         'template_name': 'PIT BID',
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
@@ -149,8 +151,15 @@ def test_pit_bid_posts_payload(load_env, monkeypatch):
         item.get('NOTIFY_EMAIL') == 'user@example.com'
         for item in returned.get('item/In_dtInputData', [])
     )
-    assert called['url'] == tpl.postprocess.url
-    assert called['json'] == returned
+    assert calls[0]["url"] == tpl.postprocess.url
+    assert calls[0]["json"] == returned
+    assert calls[1]["url"] == "https://flow.example.com"
+    assert calls[1]["json"] == {
+        "OPERATION_CD": "OP",
+        "REFERENCE_ID": "guid",
+        "SUBJECT": POSTPROCESS_USAGE_SUBJECT,
+        "MESSAGE": "user@example.com",
+    }
     assert "Payload loaded" in logs
     assert "Payload finalized" in logs
     assert logs[-1] == 'Done'
@@ -175,13 +184,14 @@ def test_pit_bid_posts(monkeypatch):
         'app_utils.postprocess_runner.datetime',
         types.SimpleNamespace(now=lambda: datetime(2020, 1, 1)),
     )
-    called: dict[str, Any] = {}
+    calls: list[Dict[str, Any]] = []
 
     def fake_post(url, json=None, timeout=10):  # pragma: no cover - executed via call
-        called['url'] = url
-        called['json'] = json
+        calls.append({"url": url, "json": json, "timeout": timeout})
+        return types.SimpleNamespace(status_code=202, raise_for_status=lambda: None)
 
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(post=fake_post))
+    monkeypatch.setenv(POSTPROCESS_TIMEOUT_FLOW_ENV, "https://flow.example.com")
     tpl = Template.model_validate({
         'template_name': 'PIT BID',
         'layers': [{'type': 'header', 'fields': [{'key': 'A'}]}],
@@ -199,7 +209,14 @@ def test_pit_bid_posts(monkeypatch):
     assert "Payload finalized" in logs
     expected = 'OP - BID - Cust_20200101000000000.xlsm'
     assert logs[-1] == 'Done'
-    assert called['url'] == tpl.postprocess.url
+    assert calls[0]['url'] == tpl.postprocess.url
+    assert calls[1]['url'] == "https://flow.example.com"
+    assert calls[1]['json'] == {
+        "OPERATION_CD": "OP",
+        "REFERENCE_ID": "guid",
+        "SUBJECT": POSTPROCESS_USAGE_SUBJECT,
+        "MESSAGE": "user@example.com",
+    }
     assert returned['item/In_dtInputData'][0]['NEW_EXCEL_FILENAME'] == expected
     assert returned['BID-Payload'] == 'guid'
     expected_path = CLIENT_BIDS_DEST_PATH
