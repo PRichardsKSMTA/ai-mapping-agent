@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
@@ -21,6 +22,7 @@ from app_utils.azure_sql import (
 )
 
 CLIENT_BIDS_DEST_PATH: str = "/CLIENT  Downloads/Pricing Tools/Customer Bids"
+POSTPROCESS_TIMEOUT_FLOW_ENV = "POSTPROCESS_TIMEOUT_FLOW_URL"
 POSTPROCESS_TIMEOUT_SUBJECT = "FAILED TO RESOLVE RFP LANES WITHIN 1 HOUR TIME LIMIT"
 
 
@@ -29,7 +31,7 @@ def _trigger_postprocess_timeout_flow(
 ) -> None:
     """Notify the team that the PIT BID postprocess exceeded the time budget."""
 
-    flow_url = get_postprocess_timeout_flow_url()
+    flow_url = os.getenv(POSTPROCESS_TIMEOUT_FLOW_ENV)
     logger = logging.getLogger(__name__)
     if not flow_url:
         logger.warning(
