@@ -299,7 +299,7 @@ def wait_for_postprocess_completion(
     process_guid: str,
     operation_cd: str,
     poll_interval: int = 30,
-    max_attempts: int = 24,
+    max_attempts: int = 12,
 ) -> None:
     """Poll ``dbo.MAPPING_AGENT_PROCESSES`` until postprocess is complete.
 
@@ -309,12 +309,12 @@ def wait_for_postprocess_completion(
     rerun flag is set, ``dbo.RFP_OBJECT_DATA_POST_PROCESS`` runs right away
     before the next poll. The connection commits after every ``SELECT`` and
     ``EXEC`` so subsequent polls see fresh data. ``max_attempts`` controls the
-    two-hour polling budget (24 five-minute windows by default); the budget is
-    translated into the equivalent number of polls so the timeout remains 120
+    one-hour polling budget (12 five-minute windows by default); the budget is
+    translated into the equivalent number of polls so the timeout remains 60
     minutes even if ``poll_interval`` changes.
     """
     logger = logging.getLogger(__name__)
-    # Preserve the historical 2-hour timeout (24 windows × 5 minutes).
+    # Preserve the historical timeout logic (12 windows × 5 minutes = 1 hour).
     timeout_seconds = max_attempts * 300
     max_polls = max(1, int(timeout_seconds / poll_interval))
     polls_completed = 0
