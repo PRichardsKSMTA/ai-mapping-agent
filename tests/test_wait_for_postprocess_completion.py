@@ -65,9 +65,12 @@ def test_wait_for_postprocess_completion_reruns_on_flag(
     sleeps = [c for c in calls if c[0] == "sleep"]
     commits = [c for c in calls if c[0] == "commit"]
     assert len(selects) == 3
-    assert len(execs) == 1
+    assert len(execs) == 2
     assert len(sleeps) == 3
     assert len(commits) == len(selects) + len(execs)
+    assert calls[0][0].startswith("EXEC")
+    assert execs[0][1] == ("pg", "OP")
+    assert execs[1][1] == ("pg", "OP")
     for idx, (sql, _) in enumerate(calls):
         if sql.startswith("SELECT") or sql.startswith("EXEC"):
             assert calls[idx + 1][0] == "commit"
@@ -129,11 +132,13 @@ def test_wait_for_postprocess_completion_skips_rerun_when_flag_false(
     sleeps = [c for c in calls if c[0] == "sleep"]
     commits = [c for c in calls if c[0] == "commit"]
     assert len(selects) == 3
-    assert execs == []
+    assert len(execs) == 1
     assert len(sleeps) == 3
-    assert len(commits) == len(selects)
+    assert len(commits) == len(selects) + len(execs)
+    assert calls[0][0].startswith("EXEC")
+    assert execs[0][1] == ("pg", "OP")
     for idx, (sql, _) in enumerate(calls):
-        if sql.startswith("SELECT"):
+        if sql.startswith("SELECT") or sql.startswith("EXEC"):
             assert calls[idx + 1][0] == "commit"
     assert all("Rerun flag detected" not in m for m in caplog.messages)
     assert any("Post-process complete" in m for m in caplog.messages)
@@ -184,11 +189,13 @@ def test_wait_for_postprocess_completion_timeout(
     sleeps = [c for c in calls if c[0] == "sleep"]
     commits = [c for c in calls if c[0] == "commit"]
     assert len(selects) == 5
-    assert execs == []
+    assert len(execs) == 1
     assert len(sleeps) == 5
-    assert len(commits) == len(selects)
+    assert len(commits) == len(selects) + len(execs)
+    assert calls[0][0].startswith("EXEC")
+    assert execs[0][1] == ("pg", "OP")
     for idx, (sql, _) in enumerate(calls):
-        if sql.startswith("SELECT"):
+        if sql.startswith("SELECT") or sql.startswith("EXEC"):
             assert calls[idx + 1][0] == "commit"
     assert any("did not complete" in m for m in caplog.messages)
     assert "did not complete" in str(exc.value)
