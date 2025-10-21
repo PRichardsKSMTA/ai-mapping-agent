@@ -322,6 +322,20 @@ def wait_for_postprocess_completion(
     polls_completed = 0
     with _connect() as conn:
         cur = conn.cursor()
+        logger.info(
+            "Kicking off post-process for %s / %s before polling begins",
+            operation_cd,
+            process_guid,
+        )
+        cur.execute(
+            "EXEC dbo.RFP_OBJECT_DATA_POST_PROCESS ?, ?, NULL",
+            process_guid,
+            operation_cd,
+        )
+        conn.commit()
+        logger.debug(
+            "Committed transaction after initial RFP_OBJECT_DATA_POST_PROCESS kickoff"
+        )
         while polls_completed < max_polls:
             logger.info("Sleeping %s seconds before next poll", poll_interval)
             time.sleep(poll_interval)
