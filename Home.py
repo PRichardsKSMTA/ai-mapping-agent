@@ -59,8 +59,9 @@ from app_utils.excel_utils import (
     dedupe_adhoc_headers,
 )
 from app_utils.postprocess_runner import (
-    run_postprocess_if_configured,
+    PostprocessTimeoutError,
     generate_bid_filename,
+    run_postprocess_if_configured,
 )
 from app_utils.mapping.exporter import build_output_template
 from app_utils.ui.header_utils import save_current_template
@@ -162,6 +163,7 @@ def main():
 
     st.session_state.setdefault("upload_data_file_key", str(uuid.uuid4()))
     st.session_state.setdefault("postprocess_running", False)
+    st.session_state.setdefault("postprocess_logs", [])
 
     if user_email and "selected_template_file" not in st.session_state:
         last = get_last_template(user_email)
@@ -638,6 +640,7 @@ def main():
                     ) as tmp:
                         tmp_path = Path(tmp.name)
                         mapped_df = save_mapped_csv(df, final_json, tmp_path)
+                    csv_bytes = tmp_path.read_bytes()
 
                     adhoc_headers = (
                         st.session_state.get("header_adhoc_headers") or {}
@@ -669,23 +672,35 @@ def main():
                         )
                     else:
                         st.warning("User email missing; export not logged.")
-                    logs_post, payload, _ = run_postprocess_if_configured(
-                        template_obj,
-                        df,
-                        guid,
-                        st.session_state.get("customer_name", ""),
-                        st.session_state.get("operation_code"),
-                        user_email=user_email,
-                        filename=bid_filename,
-                    )
-                    csv_bytes = tmp_path.read_bytes()
-                    tmp_path.unlink()
+                    try:
+                        logs_post, payload, _ = run_postprocess_if_configured(
+                            template_obj,
+                            df,
+                            guid,
+                            st.session_state.get("customer_name", ""),
+                            st.session_state.get("operation_code"),
+                            user_email=user_email,
+                            filename=bid_filename,
+                        )
+                    except PostprocessTimeoutError as exc:
+                        st.session_state["postprocess_running"] = False
+                        logs = st.session_state.setdefault("postprocess_logs", [])
+                        logs.append(str(exc))
+                        st.error(
+                            "The PIT BID automation timed out before finishing. "
+                            "We've notified the support team automatically—"
+                            "please wait a few minutes and try again."
+                        )
+                        return
+                    finally:
+                        tmp_path.unlink(missing_ok=True)
 
                     st.session_state.update(
                         {
                             "export_complete": True,
                             "mapped_csv": csv_bytes,
                             "postprocess_payload": payload,
+                            "postprocess_logs": logs_post,
                         }
                     )
                     st.session_state["postprocess_running"] = False

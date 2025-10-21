@@ -3,6 +3,8 @@ import importlib
 import json
 from pathlib import Path
 import sys
+from typing import Callable, Any
+
 import pandas as pd
 
 
@@ -29,6 +31,10 @@ class DummyColumn:
 
     def button(self, *a, **k):
         return False
+
+    def columns(self, spec, **kwargs):
+        count = len(spec) if isinstance(spec, (list, tuple)) else spec
+        return [DummyColumn() for _ in range(count)]
 
 
 class DummySidebar:
@@ -72,6 +78,8 @@ class DummyStreamlit:
         self.spinner_messages: list[str] = []
         self.info_messages: list[str] = []
         self.success_messages: list[str] = []
+        self.warning_messages: list[str] = []
+        self.error_messages: list[str] = []
         self.dataframe_calls: list[pd.DataFrame] = []
         self.secrets = {}
         self.button_sequence = button_sequence or []
@@ -83,7 +91,18 @@ class DummyStreamlit:
     def title(self, *a, **k):
         pass
 
-    header = subheader = error = write = warning = caption = title
+    def header(self, *a, **k):
+        pass
+
+    subheader = header
+    write = header
+    caption = header
+
+    def warning(self, msg, *a, **k):
+        self.warning_messages.append(msg)
+
+    def error(self, msg, *a, **k):
+        self.error_messages.append(msg)
 
     def info(self, msg, *a, **k):
         self.info_messages.append(msg)
@@ -169,6 +188,7 @@ def run_app(
     monkeypatch,
     button_sequence: list[set[str]] | None = None,
     pre_state: dict[str, object] | None = None,
+    postprocess_runner: Callable[..., Any] | None = None,
 ):
     st = DummyStreamlit(button_sequence or [{"Generate PIT"}])
     monkeypatch.setitem(sys.modules, "streamlit", st)
@@ -235,10 +255,6 @@ def run_app(
     called: dict[str, object] = {}
 
     def fake_runner(tpl, df, process_guid, *args, **kwargs):
-        called["run"] = True
-        called["runs"] = called.get("runs", 0) + 1
-        called["guid"] = process_guid
-        called["flag_on_call"] = st.session_state.get("postprocess_running")
         payload = {
             "p": 1,
             "CLIENT_DEST_SITE": "https://tenant.sharepoint.com/sites/demo",
@@ -248,9 +264,23 @@ def run_app(
         }
         return ["ok"], payload, None
 
+    runner_fn = postprocess_runner or fake_runner
+
+    def instrumented_runner(tpl, df, process_guid, *args, **kwargs):
+        called["runs"] = called.get("runs", 0) + 1
+        called["guid"] = process_guid
+        called["flag_on_call"] = st.session_state.get("postprocess_running")
+        try:
+            result = runner_fn(tpl, df, process_guid, *args, **kwargs)
+        except Exception:
+            called["run_error"] = True
+            raise
+        called["run"] = True
+        return result
+
     monkeypatch.setattr(
         "app_utils.postprocess_runner.run_postprocess_if_configured",
-        fake_runner,
+        instrumented_runner,
     )
     tpl_path = Path("templates/pit-bid.json")
     tpl_data = json.loads(tpl_path.read_text())
@@ -388,3 +418,22 @@ def test_sharepoint_link_after_preview(monkeypatch):
 
     run_app(monkeypatch)
     assert order[-2:] == ["dataframe", "link_button"]
+
+
+def test_postprocess_timeout_error(monkeypatch):
+    from app_utils.postprocess_runner import PostprocessTimeoutError
+
+    def failing_runner(*args, **kwargs):
+        raise PostprocessTimeoutError("waited too long")
+
+    called, state, st = run_app(
+        monkeypatch,
+        postprocess_runner=failing_runner,
+    )
+
+    assert called.get("run_error") is True
+    assert state.get("postprocess_running") is False
+    assert not state.get("export_complete")
+    assert any("timed out" in msg.lower() for msg in st.error_messages)
+    logs = state.get("postprocess_logs")
+    assert isinstance(logs, list) and any("waited" in log.lower() for log in logs)
