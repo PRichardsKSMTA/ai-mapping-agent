@@ -13,7 +13,6 @@ import pandas as pd
 from schemas.template_v2 import PostprocessSpec, Template
 from app_utils.dataframe_transform import apply_header_mappings
 from app_utils.azure_sql import (
-    POSTPROCESS_TIMEOUT_FLOW_ENV,
     PostprocessTimeoutError,
     get_pit_url_payload,
     get_postprocess_timeout_flow_url,

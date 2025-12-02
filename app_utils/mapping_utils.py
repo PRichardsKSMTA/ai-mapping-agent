@@ -192,14 +192,19 @@ def _token_similarity(a: Set[str], b: Set[str]) -> float:
 def suggest_header_mapping(template_fields: list[str], source_columns: list[str]):
     """Return fuzzy header suggestions with confidence scores."""
 
+    # Fields that should *never* auto-map (same behavior as ADHOC slots)
+    blocked: Set[str] = {"LH Rate", "Freight Type"}
+
     out: dict[str, dict[str, float]] = {}
     lower_map = {c.lower(): c for c in source_columns}
     lower_list = list(lower_map.keys())
 
     for tf in template_fields:
-        if tf.startswith("ADHOC"):
+        # Skip autodetection for ADHOC + blocked fields
+        if tf.startswith("ADHOC") or tf in blocked:
             out[tf] = {}
             continue
+
         matches = get_close_matches(tf.lower(), lower_list, n=1, cutoff=0)
         if matches:
             best_lower = matches[0]

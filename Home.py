@@ -41,6 +41,7 @@ from app_utils.azure_sql import (
     get_operational_scac,
     insert_pit_bid_rows,
 )
+from app_utils.azure_blob import upload_fileobj, build_rfp_blob_path
 from app_utils import azure_sql
 from app_utils.template_builder import slugify
 from schemas.template_v2 import Template
@@ -139,9 +140,9 @@ def remove_template_manager_page() -> None:
 @require_login
 def main():
     remove_template_manager_page()
-    st.set_page_config(page_title="AI Mapping Agent", layout="wide")
+    st.set_page_config(page_title="FreightMath RFP Automation", layout="wide")
     apply_global_css()
-    st.title("AI Mapping Agent")
+    st.title("FreightMath RFP Automation")
     user_email = get_user_email()
     if user_email and hasattr(st, "caption"):
         st.caption(f"Signed in as {user_email}")
@@ -279,8 +280,34 @@ def main():
         st.rerun()
 
     # ---------------------------------------------------------------------------
-    # 3. Upload & sheet selection
+    # 3. Upload & sheet selection  (with Azure Blob archive; op-code aware, no URL shown)
     # ---------------------------------------------------------------------------
+
+    def _resolve_operation_cd() -> str:
+        """
+        Try multiple well-known session keys for the selected operation code.
+        Normalize to UPPER_SNAKE-ish and return a non-empty string or '' if not found.
+        """
+        candidates = [
+            "operation_cd",
+            "operation_code",
+            "selected_operation",
+            "selected_operation_cd",
+            "op_cd",
+            "op_code",
+            "operation",  # fallback if you store it here
+        ]
+        val = None
+        for key in candidates:
+            v = st.session_state.get(key)
+            if v:
+                val = str(v).strip()
+                break
+        if not val:
+            return ""
+        import re
+        val = re.sub(r"[^A-Za-z0-9._-]+", "_", val).upper()
+        return val
 
     with section_card("Upload", ""):
         render_required_label("Upload client data file (Excel or CSV)")
@@ -290,8 +317,68 @@ def main():
             key=st.session_state["upload_data_file_key"],
             label_visibility="collapsed",
         )
+
     if uploaded_file:
+        # Keep the uploaded file in session for downstream steps
         st.session_state["uploaded_file"] = uploaded_file
+
+        # ---- Archive to Azure Blob exactly once per selected file ----
+        file_sig = f"{uploaded_file.name}:{getattr(uploaded_file, 'size', 0)}"
+        if st.session_state.get("_last_archived_file_sig") != file_sig:
+            import re
+            try:
+                # Resolve operation code
+                operation_cd = _resolve_operation_cd()
+                if not operation_cd:
+                    st.error(
+                        "Operation code is not set yet. Select an operation before uploading to archive the file."
+                    )
+                    raise RuntimeError("Missing operation code in session")
+
+                # Optional: template name for metadata
+                template_name = (
+                    (st.session_state.get("template") or {}).get("template_name")
+                    or st.session_state.get("current_template")
+                    or ""
+                )
+
+                # Get the signed-in user email (imported at module top)
+                try:
+                    uploaded_by = get_user_email() or "unknown"
+                except Exception:
+                    uploaded_by = "unknown"
+
+                # Build canonical blob path and metadata (no process_guid)
+                blob_path = build_rfp_blob_path(
+                    operation_cd=operation_cd,
+                    original_filename=uploaded_file.name,
+                )
+                metadata = {
+                    "uploaded_by": str(uploaded_by),
+                    "operation_cd": str(operation_cd),
+                    "template_name": str(template_name),
+                    "source_filename": str(uploaded_file.name),
+                }
+
+                # Stream directly to Azure Blob
+                blob_url = upload_fileobj(
+                    uploaded_file,
+                    blob_path=blob_path,
+                    content_type=getattr(uploaded_file, "type", None) or None,
+                    metadata=metadata,
+                )
+                st.session_state["rfp_blob_url"] = blob_url
+                st.session_state["_last_archived_file_sig"] = file_sig
+
+                # ✅ No message shown to user about the blob URL
+                # (Internal storage only)
+            except Exception as ex:
+                if str(ex).startswith("Missing operation code"):
+                    st.info("File was not archived because no operation code was selected yet.")
+                else:
+                    st.warning(f"File archive skipped due to an error: {ex}")
+
+        # ---- Proceed to read sheets after archiving attempt ----
         with st.spinner("Reading file..."):
             sheets = list_sheets(uploaded_file)
         st.session_state["upload_sheets"] = sheets

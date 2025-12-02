@@ -15,3 +15,5 @@ streamlit-tags
 msal-streamlit-authentication
 msal_streamlit_t2
 streamlit-javascript
+azure-storage-blob
+requests

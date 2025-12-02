@@ -237,7 +237,7 @@ def fetch_operation_codes(email: str | None = None) -> List[str]:
     placeholders = ",".join("?" for _ in emails)
     query = (
         "SELECT DISTINCT OPERATION_CD FROM dbo.V_O365_MEMBER_OPERATIONS "
-        f"WHERE EMAIL IN ({placeholders}) AND PIT_REFRESH = 1"
+        f"WHERE EMAIL IN ({placeholders})"
     )
     try:
         conn = _connect()

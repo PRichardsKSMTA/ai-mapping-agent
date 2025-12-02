@@ -198,16 +198,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "\nLane ID",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Rate ID"
-    ],
-    "display": "Rate ID"
-  },
-  {
-    "template": "PIT BID",
     "field": "Dest\nState",
     "type": "direct",
     "formula": null,
@@ -215,36 +205,6 @@
       "Destination State/Province"
     ],
     "display": "Destination State/Province"
-  },
-  {
-    "template": "PIT BID",
-    "field": "\nLH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Rate ID"
-    ],
-    "display": "Rate ID"
-  },
-  {
-    "template": "PIT BID",
-    "field": "\nLH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Linehaul Rate per Mile (excl. Fuel)"
-    ],
-    "display": "Linehaul Rate per Mile (excl. Fuel)"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Lane ID",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Rate ID"
-    ],
-    "display": "Rate ID"
   },
   {
     "template": "PIT BID",
@@ -306,18 +266,7 @@
     ],
     "display": "Destination End Postal Code"
   },
-  {
-    "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Rate ID"
-    ],
-    "display": "Rate ID"
-  },
-  {
-    "template": "PIT BID",
+  {  "template": "PIT BID",
     "field": "Lane ID",
     "type": "direct",
     "formula": null,
@@ -326,18 +275,7 @@
     ],
     "display": "ID"
   },
-  {
-    "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Linehaul Rate per Mile (excl. Fuel)"
-    ],
-    "display": "Linehaul Rate per Mile (excl. Fuel)"
-  },
-  {
-    "template": "PIT BID",
+  {  "template": "PIT BID",
     "field": "Bid Miles",
     "type": "direct",
     "formula": null,
@@ -345,16 +283,6 @@
       "Distance (mi)"
     ],
     "display": "Distance (mi)"
-  },
-  {
-    "template": "BiD_PIt",
-    "field": "LH\nFlat Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "1603214684"
-    ],
-    "display": "1603214684"
   },
   {
     "template": "BiD_PIt",
@@ -435,18 +363,7 @@
     ],
     "display": "Est. Annual Volume need bids"
   },
-  {
-    "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Bid 1 - Line Haul Cost Per Mile(USD/Mile)*"
-    ],
-    "display": "Bid 1 - Line Haul Cost Per Mile(USD/Mile)*"
-  },
-  {
-    "template": "PIT BID",
+  {  "template": "PIT BID",
     "field": "Bid Miles",
     "type": "direct",
     "formula": null,
@@ -555,17 +472,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Bid 1 - Line Haul Cost Per Mile(USD/Mile)*"
-    ],
-    "display": "Bid 1 - Line Haul Cost Per Mile(USD/Mile)*",
-    "header_id": "bcf296cb"
-  },
-  {
-    "template": "PIT BID",
     "field": "Bid Miles",
     "type": "direct",
     "formula": null,
@@ -584,37 +490,6 @@
       "GL_ID"
     ],
     "display": "GL_ID",
-    "header_id": "d3cae5ed"
-  },
-  {
-    "template": "Standard COA",
-    "field": "DETAIL_LEVEL",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "DETAIL_LEVEL"
-    ],
-    "display": "DETAIL_LEVEL",
-    "header_id": "d3cae5ed"
-  },
-  {
-    "template": "Standard COA",
-    "field": "GL_NAME",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "GL_NAME"
-    ],
-    "display": "GL_NAME",
-    "header_id": "d3cae5ed"
-  },
-  {
-    "template": "Standard COA",
-    "field": "NET_CHANGE",
-    "type": "formula",
-    "formula": "df['2025-05-01']  -  df['2025-04-01']",
-    "columns": [],
-    "display": "2025-05-01  -  2025-04-01",
     "header_id": "d3cae5ed"
   },
   {
@@ -707,17 +582,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Linehaul Rate per Mile (excl. Fuel)"
-    ],
-    "display": "Linehaul Rate per Mile (excl. Fuel)",
-    "header_id": "ed64196f"
-  },
-  {
-    "template": "PIT BID",
     "field": "Bid Miles",
     "type": "direct",
     "formula": null,
@@ -748,17 +612,6 @@
     ],
     "display": "Origin Company",
     "header_id": "bcf296cb"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Freight Type",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Equipment"
-    ],
-    "display": "Equipment",
-    "header_id": "ed64196f"
   },
   {
     "template": "PIT BID",
@@ -828,17 +681,6 @@
   },
   {
     "template": "PIT BID",
-    "field": "Freight Type",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Mode"
-    ],
-    "display": "Mode",
-    "header_id": "dcd0231f"
-  },
-  {
-    "template": "PIT BID",
     "field": "Bid Volume",
     "type": "direct",
     "formula": null,
@@ -846,17 +688,6 @@
       "Annual Volume"
     ],
     "display": "Annual Volume",
-    "header_id": "dcd0231f"
-  },
-  {
-    "template": "PIT BID",
-    "field": "LH Rate",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Target Rate"
-    ],
-    "display": "Target Rate",
     "header_id": "dcd0231f"
   },
   {
@@ -1044,17 +875,6 @@
       "HHG Miles Version 19 SM"
     ],
     "display": "HHG Miles Version 19 SM",
-    "header_id": "837981a4"
-  },
-  {
-    "template": "PIT BID",
-    "field": "Freight Type",
-    "type": "direct",
-    "formula": null,
-    "columns": [
-      "Move Type"
-    ],
-    "display": "Move Type",
     "header_id": "837981a4"
   },
   {

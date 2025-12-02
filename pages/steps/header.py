@@ -6,7 +6,7 @@ from pathlib import Path
 from schemas.template_v2 import FieldSpec, Template
 from app_utils.excel_utils import read_tabular_file, save_mapped_csv
 from app_utils.mapping_utils import suggest_header_mapping
-from app_utils.suggestion_store import get_suggestions, add_suggestion, remove_suggestion
+from app_utils.suggestion_store import get_suggestions, add_suggestion
 import re
 from app_utils.mapping.header_layer import apply_gpt_header_fallback
 from app_utils.mapping.exporter import build_output_template
@@ -33,6 +33,10 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# Fields that should behave like ADHOC: never auto-map and never persist suggestions
+BLOCKED_FIELDS = {"LH Rate", "Freight Type"}
+
 
 # ─── Main render function ─────────────────────────────────────────────
 def render(layer, idx: int) -> None:
@@ -68,6 +72,8 @@ def render(layer, idx: int) -> None:
     required_keys = [f.key for f in layer.fields if f.required]
     adhoc_keys = [f.key for f in layer.fields if f.key.startswith("ADHOC_INFO")]
     optional_keys = [f.key for f in layer.fields if not f.required]
+    blocked_keys = [f.key for f in layer.fields if f.key in BLOCKED_FIELDS]
+
     map_key = f"header_mapping_{idx}"
     sheet_key = f"header_sheet_{idx}"
     cols_key = f"header_cols_{idx}"
@@ -78,19 +84,16 @@ def render(layer, idx: int) -> None:
         or st.session_state.get(cols_key) != cols_hash
     ):
         auto = suggest_header_mapping([f.key for f in layer.fields], source_cols)
-        for k in adhoc_keys:
-            auto.setdefault(k, {})
+        # Force ADHOC + blocked fields to start empty
+        for k in adhoc_keys + blocked_keys:
+            auto[k] = {}
         st.session_state[map_key] = auto
         st.session_state[sheet_key] = sheet_name
         st.session_state[cols_key] = cols_hash
         st.session_state.pop(f"header_ai_done_{idx}", None)
-        st.session_state["header_adhoc_headers"] = {}
-        st.session_state["header_adhoc_autogen"] = {}
     else:
         st.session_state[cols_key] = cols_hash
     mapping = st.session_state[map_key]
-    for k in adhoc_keys:
-        mapping.setdefault(k, {})
 
     # List of user-added fields
     extra_key = f"header_extra_fields_{idx}"
@@ -100,29 +103,27 @@ def render(layer, idx: int) -> None:
         if isinstance(v, str):
             mapping[k] = {"src": v}
 
+    # ── Apply historical suggestions, but skip blocked fields ─────────
     for field in layer.fields:  # type: ignore
         key = field.key
-        if key.startswith("ADHOC_INFO"):
+        if key in BLOCKED_FIELDS:
             continue
 
-        # Only apply suggestions if no mapping yet
-        if not mapping.get(key, {}).get("src") and not mapping.get(key, {}).get("expr"):
-            for s in get_suggestions(
-                st.session_state["current_template"], key, headers=source_cols
-            ):
-                if s["type"] == "direct":
-                    for col in source_cols:
-                        if col.lower() == s["columns"][0].lower():
-                            mapping[key] = {"src": col, "confidence": 1.0}
-                            break
-                    if mapping.get(key):
+        for s in get_suggestions(
+            st.session_state["current_template"], key, headers=source_cols
+        ):
+            if s["type"] == "direct":
+                for col in source_cols:
+                    if col.lower() == s["columns"][0].lower():
+                        mapping[key] = {"src": col, "confidence": 1.0}
                         break
-                else:  # formula suggestion
-                    mapping[key] = {
-                        "expr": s["formula"],
-                        "expr_display": s["display"],
-                    }
+                if mapping.get(key):
                     break
+            else:  # formula suggestion
+                mapping[key] = {
+                    "expr": s["formula"],
+                    "expr_display": s["display"],
+                }
 
     ai_flag = f"header_ai_done_{idx}"
     if not st.session_state.get(ai_flag):
@@ -135,7 +136,11 @@ def render(layer, idx: int) -> None:
                 and not mapping.get(k, {}).get("expr")
             ]
             targets = required_unmapped or [
-                k for k, v in mapping.items() if not v.get("src") and not v.get("expr")
+                k
+                for k, v in mapping.items()
+                if not v.get("src")
+                and not v.get("expr")
+                and k not in BLOCKED_FIELDS  # GPT must not fill blocked fields
             ]
             mapping = apply_gpt_header_fallback(
                 mapping, source_cols, targets=targets
@@ -145,7 +150,7 @@ def render(layer, idx: int) -> None:
         if mapping != before:
             st.rerun()
 
-    st.caption("• ✅ mapped  • ⚙️ calculated  • ❌ required & missing")
+    st.caption("• ✅ mapped  • 🛈 suggested  • ❌ required & missing")
 
     all_fields = list(layer.fields) + [FieldSpec(key=f) for f in extra_fields]
     adhoc_labels = st.session_state.setdefault("header_adhoc_headers", {})
@@ -155,25 +160,7 @@ def render(layer, idx: int) -> None:
         # Source | ⚙ | Expr | Template | Status | 🗑️
         row = st.columns([3, 1, 4, 3, 1, 1])
 
-        reset_flag = f"reset_src_{key}"
-        if st.session_state.pop(reset_flag, False):
-            set_field_mapping(key, idx, {})
-            st.session_state[f"src_{key}"] = ""
-            if not key.startswith("ADHOC_INFO"):
-                remove_suggestion(
-                    st.session_state["current_template"], key, suggestion_type=None
-                )
-            if key.startswith("ADHOC_INFO"):
-                match = re.findall(r"\d+", key)
-                default = f"AdHoc{match[0] if match else ''}"
-                adhoc_labels[key] = default
-                adhoc_autogen[key] = True
-                st.session_state[f"adhoc_label_{key}"] = default
-
         # ── Source dropdown ──────────────────────────────────────────────
-        if st.session_state.pop(f"clear_src_{key}", False):
-            st.session_state.pop(f"src_{key}", None)
-
         src_val = mapping.get(key, {}).get("src", "")
         new_src = row[0].selectbox(
             f"src_{key}",
@@ -182,9 +169,11 @@ def render(layer, idx: int) -> None:
             key=f"src_{key}",
             label_visibility="collapsed",
         )
-        if new_src and not mapping.get(key, {}).get("expr"):
+        if new_src:
             set_field_mapping(key, idx, {"src": new_src})  # user override
-            if not key.startswith("ADHOC_INFO"):
+
+            # Only record suggestions for non-blocked, non-ADHOC fields
+            if key not in BLOCKED_FIELDS and not key.startswith("ADHOC_INFO"):
                 add_suggestion(
                     {
                         "template": st.session_state["current_template"],
@@ -196,6 +185,7 @@ def render(layer, idx: int) -> None:
                     },
                     headers=source_cols,
                 )
+
             if key.startswith("ADHOC_INFO"):
                 match = re.findall(r"\d+", key)
                 default = f"AdHoc{match[0] if match else ''}"
@@ -223,9 +213,9 @@ def render(layer, idx: int) -> None:
             expr = st.session_state.pop(res_key)
             display = st.session_state.pop(res_disp_key, "")
             set_field_mapping(key, idx, {"expr": expr, "expr_display": display})
-            mapping.get(key, {}).pop("src", None)
 
-            if not key.startswith("ADHOC_INFO"):
+            # Only record suggestions for non-blocked, non-ADHOC fields
+            if key not in BLOCKED_FIELDS and not key.startswith("ADHOC_INFO"):
                 add_suggestion(
                     {
                         "template": st.session_state["current_template"],
@@ -237,9 +227,6 @@ def render(layer, idx: int) -> None:
                     },
                     headers=source_cols,
                 )
-
-            st.session_state[f"clear_src_{key}"] = True
-            st.rerun()
 
         # ── Expression / confidence cell ────────────────────────────────
         expr_disp = mapping.get(key, {}).get("expr_display") or mapping.get(key, {}).get("expr")
@@ -296,14 +283,10 @@ def render(layer, idx: int) -> None:
         )
         row[4].markdown(status)
 
-        # ── Field actions (delete or reset) ────────────────────────────
+        # ── Delete button for user-added fields ────────────────────────
         if key in extra_fields:
             if row[5].button("🗑️", key=f"del_{key}", help="Remove field"):
                 remove_field(key, idx)
-                st.rerun()
-        elif key.startswith("ADHOC_INFO"):
-            if row[5].button("↺", key=f"reset_{key}", help="Reset to default"):
-                st.session_state[reset_flag] = True
                 st.rerun()
         else:
             row[5].markdown("")
@@ -335,9 +318,16 @@ def render(layer, idx: int) -> None:
             else True
         )
         for f in layer.fields  # type: ignore
+        if f.key not in BLOCKED_FIELDS  # blocked fields are effectively optional
     )
+
     if st.button("Confirm Header Mapping", disabled=not ready, key=f"confirm_{idx}", type="primary"):
-        persist_suggestions_from_mapping(layer, mapping, source_cols)
+        # Filter out blocked fields when persisting suggestions so we never
+        # record history for LH Rate / Freight Type.
+        filtered_mapping = {
+            k: v for k, v in mapping.items() if k not in BLOCKED_FIELDS
+        }
+        persist_suggestions_from_mapping(layer, filtered_mapping, source_cols)
         st.session_state[f"layer_confirmed_{idx}"] = True
         st.rerun()
 
