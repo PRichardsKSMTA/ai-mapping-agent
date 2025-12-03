@@ -223,10 +223,14 @@ def fetch_operation_codes(email: str | None = None) -> List[str]:
     """Return sorted operation codes for a user email.
 
     Falls back to the demo user when ``email`` is ``None``.
-    """
+    """    
+    alias: str | None = None
+    
+    if email.lower() == "travis.nelson@xtremetrucking.com":
+        alias = "travis@xtremetrucking.com"
+    
     local_part, _, domain = email.partition("@")
     domain = domain.lower()
-    alias: str | None = None
     if domain == "ksmcpa.com":
         alias = f"{local_part}@ksmta.com"
     elif domain == "ksmta.com":
